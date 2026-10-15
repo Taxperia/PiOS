@@ -149,7 +149,8 @@ Depends:
  apt,
  gpgv,
  libnotify-bin,
- policykit-1
+ pkexec,
+ polkitd
 Description: Project Fidan signed GitHub release updater
  Checks GitHub every six hours and automatically updates installed PiOS
  packages covered by a trusted GPG signature and SHA-256 checksums.
@@ -186,11 +187,12 @@ Depends:
  wireplumber,
  power-profiles-daemon,
  brightnessctl,
- rpd-preferences,
- policykit-1,
+ pkexec,
+ polkitd,
  lxqt-policykit,
  unattended-upgrades,
  openssh-server
+Suggests: rpd-preferences
 Description: Project Fidan lightweight desktop metapackage
  Installs the complete Project Fidan alpha desktop and its lightweight default
  application set for Raspberry Pi 5.
