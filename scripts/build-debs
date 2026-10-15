@@ -6,8 +6,11 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 stage_dir=$(mktemp -d)
 trap 'rm -rf "$stage_dir"' EXIT INT TERM
 
-cp -a "$repo_dir/." "$stage_dir/source"
-rm -rf "$stage_dir/source/.git" "$stage_dir/source/build" "$stage_dir/source/debian"
+mkdir -p "$stage_dir/source"
+tar -C "$repo_dir" --exclude='./.git' --exclude='./build' --exclude='./build-*' \
+    --exclude='./.cache' --exclude='./artifacts' --exclude='./dist' --exclude='./release' \
+    --exclude='./image/work' --exclude='./image/output' -cf - . | tar -C "$stage_dir/source" -xf -
+rm -rf "$stage_dir/source/debian"
 cp -a "$stage_dir/source/packaging/debian" "$stage_dir/source/debian"
 # DrvFs can expose every file as executable when this repository is built
 # from WSL. Debhelper treats executable *.install files as programs.

@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Check, download and install signed Project Fidan GitHub releases."""
-
+"""Check GitHub, verify signed PiOS releases and update installed PiOS packages."""
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -14,195 +14,292 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
+
+PACKAGE = re.compile(r'fidan-[a-z0-9+.-]+')
+TAG = re.compile(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:alpha|beta|rc)\.[0-9]+)?')
 
 
-def product_manifest() -> dict:
-    candidates = [Path("/usr/share/fidan/product.json"), Path(__file__).resolve().parents[1] / "config/product.json"]
-    for candidate in candidates:
-        if candidate.is_file():
-            return json.loads(candidate.read_text(encoding="utf-8"))
-    raise RuntimeError("Product manifest is missing")
+def product_manifest():
+    for path in (Path('/usr/share/fidan/product.json'), Path(__file__).resolve().parents[1] / 'config/product.json'):
+        if path.is_file():
+            return json.loads(path.read_text(encoding='utf-8'))
+    raise RuntimeError('Product manifest is missing')
 
 
-def request_json(url: str):
-    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "Project-Fidan-Updater/1"})
-    with urllib.request.urlopen(request, timeout=20) as response:
+def request_json(url):
+    request = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'PiOS-Updater/2'})
+    with urllib.request.urlopen(request, timeout=30) as response:
         return json.load(response)
 
 
-def download(url: str, target: Path) -> None:
-    request = urllib.request.Request(url, headers={"User-Agent": "Project-Fidan-Updater/1"})
-    partial = target.with_suffix(target.suffix + ".part")
-    with urllib.request.urlopen(request, timeout=60) as response, partial.open("wb") as output:
-        shutil.copyfileobj(response, output)
-    partial.replace(target)
+def download(url, target):
+    parsed = urlsplit(url)
+    if parsed.scheme != 'https' or parsed.hostname != 'github.com':
+        raise RuntimeError('Release assets must use HTTPS on github.com')
+    partial = target.with_name(target.name + '.part')
+    try:
+        request = urllib.request.Request(url, headers={'User-Agent': 'PiOS-Updater/2'})
+        with urllib.request.urlopen(request, timeout=90) as response, partial.open('wb') as output:
+            shutil.copyfileobj(response, output)
+        partial.replace(target)
+    finally:
+        partial.unlink(missing_ok=True)
 
 
-def newer(installed: str, candidate: str) -> bool:
-    candidate = candidate.removeprefix("v").replace("-alpha.", "~alpha")
-    installed = installed.replace("-alpha.", "~alpha")
-    return subprocess.run(["dpkg", "--compare-versions", candidate, "gt", installed], check=False).returncode == 0
+def debian_version(version):
+    return re.sub(r'-(alpha|beta|rc)\.', r'~\1', version.removeprefix('v'))
 
 
-def notify(title: str, body: str) -> None:
-    executable = shutil.which("notify-send")
-    if executable:
+def newer(installed, candidate):
+    return subprocess.run(['dpkg', '--compare-versions', debian_version(candidate), 'gt', debian_version(installed)], check=False).returncode == 0
+
+
+def architecture():
+    return subprocess.check_output(['dpkg', '--print-architecture'], text=True).strip()
+
+
+def cache_root():
+    if os.geteuid() == 0:
+        return Path('/var/cache/fidan/updates')
+    return Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'fidan/updates'
+
+
+def notify(title, body):
+    if executable := shutil.which('notify-send'):
         subprocess.run([executable, title, body], check=False)
 
 
-def latest_release(product: dict) -> dict:
-    releases = request_json(f"https://api.github.com/repos/{product['githubRepo']}/releases?per_page=30")
+def automatic_enabled():
+    if not shutil.which('systemctl'):
+        return False
+    return subprocess.run(['systemctl', 'is-enabled', '--quiet', 'fidan-auto-update.timer'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
+def latest_release(product):
+    releases = request_json(f"https://api.github.com/repos/{product['githubRepo']}/releases?per_page=100")
     if not isinstance(releases, list):
-        raise RuntimeError("GitHub returned an invalid release list")
-    channel = product.get("channel", "stable")
+        raise RuntimeError('GitHub returned an invalid release list')
+    channel = product.get('channel', 'stable')
+    candidates = []
     for release in releases:
-        if not isinstance(release, dict) or release.get("draft"):
+        if not isinstance(release, dict) or release.get('draft') or not TAG.fullmatch(str(release.get('tag_name', ''))):
             continue
-        tag = str(release.get("tag_name", "")).lower()
-        if channel == "stable":
-            if not release.get("prerelease"):
-                return release
-        elif release.get("prerelease") and re.search(rf"[-~]{re.escape(channel)}(?:[.-]|$)", tag):
-            return release
-    raise RuntimeError(f"No published {channel} release was found")
+        tag = release['tag_name']
+        if not release.get('prerelease') and '-' not in tag:
+            candidates.append(release)
+        elif channel != 'stable' and re.search(rf'-{re.escape(channel)}\.', tag):
+            candidates.append(release)
+    latest = None
+    for candidate in candidates:
+        if latest is None or newer(latest['tag_name'], candidate['tag_name']):
+            latest = candidate
+    return latest
 
 
-def command_check(product: dict, show_notification: bool) -> int:
-    release = latest_release(product)
-    tag = release.get("tag_name", "")
-    available = bool(tag) and newer(product["version"], tag)
-    print(json.dumps({"installed": product["version"], "latest": tag.removeprefix("v"),
-                      "updateAvailable": available, "url": release.get("html_url", "")}, ensure_ascii=False))
-    if show_notification and available:
-        notify("Project Fidan update available", f"{tag} is ready. Run: fidan-update download")
-    return 0
+def asset_map(release, product):
+    expected = f"https://github.com/{product['githubRepo']}/releases/download/{release['tag_name']}/"
+    return {a['name']: a['browser_download_url'] for a in release.get('assets', [])
+            if isinstance(a, dict) and isinstance(a.get('name'), str) and '/' not in a['name']
+            and isinstance(a.get('browser_download_url'), str) and a['browser_download_url'].startswith(expected)}
 
 
-def asset_map(release: dict) -> dict[str, str]:
-    return {asset["name"]: asset["browser_download_url"] for asset in release.get("assets", [])
-            if isinstance(asset, dict) and asset.get("name") and asset.get("browser_download_url")}
-
-
-def verified_checksums(directory: Path, keyring: Path) -> dict[str, str]:
+def verified_checksums(directory, keyring):
     if not keyring.is_file():
-        raise RuntimeError(f"Release keyring is not installed: {keyring}")
-    if not shutil.which("gpgv"):
-        raise RuntimeError("gpgv is required to verify release signatures")
-    checksums = directory / "SHA256SUMS"
-    signature = directory / "SHA256SUMS.asc"
-    if not checksums.is_file() or not signature.is_file():
-        raise RuntimeError("The signed checksum files are missing")
-    subprocess.run(["gpgv", "--keyring", str(keyring), str(signature), str(checksums)], check=True)
-    expected: dict[str, str] = {}
-    for line in checksums.read_text(encoding="utf-8").splitlines():
-        match = re.fullmatch(r"([0-9a-fA-F]{64})\s+\*?([^/]+)", line.strip())
-        if match:
-            expected[match.group(2)] = match.group(1).lower()
-    return expected
+        raise RuntimeError(f'Release trust key is missing: {keyring}')
+    subprocess.run(['gpgv', '--keyring', str(keyring), str(directory / 'SHA256SUMS.asc'), str(directory / 'SHA256SUMS')], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    checksums = {}
+    for line in (directory / 'SHA256SUMS').read_text(encoding='utf-8').splitlines():
+        match = re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9._+~:-]*)', line)
+        if not match or match[2] in checksums:
+            raise RuntimeError('The signed checksum list is invalid')
+        checksums[match[2]] = match[1]
+    return checksums
 
 
-def command_download(product: dict) -> int:
+def verified_manifest(directory, product):
+    expected = verified_checksums(directory, Path(product['updateKeyring']))
+    data = (directory / 'release.json').read_bytes()
+    if hashlib.sha256(data).hexdigest() != expected.get('release.json'):
+        raise RuntimeError('Release manifest checksum verification failed')
+    manifest = json.loads(data)
+    tag = manifest.get('tag', '')
+    if manifest.get('schema') != 1 or manifest.get('repository') != product['githubRepo'] or not TAG.fullmatch(tag):
+        raise RuntimeError('Release manifest identity is invalid')
+    if manifest.get('version') != tag.removeprefix('v'):
+        raise RuntimeError('Release manifest version is invalid')
+    version = manifest.get('debianVersion', '')
+    if version != debian_version(tag) + '-1':
+        raise RuntimeError('Release package version does not match its tag')
+    packages = manifest.get('packages')
+    if not isinstance(packages, list) or not packages:
+        raise RuntimeError('The release contains no packages')
+    seen = set()
+    for package in packages:
+        if not isinstance(package, dict):
+            raise RuntimeError('Invalid package entry')
+        name, package_id, arch = package.get('name', ''), package.get('package', ''), package.get('architecture', '')
+        if not PACKAGE.fullmatch(package_id) or package_id.endswith('-dbgsym') or arch not in ('all', 'amd64', 'arm64'):
+            raise RuntimeError('Invalid release package identity')
+        if name != f'{package_id}_{version}_{arch}.deb' or name in seen or expected.get(name) != package.get('sha256'):
+            raise RuntimeError('Invalid release package checksum or filename')
+        seen.add(name)
+    return manifest
+
+
+def compatible_packages(manifest):
+    arch = architecture()
+    packages = [p for p in manifest['packages'] if p['architecture'] in ('all', arch)]
+    if not any(p['architecture'] == arch for p in packages):
+        raise RuntimeError(f'This release has no packages for {arch}')
+    return packages
+
+
+def command_check(product, show_notification=False):
     release = latest_release(product)
-    tag = release.get("tag_name", "")
-    if not tag or not newer(product["version"], tag):
-        print("No newer release is available.")
-        return 0
-    assets = asset_map(release)
-    for required in ("SHA256SUMS", "SHA256SUMS.asc"):
-        if required not in assets:
-            raise RuntimeError(f"Release is missing {required}")
-    keyring = Path(product["updateKeyring"])
-    architecture = subprocess.check_output(["dpkg", "--print-architecture"], text=True).strip()
-    package_names = sorted(name for name in assets if name.startswith("fidan-") and name.endswith(".deb")
-                           and (name.endswith(f"_{architecture}.deb") or name.endswith("_all.deb")))
-    if not package_names:
-        raise RuntimeError(f"Release has no packages for {architecture}")
-    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "fidan" / "updates" / tag
-    cache.mkdir(parents=True, exist_ok=True)
-    download(assets["SHA256SUMS"], cache / "SHA256SUMS")
-    download(assets["SHA256SUMS.asc"], cache / "SHA256SUMS.asc")
-    expected = verified_checksums(cache, keyring)
-    for name in package_names:
-        if name not in expected:
-            raise RuntimeError(f"Signed checksum is missing for {name}")
-        target = cache / name
-        download(assets[name], target)
-        if hashlib.sha256(target.read_bytes()).hexdigest() != expected[name]:
-            target.unlink(missing_ok=True)
-            raise RuntimeError(f"Checksum verification failed for {name}")
-    (cache / "release.json").write_text(json.dumps({"tag": tag, "packages": package_names}), encoding="utf-8")
-    print(f"Verified update downloaded to {cache}")
-    print("Run 'fidan-update install' to approve installation.")
+    tag = release['tag_name'] if release else ''
+    available = bool(tag and newer(product['version'], tag))
+    assets = asset_map(release, product) if release else {}
+    installable = all(name in assets for name in ('release.json', 'SHA256SUMS', 'SHA256SUMS.asc'))
+    ready = bool(tag and (cache_root() / tag / 'ready.json').is_file())
+    print(json.dumps({'installed': product['version'], 'latest': tag.removeprefix('v'), 'updateAvailable': available,
+                      'installable': installable, 'downloaded': ready, 'automaticEnabled': automatic_enabled(),
+                      'url': release.get('html_url', '') if release else ''}, ensure_ascii=False))
+    if show_notification and available:
+        notify('PiOS güncellemesi', f'{tag} kullanılabilir. Ayarlar → Sistem bölümünü açın.')
     return 0
 
 
-def install_verified(product: dict, metadata_path: Path) -> int:
+def download_release(product):
+    release = latest_release(product)
+    if not release or not newer(product['version'], release['tag_name']):
+        return None
+    assets = asset_map(release, product)
+    directory = cache_root() / release['tag_name']
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    (directory / 'ready.json').unlink(missing_ok=True)
+    for name in ('SHA256SUMS', 'SHA256SUMS.asc', 'release.json'):
+        if name not in assets:
+            raise RuntimeError(f'Release is missing {name}')
+        download(assets[name], directory / name)
+    manifest = verified_manifest(directory, product)
+    if manifest['tag'] != release['tag_name']:
+        raise RuntimeError('Signed release tag differs from GitHub tag')
+    for package in compatible_packages(manifest):
+        name = package['name']
+        if name not in assets:
+            raise RuntimeError(f'Release is missing {name}')
+        target = directory / name
+        download(assets[name], target)
+        with target.open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        if digest != package['sha256']:
+            target.unlink(missing_ok=True)
+            raise RuntimeError(f'Checksum verification failed for {name}')
+    (directory / 'ready.json').write_text(json.dumps({'tag': manifest['tag']}), encoding='utf-8')
+    return directory
+
+
+def installed_version(package):
+    result = subprocess.run(['dpkg-query', '-W', '-f=${db:Status-Status}\t${Version}', package], capture_output=True, text=True, check=False)
+    status, _, version = result.stdout.partition('\t')
+    return version.strip() if result.returncode == 0 and status == 'installed' else ''
+
+
+def install_verified(product, source):
     if os.geteuid() != 0:
-        raise RuntimeError("The privileged installer must run as root")
-    metadata_path = metadata_path.resolve()
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    names = metadata.get("packages", [])
-    package_pattern = re.compile(r"fidan-[a-z0-9+.-]+_[a-zA-Z0-9.+:~-]+_(?:all|[a-z0-9]+)\.deb")
-    if not isinstance(names, list) or not names or any(
-            not isinstance(name, str) or not package_pattern.fullmatch(name) for name in names):
-        raise RuntimeError("The verified update metadata is invalid")
-    expected = verified_checksums(metadata_path.parent, Path(product["updateKeyring"]))
-    with tempfile.TemporaryDirectory(prefix="fidan-update-") as staging_name:
-        staging = Path(staging_name)
-        staged_packages = []
-        for name in names:
-            source = metadata_path.parent / name
-            if name not in expected or not source.is_file():
-                raise RuntimeError(f"The verified update is missing {name}")
-            package_data = source.read_bytes()
-            if hashlib.sha256(package_data).hexdigest() != expected[name]:
-                raise RuntimeError(f"Checksum verification failed for {name}")
-            target = staging / name
-            target.write_bytes(package_data)
-            if hashlib.sha256(target.read_bytes()).hexdigest() != expected[name]:
-                raise RuntimeError(f"Staging verification failed for {name}")
-            staged_packages.append(str(target))
-        return subprocess.run(["apt-get", "install", "-y", "--", *staged_packages], check=False).returncode
+        raise RuntimeError('The privileged installer must run as root')
+    source = source.resolve()
+    with tempfile.TemporaryDirectory(prefix='fidan-update-') as name:
+        staging = Path(name)
+        # Snapshot mutable metadata before verifying it as root.
+        for filename in ('SHA256SUMS', 'SHA256SUMS.asc', 'release.json'):
+            (staging / filename).write_bytes((source / filename).read_bytes())
+        manifest = verified_manifest(staging, product)
+        if not newer(product['version'], manifest['version']):
+            raise RuntimeError('Refusing an update that is not newer than the installed PiOS version')
+        selected = []
+        for package in compatible_packages(manifest):
+            current = installed_version(package['package'])
+            if not current:
+                continue
+            if not newer(current, manifest['debianVersion']):
+                if newer(manifest['debianVersion'], current):
+                    raise RuntimeError('Refusing to downgrade an installed PiOS package')
+                continue
+            target = staging / package['name']
+            shutil.copyfile(source / package['name'], target)
+            with target.open('rb') as stream:
+                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            if digest != package['sha256']:
+                raise RuntimeError(f"Checksum verification failed for {package['name']}")
+            fields = subprocess.check_output(['dpkg-deb', '-f', str(target), 'Package', 'Version', 'Architecture'], text=True)
+            actual = dict(line.split(': ', 1) for line in fields.splitlines())
+            if actual != {'Package': package['package'], 'Version': manifest['debianVersion'], 'Architecture': package['architecture']}:
+                raise RuntimeError('Debian package metadata differs from signed manifest')
+            selected.append(str(target))
+        if not selected:
+            raise RuntimeError('No installed PiOS Debian packages need this update')
+        env = dict(os.environ, DEBIAN_FRONTEND='noninteractive', NEEDRESTART_MODE='l')
+        return subprocess.run(['apt-get', '-o', 'Dpkg::Options::=--force-confold', 'install', '-y', '--no-remove', '--', *selected], env=env, check=False).returncode
 
 
-def command_install(product: dict) -> int:
-    root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "fidan" / "updates"
-    releases = sorted((path for path in root.glob("*/release.json") if path.is_file()), key=lambda path: path.stat().st_mtime)
-    if not releases:
-        raise RuntimeError("No verified update has been downloaded")
-    metadata_path = releases[-1]
+def command_install(product):
+    candidates = list(cache_root().glob('v*/ready.json'))
+    if not candidates:
+        raise RuntimeError('No verified update has been downloaded')
+    latest = candidates[0].parent
+    for candidate in candidates[1:]:
+        if newer(latest.name, candidate.parent.name):
+            latest = candidate.parent
     if os.geteuid() == 0:
-        return install_verified(product, metadata_path)
-    pkexec = shutil.which("pkexec")
-    if not pkexec:
-        raise RuntimeError("pkexec is required to authorize installation")
-    return subprocess.run([pkexec, str(Path(__file__).resolve()), "_install-verified",
-                           str(metadata_path.resolve())], check=False).returncode
+        return install_verified(product, latest)
+    return subprocess.run(['pkexec', str(Path(__file__).resolve()), '_install-verified', str(latest)], check=False).returncode
 
 
-def main() -> int:
+def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    commands = parser.add_subparsers(dest="command", required=True)
-    check = commands.add_parser("check", help="check GitHub for a newer signed release")
-    check.add_argument("--notify", action="store_true")
-    commands.add_parser("download", help="download and verify release packages")
-    commands.add_parser("install", help="install the last verified download after authorization")
-    privileged = commands.add_parser("_install-verified", help=argparse.SUPPRESS)
-    privileged.add_argument("metadata", type=Path)
+    commands = parser.add_subparsers(dest='command', required=True)
+    check = commands.add_parser('check'); check.add_argument('--notify', action='store_true')
+    commands.add_parser('download')
+    commands.add_parser('install')
+    commands.add_parser('auto', help='As root, download and install newer signed releases for installed PiOS packages')
+    configure = commands.add_parser('configure', help='Enable or disable automatic updates after authorization')
+    configure.add_argument('state', choices=('on', 'off'))
+    internal = commands.add_parser('_install-verified', help=argparse.SUPPRESS); internal.add_argument('directory', type=Path)
     arguments = parser.parse_args()
     try:
         product = product_manifest()
-        if arguments.command == "check":
+        if arguments.command == 'configure':
+            if os.geteuid() != 0:
+                return subprocess.run(['pkexec', str(Path(__file__).resolve()), 'configure', arguments.state], check=False).returncode
+            return subprocess.run(['systemctl', 'enable' if arguments.state == 'on' else 'disable', '--now', 'fidan-auto-update.timer'], check=False).returncode
+        lock = None
+        if arguments.command in ('auto', 'install', '_install-verified') and os.geteuid() == 0:
+            runtime = Path('/run/fidan-update')
+            runtime.mkdir(mode=0o700, exist_ok=True)
+            if runtime.is_symlink() or runtime.stat().st_uid != 0 or runtime.stat().st_mode & 0o022:
+                raise RuntimeError('The updater runtime directory is not root-owned and private')
+            lock = (runtime / 'update.lock').open('w')
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if arguments.command == 'check':
             return command_check(product, arguments.notify)
-        if arguments.command == "download":
-            return command_download(product)
-        if arguments.command == "install":
+        if arguments.command in ('download', 'auto'):
+            if arguments.command == 'auto' and os.geteuid() != 0:
+                raise RuntimeError('Automatic installation must run as root via systemd')
+            directory = download_release(product)
+            if directory is None:
+                print(json.dumps({'downloaded': False})); return 0
+            if arguments.command == 'auto':
+                return install_verified(product, directory)
+            print(json.dumps({'downloaded': True, 'directory': str(directory)})); return 0
+        if arguments.command == 'install':
             return command_install(product)
-        return install_verified(product, arguments.metadata)
-    except (RuntimeError, OSError, urllib.error.URLError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
-        print(f"fidan-update: {error}", file=sys.stderr)
+        return install_verified(product, arguments.directory)
+    except (RuntimeError, OSError, ValueError, KeyError, TypeError, urllib.error.URLError, subprocess.CalledProcessError) as error:
+        print(f'fidan-update: {error}', file=sys.stderr)
         return 1
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())

@@ -80,6 +80,13 @@ install(PROGRAMS scripts/fidan-shellctl scripts/fidan-workspace scripts/fidan-lo
 install(PROGRAMS scripts/fidan-update
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+install(FILES data/keys/fidan-release-keyring.gpg
+    DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fidan
+    RENAME release-keyring.gpg
+)
+install(FILES data/systemd/system/fidan-auto-update.service data/systemd/system/fidan-auto-update.timer
+    DESTINATION lib/systemd/system
+)
 install(FILES data/greetd/config.toml
     DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/greetd
     RENAME fidan.toml

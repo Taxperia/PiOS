@@ -33,7 +33,8 @@ Item {
                 SettingsControls.Card {
                     SettingsControls.Title { text: qsTr("Sistem güncellemeleri") }
                     SettingsControls.Caption { text: Updates.statusText }
-                    SettingsControls.Button { Layout.fillWidth: true; text: Updates.busy ? qsTr("İşlem sürüyor…") : Updates.downloaded ? qsTr("Güncellemeyi kur") : Updates.updateAvailable ? qsTr("Güncellemeyi indir") : qsTr("Güncellemeleri kontrol et"); primary: true; enabled: !Updates.busy && !Controller.mockMode; onClicked: Updates.downloaded ? Updates.install() : Updates.updateAvailable ? Updates.download() : Updates.check() }
+                    SettingsControls.Toggle { label: qsTr("Otomatik güncellemeler"); hint: qsTr("GitHub'daki imzalı PiOS paketlerini 6 saatte bir kontrol et ve kur. Oturumun açık kalır."); checked: Updates.automaticEnabled; enabled: !Updates.busy && !Controller.mockMode; onToggled: value => Updates.setAutomaticEnabled(value) }
+                    SettingsControls.Button { Layout.fillWidth: true; text: Updates.busy ? qsTr("İşlem sürüyor…") : Updates.downloaded ? qsTr("Güncellemeyi kur") : Updates.updateAvailable && Updates.installable ? qsTr("Güncellemeyi indir") : qsTr("Güncellemeleri kontrol et"); primary: true; enabled: !Updates.busy && !Controller.mockMode; onClicked: Updates.downloaded ? Updates.install() : Updates.updateAvailable && Updates.installable ? Updates.download() : Updates.check() }
                 }
                 SettingsControls.Link { label: qsTr("Daha fazla bilgi"); hint: qsTr("Sürüm, lisanslar ve yardım"); iconName:"help-about-symbolic"; onTriggered: root.navigate("About") }
             }

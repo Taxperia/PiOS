@@ -1,0 +1,36 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Collect Debian packages and create the manifest covered by release signatures."""
+import hashlib
+import json
+from pathlib import Path
+import re
+import shutil
+import subprocess
+
+root = Path(__file__).resolve().parents[1]
+product = json.loads((root / 'config/product.json').read_text())
+version = re.sub(r'-(alpha|beta|rc)\.', r'~\1', product['version']) + '-1'
+release = root / 'release'
+release.mkdir(exist_ok=True)
+packages = []
+for source in sorted((root / 'dist').glob('*.deb')):
+    fields = subprocess.check_output(['dpkg-deb', '-f', str(source), 'Package', 'Version', 'Architecture'], text=True)
+    actual = dict(line.split(': ', 1) for line in fields.splitlines())
+    if actual['Package'].endswith('-dbgsym'):
+        continue
+    if actual['Version'] != version:
+        raise SystemExit(f'Unexpected package version: {source.name}')
+    expected_name = f"{actual['Package']}_{version}_{actual['Architecture']}.deb"
+    if source.name != expected_name:
+        raise SystemExit(f'Unexpected package filename: {source.name}')
+    shutil.copyfile(source, release / source.name)
+    packages.append({'name': source.name, 'package': actual['Package'], 'architecture': actual['Architecture'],
+                     'sha256': hashlib.sha256(source.read_bytes()).hexdigest()})
+if not packages:
+    raise SystemExit('No release packages were found')
+manifest = {'schema': 1, 'repository': product['githubRepo'], 'version': product['version'],
+            'tag': 'v' + product['version'], 'debianVersion': version, 'packages': packages}
+(release / 'release.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+shutil.copyfile(root / 'data/keys/fidan-release-keyring.gpg', release / 'fidan-release-keyring.gpg')
+print(f'Prepared {len(packages)} PiOS packages for {manifest["tag"]}')

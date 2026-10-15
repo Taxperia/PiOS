@@ -1,0 +1,16 @@
+[Unit]
+Description=Install signed PiOS updates from GitHub
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/etc/fidan/release-keyring.gpg
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/fidan-update auto
+TimeoutStartSec=30min
+UMask=0077
+Nice=10
+IOSchedulingClass=idle
+Environment=DEBIAN_FRONTEND=noninteractive
+Environment=NEEDRESTART_MODE=l
+

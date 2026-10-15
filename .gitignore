@@ -15,6 +15,7 @@ compile_commands.json
 image/work/
 image/output/
 dist/
+release/
 artifacts/
 __pycache__/
 *.py[cod]

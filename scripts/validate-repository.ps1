@@ -16,8 +16,13 @@ Get-ChildItem -LiteralPath (Join-Path $root 'translations') -Filter '*.ts' | For
     [xml](Get-Content -Raw -LiteralPath $_.FullName) | Out-Null
 }
 
-if ($product.version -ne '0.1.0-alpha.1' -or $product.channel -ne 'alpha') {
-    throw 'Unexpected product version or release channel'
+if ($product.version -notmatch '^\d+\.\d+\.\d+(?:-(alpha|beta|rc)\.\d+)?$' -or
+    $product.channel -notin @('stable', 'alpha', 'beta', 'rc')) {
+    throw 'Invalid product version or release channel'
+}
+if (($product.channel -eq 'stable' -and $product.version.Contains('-')) -or
+    ($product.channel -ne 'stable' -and $product.version -notmatch "-$($product.channel)\.\d+$")) {
+    throw 'The product version does not match its release channel'
 }
 
 $catalog = Get-Content -Raw (Join-Path $root 'data/store/catalog.json') | ConvertFrom-Json

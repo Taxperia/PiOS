@@ -1,39 +1,80 @@
-name: Release image
+name: Release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  image:
-    runs-on: [self-hosted, Linux, ARM64, fidan-image-builder]
-    timeout-minutes: 180
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: debian:13
+    timeout-minutes: 45
+    steps:
+      - name: Install Debian build dependencies
+        run: |
+          apt-get update
+          apt-get install -y ca-certificates gnupg git build-essential devscripts debhelper cmake ninja-build python3 qt6-base-dev qt6-declarative-dev qt6-tools-dev qt6-tools-dev-tools liblayershellqtinterface-dev libxkbcommon-dev dbus-x11 qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-dialogs qml6-module-qtquick-layouts qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-workerscript libqt6svg6 qt6-image-formats-plugins papirus-icon-theme fonts-inter
+      - uses: actions/checkout@v4
+      - name: Build and test Debian packages
+        env:
+          DEB_BUILD_OPTIONS: parallel=2
+        run: ./scripts/build-debs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.arch }}
+          path: |
+            dist/*.deb
+            !dist/*-dbgsym_*.deb
+          retention-days: 7
+
+  publish:
+    needs: packages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Install package build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential devscripts debhelper cmake ninja-build qt6-base-dev qt6-declarative-dev qt6-tools-dev-tools liblayershellqtinterface-dev git apt-utils gnupg zstd
-      - name: Build packages
-        run: ./scripts/build-debs
-      - name: Fetch pinned image generator
-        run: |
-          git clone --depth 1 --branch v2.8.0 https://github.com/raspberrypi/rpi-image-gen.git .cache/rpi-image-gen
-          sudo .cache/rpi-image-gen/install_deps.sh
-      - name: Build image
-        run: RPI_IMAGE_GEN_DIR="$PWD/.cache/rpi-image-gen" ./scripts/build-image
-      - name: Collect artifacts and SBOM
-        run: ./scripts/collect-release-artifacts
-      - name: Sign checksums
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          path: dist
+          merge-multiple: true
+      - name: Prepare and sign release
         env:
           FIDAN_RELEASE_GPG_KEY: ${{ secrets.FIDAN_RELEASE_GPG_KEY }}
-        run: ./scripts/sign-release
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: release/*
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
-
+        run: |
+          test -n "$FIDAN_RELEASE_GPG_KEY"
+          ./scripts/prepare-release
+          ./scripts/sign-update-release
+      - name: Publish complete signed release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          tag="v$(python3 -c 'import json; print(json.load(open("config/product.json"))["version"])')"
+          if [ "${RELEASE_REF#refs/tags/}" != "$tag" ] && [ "${RELEASE_REF#refs/tags/}" != "$RELEASE_REF" ]; then
+            echo 'Tag does not match product version' >&2
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --title "PiOS $tag" --notes-file docs/releases/current.md
+          fi
+          gh release upload "$tag" release/* --clobber
+          case "$tag" in
+            *-*) gh release edit "$tag" --draft=false --prerelease ;;
+            *) gh release edit "$tag" --draft=false ;;
+          esac

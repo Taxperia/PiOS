@@ -1,0 +1,17 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ -n "${FIDAN_RELEASE_GPG_KEY:-}" ]; then
+    gpg_home=$(mktemp -d)
+    trap 'rm -rf "$gpg_home"' EXIT INT TERM
+    chmod 0700 "$gpg_home"
+    export GNUPGHOME="$gpg_home"
+    printf '%s' "$FIDAN_RELEASE_GPG_KEY" | gpg --batch --import
+fi
+key_id=${FIDAN_RELEASE_KEY_ID:-10855324032F285AFB73CCD4C41FF8075817D3B6}
+(cd "$repo_dir/release" && find . -maxdepth 1 -type f ! -name 'SHA256SUMS*' -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS)
+gpg --batch --yes --local-user "$key_id" --armor --detach-sign \
+    --output "$repo_dir/release/SHA256SUMS.asc" "$repo_dir/release/SHA256SUMS"
+gpgv --keyring "$repo_dir/data/keys/fidan-release-keyring.gpg" \
+    "$repo_dir/release/SHA256SUMS.asc" "$repo_dir/release/SHA256SUMS"

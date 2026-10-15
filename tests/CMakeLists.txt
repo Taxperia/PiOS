@@ -96,3 +96,4 @@ target_link_libraries(fidan-settings-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Q
 add_test(NAME fidan-settings-tests COMMAND fidan-settings-tests)
 set_tests_properties(fidan-settings-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 add_test(NAME fidan-lock-preferences-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_lock_preferences.py)
+add_test(NAME fidan-updater-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_updater.py)

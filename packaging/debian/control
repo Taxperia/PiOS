@@ -8,6 +8,7 @@ Build-Depends:
  ninja-build,
  g++ (>= 12),
  python3,
+ gnupg,
  qt6-base-dev (>= 6.8),
  qt6-declarative-dev (>= 6.8),
  qt6-tools-dev,
@@ -150,8 +151,8 @@ Depends:
  libnotify-bin,
  policykit-1
 Description: Project Fidan signed GitHub release updater
- Checks GitHub automatically and installs only release packages covered by a
- trusted GPG signature and SHA-256 checksums after user approval.
+ Checks GitHub every six hours and automatically updates installed PiOS
+ packages covered by a trusted GPG signature and SHA-256 checksums.
 
 Package: fidan-desktop
 Architecture: all

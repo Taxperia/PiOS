@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
     SystemMonitor monitor(false);
     ShellController controller(false, false);
     UpdateController updates;
+    updates.startAutomaticChecks();
     DisplayController displays;
     QQmlApplicationEngine engine;
     engine.addImageProvider(QStringLiteral("theme"), new ThemeIconProvider);

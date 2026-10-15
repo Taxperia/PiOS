@@ -1,0 +1,12 @@
+[Unit]
+Description=Automatically update PiOS from GitHub every six hours
+
+[Timer]
+OnBootSec=10min
+OnCalendar=*-*-* 00,06,12,18:00:00
+RandomizedDelaySec=20min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+

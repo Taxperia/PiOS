@@ -74,6 +74,8 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
     UpdateController updates;
+    if (!mockMode)
+        updates.startAutomaticChecks();
     DisplayController displays(mockMode);
     SettingsData settingsData(mockMode);
     ProductInfo product;

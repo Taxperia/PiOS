@@ -59,6 +59,18 @@ configuration and hardware-dependent controls.
 See [settings and personalization](docs/settings-redesign.md) for the shared page
 design, appearance options and system integration.
 
+## GitHub updates
+
+PiOS releases provide signed Debian 13 packages for `amd64` and `arm64`.
+Installing `fidan-updater` enables automatic updates of installed PiOS packages
+from [GitHub Releases](https://github.com/Taxperia/PiOS/releases) every six hours.
+The updater verifies the pinned release key, signed manifest, package identity
+and SHA-256 checksums before APT installs an update. It never forces a reboot
+or restarts the active desktop. Settings → System provides a manual check and
+an authorized automatic-update toggle. See [release maintenance](docs/release.md).
+
+Third-party applications and the Debian base system retain their own updates.
+
 On Windows WSLg, launch the nested session from PowerShell using:
 
 ```powershell

@@ -2,10 +2,15 @@
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CXXFLAGS_MAINT_APPEND = -Wformat -Werror=format-security
+export QT_QPA_PLATFORM = offscreen
+export QT_QUICK_BACKEND = software
 
 %:
 	dh $@ --buildsystem=cmake+ninja
 
 override_dh_auto_configure:
 	dh_auto_configure -- -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=ON
+
+override_dh_installsystemd:
+	dh_installsystemd --no-stop-on-upgrade --no-restart-after-upgrade
 

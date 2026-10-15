@@ -4,4 +4,5 @@
 *.jpg binary
 *.jpeg binary
 *.woff2 binary
+*.gpg binary
 *.patch whitespace=-blank-at-eol,-space-before-tab
