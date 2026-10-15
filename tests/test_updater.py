@@ -78,6 +78,13 @@ class UpdaterTests(unittest.TestCase):
     def test_valid_signed_manifest(self):
         self.assertEqual(update.verified_manifest(self.root, self.product)['version'], '0.1.0-alpha.2')
 
+    def test_installed_update_is_not_offered_again_from_cache(self):
+        self.product['version'] = '0.1.0-alpha.2'
+        cached = self.root / 'v0.1.0-alpha.2'; cached.mkdir(); (cached / 'ready.json').write_text('{}')
+        with patch.object(update, 'latest_release', return_value=self.release()), patch.object(update, 'cache_root', return_value=self.root), patch.object(update, 'automatic_enabled', return_value=True), contextlib.redirect_stdout(io.StringIO()) as output:
+            update.command_check(self.product)
+        self.assertFalse(json.loads(output.getvalue())['downloaded'])
+
     def test_modified_manifest_rejected(self):
         (self.root / 'release.json').write_text('{}')
         with self.assertRaises(RuntimeError): update.verified_manifest(self.root, self.product)

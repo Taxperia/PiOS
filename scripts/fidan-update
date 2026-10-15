@@ -161,7 +161,7 @@ def command_check(product, show_notification=False):
     available = bool(tag and newer(product['version'], tag))
     assets = asset_map(release, product) if release else {}
     installable = all(name in assets for name in ('release.json', 'SHA256SUMS', 'SHA256SUMS.asc'))
-    ready = bool(tag and (cache_root() / tag / 'ready.json').is_file())
+    ready = bool(available and (cache_root() / tag / 'ready.json').is_file())
     print(json.dumps({'installed': product['version'], 'latest': tag.removeprefix('v'), 'updateAvailable': available,
                       'installable': installable, 'downloaded': ready, 'automaticEnabled': automatic_enabled(),
                       'url': release.get('html_url', '') if release else ''}, ensure_ascii=False))
