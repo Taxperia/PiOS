@@ -41,7 +41,7 @@ void ProductInfo::applyDefaults()
 {
     m_id = QStringLiteral("org.fidan.Desktop");
     m_name = QStringLiteral("Project Fidan");
-    m_version = QString::fromUtf8(FIDAN_VERSION) + QStringLiteral("-alpha.1");
+    m_version = QString::fromUtf8(FIDAN_VERSION) + QStringLiteral("-alpha.2");
     m_channel = QStringLiteral("alpha");
     m_supportUrl = QStringLiteral("https://github.com/Taxperia/PiOS/issues");
     m_accent = QStringLiteral("#63DE87");

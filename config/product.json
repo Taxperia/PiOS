@@ -2,7 +2,7 @@
   "$schema": "../schemas/product.schema.json",
   "id": "org.fidan.Desktop",
   "name": "Project Fidan",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "channel": "alpha",
   "supportUrl": "https://github.com/Taxperia/PiOS/issues",
   "githubRepo": "Taxperia/PiOS",

@@ -141,7 +141,8 @@ def verified_manifest(directory, product):
         name, package_id, arch = package.get('name', ''), package.get('package', ''), package.get('architecture', '')
         if not PACKAGE.fullmatch(package_id) or package_id.endswith('-dbgsym') or arch not in ('all', 'amd64', 'arm64'):
             raise RuntimeError('Invalid release package identity')
-        if name != f'{package_id}_{version}_{arch}.deb' or name in seen or expected.get(name) != package.get('sha256'):
+        original_name = f'{package_id}_{version}_{arch}.deb'
+        if name not in (original_name, original_name.replace('~', '.')) or name in seen or expected.get(name) != package.get('sha256'):
             raise RuntimeError('Invalid release package checksum or filename')
         seen.add(name)
     return manifest

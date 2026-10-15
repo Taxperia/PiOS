@@ -1,4 +1,4 @@
-PiOS 0.1.0-alpha.1 is the first public engineering alpha of the Fidan desktop.
+PiOS 0.1.0-alpha.2 is the first public engineering alpha of the Fidan desktop.
 
 - A customizable Wayland desktop with a dock, launcher, notifications and quick settings.
 - Redesigned settings, display configuration and personalization.

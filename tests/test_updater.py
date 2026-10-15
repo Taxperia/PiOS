@@ -89,6 +89,13 @@ class UpdaterTests(unittest.TestCase):
         (self.root / 'release.json').write_text('{}')
         with self.assertRaises(RuntimeError): update.verified_manifest(self.root, self.product)
 
+    def test_github_safe_asset_names_download_and_install(self):
+        original = self.name; self.name = self.name.replace('~', '.')
+        (self.root / original).rename(self.root / self.name)
+        self.manifest['packages'][0]['name'] = self.name; self.sign()
+        self.test_complete_download_verifies_assets()
+        self.test_install_checks_package_then_calls_apt_without_removal()
+
     def test_modified_checksums_rejected(self):
         with (self.root / 'SHA256SUMS').open('a') as stream: stream.write('injected\n')
         with self.assertRaises(subprocess.CalledProcessError): update.verified_manifest(self.root, self.product)

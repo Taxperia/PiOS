@@ -4,7 +4,7 @@ device:
 
 image:
   layer: image-rpios
-  name: fidan-0.1.0-alpha.1-pi5-arm64
+  name: fidan-0.1.0-alpha.2-pi5-arm64
   compression: zstd
   boot_part_size: 200%
   root_part_size: 400%

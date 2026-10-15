@@ -108,7 +108,7 @@ image.
 
 ## Status
 
-Version `0.1.0-alpha.1` is an engineering alpha. The core source and build
+Version `0.1.0-alpha.2` is an engineering alpha. The core source and build
 pipeline are implemented. The browser gateway and image-writing provisioning
 helper described in the headless specification are still implementation work,
 and a release image must pass the physical Pi 5 checklist before it is

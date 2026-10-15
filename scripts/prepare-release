@@ -24,8 +24,10 @@ for source in sorted((root / 'dist').glob('*.deb')):
     expected_name = f"{actual['Package']}_{version}_{actual['Architecture']}.deb"
     if source.name != expected_name:
         raise SystemExit(f'Unexpected package filename: {source.name}')
-    shutil.copyfile(source, release / source.name)
-    packages.append({'name': source.name, 'package': actual['Package'], 'architecture': actual['Architecture'],
+    # GitHub normalizes '~' to '.', so sign the final public asset name.
+    asset_name = source.name.replace('~', '.')
+    shutil.copyfile(source, release / asset_name)
+    packages.append({'name': asset_name, 'package': actual['Package'], 'architecture': actual['Architecture'],
                      'sha256': hashlib.sha256(source.read_bytes()).hexdigest()})
 if not packages:
     raise SystemExit('No release packages were found')
