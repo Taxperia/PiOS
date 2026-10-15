@@ -1,0 +1,20 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+stage_dir=$(mktemp -d)
+trap 'rm -rf "$stage_dir"' EXIT INT TERM
+
+cp -a "$repo_dir/." "$stage_dir/source"
+rm -rf "$stage_dir/source/.git" "$stage_dir/source/build" "$stage_dir/source/debian"
+cp -a "$stage_dir/source/packaging/debian" "$stage_dir/source/debian"
+# DrvFs can expose every file as executable when this repository is built
+# from WSL. Debhelper treats executable *.install files as programs.
+chmod 0644 "$stage_dir/source/debian/"*.install
+
+cd "$stage_dir/source"
+dpkg-buildpackage --build=binary --no-sign
+mkdir -p "$repo_dir/dist"
+cp "$stage_dir"/*.deb "$stage_dir"/*.buildinfo "$stage_dir"/*.changes "$repo_dir/dist/"
+

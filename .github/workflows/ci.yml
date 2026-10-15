@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      build_packages:
+        description: Build ARM64 packages on the configured self-hosted runner
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    container: debian:13
+    timeout-minutes: 30
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y ca-certificates git cmake ninja-build g++ python3 qt6-base-dev qt6-declarative-dev qt6-tools-dev qt6-tools-dev-tools liblayershellqtinterface-dev libxkbcommon-dev dbus-x11 qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-dialogs qml6-module-qtquick-layouts qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-workerscript libqt6svg6 qt6-image-formats-plugins papirus-icon-theme fonts-inter
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake --preset dev
+      - name: Build
+        run: cmake --build --preset dev --parallel 2
+      - name: Test
+        run: ctest --preset dev
+      - name: QML lint
+        run: cmake --build build/dev --target all_qmllint
+
+  debian-packages:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_packages
+    runs-on: [self-hosted, Linux, ARM64, fidan-image-builder]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install package dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential devscripts debhelper cmake ninja-build qt6-base-dev qt6-declarative-dev qt6-tools-dev-tools liblayershellqtinterface-dev
+      - name: Build binary packages
+        run: ./scripts/build-debs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fidan-debian-packages-arm64
+          path: dist/*
+

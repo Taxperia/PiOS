@@ -1,0 +1,39 @@
+name: Release image
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  image:
+    runs-on: [self-hosted, Linux, ARM64, fidan-image-builder]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install package build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential devscripts debhelper cmake ninja-build qt6-base-dev qt6-declarative-dev qt6-tools-dev-tools liblayershellqtinterface-dev git apt-utils gnupg zstd
+      - name: Build packages
+        run: ./scripts/build-debs
+      - name: Fetch pinned image generator
+        run: |
+          git clone --depth 1 --branch v2.8.0 https://github.com/raspberrypi/rpi-image-gen.git .cache/rpi-image-gen
+          sudo .cache/rpi-image-gen/install_deps.sh
+      - name: Build image
+        run: RPI_IMAGE_GEN_DIR="$PWD/.cache/rpi-image-gen" ./scripts/build-image
+      - name: Collect artifacts and SBOM
+        run: ./scripts/collect-release-artifacts
+      - name: Sign checksums
+        env:
+          FIDAN_RELEASE_GPG_KEY: ${{ secrets.FIDAN_RELEASE_GPG_KEY }}
+        run: ./scripts/sign-release
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+

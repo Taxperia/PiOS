@@ -1,0 +1,210 @@
+Source: fidan-desktop
+Section: x11
+Priority: optional
+Maintainer: Project Fidan Maintainers <maintainers@project-fidan.invalid>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.25),
+ ninja-build,
+ g++ (>= 12),
+ python3,
+ qt6-base-dev (>= 6.8),
+ qt6-declarative-dev (>= 6.8),
+ qt6-tools-dev,
+ qt6-tools-dev-tools,
+ libxkbcommon-dev,
+ liblayershellqtinterface-dev
+Standards-Version: 4.7.0
+Homepage: https://github.com/Taxperia/PiOS
+Rules-Requires-Root: no
+
+Package: fidan-shell
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ fidan-artwork (= ${binary:Version}),
+ featherpad,
+ xdg-utils,
+ layer-shell-qt,
+ qt6-wayland,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts
+Description: Project Fidan Wayland desktop shell
+ Panel, dock, application launcher, quick settings, notifications and system
+ status surfaces for the Project Fidan desktop.
+
+Package: fidan-session
+Architecture: all
+Depends:
+ python3,
+ wlr-randr,
+ wlsunset,
+ grim,
+ slurp,
+ wl-clipboard,
+ libnotify-bin,
+ ${misc:Depends},
+ fidan-shell (= ${binary:Version}),
+ labwc,
+ qdbus-qt6,
+ qt6ct,
+ wtype,
+ wlrctl,
+ xwayland,
+ lxqt-policykit,
+ dbus-user-session
+Description: Project Fidan Labwc desktop session
+ Session scripts, Labwc configuration and systemd user units for Project Fidan.
+
+Package: fidan-greeter
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ fidan-artwork (= ${binary:Version}),
+ greetd,
+ cage,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls
+Description: Project Fidan greetd login interface
+ Full-screen Qt Quick greeter using greetd's authenticated IPC protocol.
+
+Package: fidan-lock
+Architecture: all
+Depends:
+ python3,
+ ${misc:Depends},
+ fidan-artwork (= ${binary:Version}),
+ gtklock
+Description: Project Fidan secure Wayland lock screen
+ Project Fidan theme and launcher for gtklock's PAM and ext-session-lock-v1
+ implementation.
+
+Package: fidan-firstboot
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ accountsservice,
+ cage,
+ network-manager,
+ sudo,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts
+Description: Project Fidan first-boot setup
+ Local graphical setup client and narrowly-scoped privileged D-Bus service for
+ locale, account and network configuration.
+
+Package: fidan-artwork
+Architecture: all
+Depends: ${misc:Depends}, fonts-inter, papirus-icon-theme, libqt6svg6
+Description: Project Fidan product metadata and artwork
+ Product manifest, original wallpaper, application icons and asset provenance.
+
+Package: fidan-store
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ flatpak,
+ apt,
+ pkexec,
+ polkitd,
+ lxqt-policykit,
+ xdg-desktop-portal,
+ xdg-desktop-portal-gtk,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts
+Description: Project Fidan application store
+ Installs and removes curated Flatpak and Debian applications using native
+ package services and PolicyKit authorization.
+
+Package: fidan-task-manager
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts
+Description: Project Fidan process and resource manager
+ Displays live Linux process, CPU and memory data and can terminate processes
+ owned by the active user.
+
+Package: fidan-updater
+Architecture: all
+Depends:
+ ${misc:Depends},
+ fidan-artwork (= ${binary:Version}),
+ python3,
+ apt,
+ gpgv,
+ libnotify-bin,
+ policykit-1
+Description: Project Fidan signed GitHub release updater
+ Checks GitHub automatically and installs only release packages covered by a
+ trusted GPG signature and SHA-256 checksums after user approval.
+
+Package: fidan-desktop
+Architecture: all
+Depends:
+ ${misc:Depends},
+ fidan-session (= ${binary:Version}),
+ fidan-greeter (= ${binary:Version}),
+ fidan-lock (= ${binary:Version}),
+ fidan-firstboot (= ${binary:Version}),
+ fidan-store (= ${binary:Version}),
+ fidan-task-manager (= ${binary:Version}),
+ fidan-photos (= ${binary:Version}),
+ fidan-updater (= ${binary:Version}),
+ chromium,
+ pcmanfm-qt,
+ network-manager-gnome,
+ blueman,
+ pavucontrol,
+ wdisplays,
+ qterminal,
+ featherpad,
+ vlc,
+ flatpak,
+ gnome-software,
+ gnome-software-plugin-flatpak,
+ network-manager,
+ bluez,
+ pipewire,
+ pipewire-pulse,
+ pulseaudio-utils,
+ wireplumber,
+ power-profiles-daemon,
+ brightnessctl,
+ rpd-preferences,
+ policykit-1,
+ lxqt-policykit,
+ unattended-upgrades,
+ openssh-server
+Description: Project Fidan lightweight desktop metapackage
+ Installs the complete Project Fidan alpha desktop and its lightweight default
+ application set for Raspberry Pi 5.
+
+Package: fidan-photos
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ fidan-artwork (= ${binary:Version}),
+ qt6-image-formats-plugins,
+ qt6-wayland,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts
+Description: Project Fidan photo viewer
+ Opens local photos with zoom, rotation, folder navigation and fullscreen.

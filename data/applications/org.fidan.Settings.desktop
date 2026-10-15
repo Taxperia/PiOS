@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Fidan Settings
+Comment=Configure this device
+Icon=org.fidan.Settings
+Exec=fidan-settings
+Categories=Settings;System;
+Terminal=false
+StartupNotify=true

@@ -1,0 +1,12 @@
+usr/bin/fidan-shell
+usr/bin/fidan-settings
+usr/bin/fidan-files
+usr/share/applications/org.fidan.Settings.desktop
+usr/share/applications/org.fidan.Files.desktop
+usr/share/icons/hicolor/scalable/apps/org.fidan.Settings.svg
+usr/share/icons/hicolor/scalable/apps/org.fidan.Files.svg
+usr/lib/systemd/user/fidan-shell.service
+usr/lib/systemd/user/fidan-session.target
+
+
+usr/share/doc/fidan-shell/*.md

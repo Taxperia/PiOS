@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Fidan Photos
+Name[tr]=Fidan Fotoğraflar
+Comment=View, zoom and browse photos
+Comment[tr]=Fotoğrafları görüntüleyin ve yakınlaştırın
+Exec=fidan-photos %f
+Icon=org.fidan.Photos
+Terminal=false
+Categories=Graphics;Photography;Viewer;
+MimeType=image/png;image/jpeg;image/webp;image/bmp;image/gif;image/tiff;
+StartupNotify=true
+StartupWMClass=fidan-photos

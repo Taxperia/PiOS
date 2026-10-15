@@ -1,0 +1,8 @@
+#!/bin/sh
+systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS
+lxqt-policykit-agent &
+fidan-display-restore
+fidan-night-light restore &
+systemctl --user start fidan-session.target
+

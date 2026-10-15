@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+[Default Applications]
+text/plain=featherpad.desktop;
+text/markdown=featherpad.desktop;
+application/json=featherpad.desktop;
+application/x-shellscript=featherpad.desktop;
+inode/directory=org.fidan.Files.desktop;
+image/png=org.fidan.Photos.desktop;
+image/jpeg=org.fidan.Photos.desktop;
+image/webp=org.fidan.Photos.desktop;
+image/bmp=org.fidan.Photos.desktop;
+image/gif=org.fidan.Photos.desktop;
+image/tiff=org.fidan.Photos.desktop;

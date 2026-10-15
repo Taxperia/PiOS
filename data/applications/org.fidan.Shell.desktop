@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Fidan Desktop Shell
+Name[tr]=Fidan Masaüstü Kabuğu
+Comment=Project Fidan desktop shell
+Comment[tr]=Project Fidan masaüstü kabuğu
+Exec=fidan-shell
+Icon=org.fidan.Shell
+NoDisplay=true
+OnlyShowIn=Fidan;
+

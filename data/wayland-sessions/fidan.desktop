@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Project Fidan
+Name[tr]=Project Fidan
+Comment=Project Fidan Wayland desktop session
+Comment[tr]=Project Fidan Wayland masaüstü oturumu
+Exec=/usr/bin/fidan-session
+Type=Application
+DesktopNames=Fidan
+

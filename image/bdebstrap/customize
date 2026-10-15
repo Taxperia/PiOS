@@ -1,0 +1,33 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+# bdebstrap passes the target root as $1 for customize hooks.
+root=${1:?target root is required}
+
+chroot "$root" /usr/sbin/locale-gen tr_TR.UTF-8 en_US.UTF-8
+
+if ! chroot "$root" getent passwd fidan-setup >/dev/null; then
+    chroot "$root" adduser --system --group --home /var/lib/fidan-setup --no-create-home fidan-setup
+fi
+
+install -d -m 0755 "$root/etc/greetd"
+cp "$root/etc/greetd/fidan.toml" "$root/etc/greetd/config.toml"
+
+install -d -m 0755 "$root/etc/apt/apt.conf.d"
+cat >"$root/etc/apt/apt.conf.d/20auto-upgrades" <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+
+chroot "$root" flatpak remote-add --system --if-not-exists flathub \
+    https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# Keep remote access and the normal greeter off until setup is complete.
+chroot "$root" systemctl disable ssh.service 2>/dev/null || true
+chroot "$root" systemctl disable greetd.service 2>/dev/null || true
+chroot "$root" systemctl enable NetworkManager.service
+chroot "$root" systemctl enable bluetooth.service
+chroot "$root" systemctl enable fidan-firstbootd.service
+chroot "$root" systemctl enable fidan-firstboot-session.service
+chroot "$root" systemctl set-default graphical.target

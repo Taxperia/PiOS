@@ -1,0 +1,115 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Exercise the real compositor, shell launcher, PTY and application windows.
+set -eu
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${1:-}" != "--inside" ]; then
+    report="$project_dir/artifacts/desktop-review/live"
+    mkdir -p "$report" "$project_dir/build"
+    test_root=$(mktemp -d "$project_dir/build/desktop-test.XXXXXX")
+    trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM
+    export FIDAN_TEST_ROOT="$test_root"
+    export FIDAN_TEST_REPORT="$report"
+    cat > "$test_root/session" <<EOF
+#!/bin/sh
+exec "$project_dir/scripts/test-nested-desktop" --inside
+EOF
+    chmod +x "$test_root/session"
+    FIDAN_SHELL_BINARY="$test_root/session" timeout 75s "$project_dir/scripts/run-nested-session" > "$report/session.log" 2>&1
+    cat "$report/results.txt"
+    test -f "$report/passed"
+    exit
+fi
+test "${FIDAN_NESTED_SESSION:-0}" = "1"
+test -n "${FIDAN_TEST_ROOT:-}"
+test -n "${FIDAN_TEST_REPORT:-}"
+export XDG_DATA_HOME="$FIDAN_TEST_ROOT/data"
+mkdir -p "$XDG_DATA_HOME/applications" "$FIDAN_TEST_ROOT/Files/Projects"
+printf 'Sample notes\n' > "$FIDAN_TEST_ROOT/Files/Notes.txt"
+rm -f -- "$FIDAN_TEST_REPORT/passed"
+: > "$FIDAN_TEST_REPORT/results.txt"
+report() { printf '%s\n' "$*" >> "$FIDAN_TEST_REPORT/results.txt"; }
+cat > "$FIDAN_TEST_ROOT/launched" <<EOF
+#!/bin/sh
+printf '%s\n' "\$QT_WAYLAND_SHELL_INTEGRATION" > "$FIDAN_TEST_ROOT/launcher-result"
+EOF
+cat > "$XDG_DATA_HOME/applications/org.fidan.QA.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Fidan QA Launcher
+Exec=/bin/sh "$FIDAN_TEST_ROOT/launched"
+Icon=utilities-terminal
+EOF
+env -u FIDAN_NESTED_SESSION "$project_dir/build/dev/src/shell/fidan-shell" &
+shell_pid=$!
+"$project_dir/build/dev/src/files/fidan-files" "$FIDAN_TEST_ROOT/Files" &
+files_pid=$!
+"$project_dir/build/dev/src/store/fidan-store" &
+store_pid=$!
+"$project_dir/build/dev/src/settings/fidan-settings" --page Personalization &
+settings_pid=$!
+"$project_dir/build/dev/src/taskmanager/fidan-task-manager" &
+tasks_pid=$!
+cleanup() {
+    kill "$shell_pid" "$files_pid" "$store_pid" "$settings_pid" "$tasks_pid" 2>/dev/null || true
+    labwc --exit || true
+}
+trap cleanup EXIT HUP INT TERM
+for app in fidan-files fidan-store fidan-settings fidan-task-manager; do
+    timeout 12s wlrctl toplevel waitfor "app_id:$app"
+    report "PASS: $app created a real Wayland window"
+done
+wlrctl toplevel list > "$FIDAN_TEST_REPORT/windows.txt"
+sleep 1
+wlrctl toplevel maximize app_id:fidan-files
+sleep 0.3
+# wlrctl 0.2.2's contains_value() rejects enum value 0 (maximized), so its
+# maximized-state predicate cannot validate this state. Qt UI tests assert
+# maximize/restore; keep a compositor screenshot for independent visual QA.
+wlrctl toplevel focus app_id:fidan-files
+sleep 0.2
+grim "$FIDAN_TEST_REPORT/files-maximized.png"
+report 'CHECK: Files maximize screenshot saved (Qt UI tests assert maximize/restore)'
+wlrctl toplevel minimize app_id:fidan-files
+sleep 0.3
+wlrctl toplevel find app_id:fidan-files state:minimized
+report 'PASS: Files minimizes through the compositor'
+wlrctl toplevel focus app_id:fidan-files
+sleep 0.3
+wlrctl toplevel find app_id:fidan-files state:active
+report 'PASS: Files restores and focuses through the compositor'
+grim "$FIDAN_TEST_REPORT/files.png"
+"$project_dir/scripts/fidan-shellctl" launcher toggle
+sleep 0.3
+grim "$FIDAN_TEST_REPORT/launcher.png"
+wtype 'Fidan QA Launcher'
+wtype -k Return
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    test ! -f "$FIDAN_TEST_ROOT/launcher-result" || break
+    sleep 0.1
+done
+test "$(cat "$FIDAN_TEST_ROOT/launcher-result")" = 'xdg-shell'
+report 'PASS: launcher searches and opens the selected app with Enter'
+report 'PASS: launched app inherits the normal window role'
+cat > "$FIDAN_TEST_ROOT/terminal-probe" <<EOF
+#!/bin/sh
+test -t 0 && test -t 1 || exit 1
+tty > "$FIDAN_TEST_ROOT/terminal-result"
+sleep 3
+EOF
+qterminal -e /bin/sh "$FIDAN_TEST_ROOT/terminal-probe" &
+terminal_pid=$!
+wait "$terminal_pid"
+grep -q '^/dev/pts/' "$FIDAN_TEST_ROOT/terminal-result"
+report 'PASS: QTerminal provides a real PTY'
+wlrctl toplevel focus app_id:fidan-store
+sleep 0.3
+wlrctl toplevel find app_id:fidan-store state:active
+grim "$FIDAN_TEST_REPORT/store.png"
+wlrctl toplevel focus app_id:fidan-files
+wtype -M alt -k F4 -m alt
+if wlrctl toplevel find app_id:fidan-files; then
+    timeout 5s wlrctl toplevel wait app_id:fidan-files
+fi
+report 'PASS: Files closes with Alt+F4'
+touch "$FIDAN_TEST_REPORT/passed"

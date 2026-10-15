@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "apps": [
+    {
+      "name": "Visual Studio Code",
+      "summary": "Code editor with extension support",
+      "category": "Development",
+      "icon": "com.visualstudio.code",
+      "source": "flatpak",
+      "id": "com.visualstudio.code"
+    },
+    {
+      "name": "Chromium",
+      "summary": "Web browser",
+      "category": "Multimedia",
+      "icon": "chromium",
+      "source": "apt",
+      "id": "chromium",
+      "desktopId": "chromium.desktop"
+    },
+    {
+      "name": "VLC",
+      "summary": "Video and audio player",
+      "category": "Multimedia",
+      "icon": "org.videolan.VLC",
+      "source": "flatpak",
+      "id": "org.videolan.VLC"
+    },
+    {
+      "name": "GPIO Tools",
+      "summary": "Control your hardware",
+      "category": "Tools & Makers",
+      "icon": "applications-engineering",
+      "source": "apt",
+      "id": "python3-gpiozero"
+    },
+    {
+      "name": "QTerminal",
+      "summary": "Lightweight terminal emulator",
+      "category": "System",
+      "icon": "utilities-terminal",
+      "source": "apt",
+      "id": "qterminal",
+      "desktopId": "qterminal.desktop"
+    },
+    {
+      "name": "GIMP",
+      "summary": "Image editing and graphic design",
+      "category": "Graphics",
+      "icon": "org.gimp.GIMP",
+      "source": "flatpak",
+      "id": "org.gimp.GIMP"
+    },
+    {
+      "name": "LibreOffice",
+      "summary": "Documents, spreadsheets and presentations",
+      "category": "Office",
+      "icon": "org.libreoffice.LibreOffice",
+      "source": "flatpak",
+      "id": "org.libreoffice.LibreOffice"
+    },
+    {
+      "name": "Kdenlive",
+      "summary": "Non-linear video editor",
+      "category": "Multimedia",
+      "icon": "org.kde.kdenlive",
+      "source": "flatpak",
+      "id": "org.kde.kdenlive"
+    },
+    {
+      "name": "FeatherPad",
+      "summary": "Notes and text editing",
+      "category": "Education",
+      "icon": "featherpad",
+      "source": "apt",
+      "id": "featherpad",
+      "desktopId": "featherpad.desktop"
+    },
+    {
+      "name": "GNOME Disks",
+      "summary": "Disk information and partition management",
+      "category": "System",
+      "icon": "org.gnome.DiskUtility",
+      "source": "apt",
+      "id": "gnome-disk-utility",
+      "desktopId": "org.gnome.DiskUtility.desktop"
+    },
+    {
+      "name": "Disk Usage Analyzer",
+      "summary": "Find folders using disk space",
+      "category": "System",
+      "icon": "org.gnome.baobab",
+      "source": "apt",
+      "id": "baobab",
+      "desktopId": "org.gnome.baobab.desktop"
+    },
+    {
+      "name": "Déjà Dup Backups",
+      "summary": "Back up and restore personal files",
+      "category": "System",
+      "icon": "org.gnome.DejaDup",
+      "source": "apt",
+      "id": "deja-dup",
+      "desktopId": "org.gnome.DejaDup.desktop"
+    }
+  ]
+}

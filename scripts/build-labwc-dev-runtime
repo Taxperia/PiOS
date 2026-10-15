@@ -1,0 +1,46 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+runtime_dir="$project_dir/build/dev-runtime"
+source_dir="$runtime_dir/src"
+prefix="$runtime_dir/prefix"
+wlroots_version=0.19.2
+labwc_version=0.9.8
+
+mkdir -p "$source_dir"
+if [ ! -d "$source_dir/wlroots/.git" ]; then
+    git clone --depth 1 --branch "$wlroots_version" \
+        https://gitlab.freedesktop.org/wlroots/wlroots.git "$source_dir/wlroots"
+fi
+if [ ! -d "$source_dir/labwc/.git" ]; then
+    git clone --depth 1 --branch "$labwc_version" \
+        https://github.com/labwc/labwc.git "$source_dir/labwc"
+fi
+
+wlroots_patch="$project_dir/patches/wlroots/0001-wayland-clear-output-cursor-on-pointer-leave.patch"
+if git -C "$source_dir/wlroots" apply --check "$wlroots_patch" 2>/dev/null; then
+    git -C "$source_dir/wlroots" apply "$wlroots_patch"
+elif ! git -C "$source_dir/wlroots" apply --reverse --check "$wlroots_patch" 2>/dev/null; then
+    echo "The pinned wlroots source does not match the required WSLg patch." >&2
+    exit 1
+fi
+
+reconfigure=""
+if [ -f "$runtime_dir/wlroots-build/build.ninja" ]; then reconfigure=--reconfigure; fi
+meson setup $reconfigure "$runtime_dir/wlroots-build" "$source_dir/wlroots" \
+    --prefix="$prefix" -Dxwayland=enabled -Dexamples=false
+meson compile -C "$runtime_dir/wlroots-build"
+meson install -C "$runtime_dir/wlroots-build"
+
+export PKG_CONFIG_PATH="$prefix/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+reconfigure=""
+if [ -f "$runtime_dir/labwc-build/build.ninja" ]; then reconfigure=--reconfigure; fi
+meson setup $reconfigure "$runtime_dir/labwc-build" "$source_dir/labwc" \
+    --prefix="$prefix" -Dxwayland=enabled -Dman-pages=disabled
+meson compile -C "$runtime_dir/labwc-build"
+meson install -C "$runtime_dir/labwc-build"
+
+LD_LIBRARY_PATH="$prefix/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+    "$prefix/bin/labwc" --version

@@ -1,0 +1,4 @@
+usr/bin/fidan-greeter
+etc/greetd/fidan.toml
+usr/share/polkit-1/rules.d/49-fidan-greeter.rules
+

@@ -1,0 +1,12 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+image_gen_dir=${RPI_IMAGE_GEN_DIR:-"$repo_dir/.cache/rpi-image-gen"}
+mkdir -p "$repo_dir/release"
+
+find "$image_gen_dir/work" -type f \( -name '*.img' -o -name '*.img.zst' -o -name '*sbom*' \) -exec cp {} "$repo_dir/release/" \;
+cp "$repo_dir"/dist/*.deb "$repo_dir/release/"
+(cd "$repo_dir/release" && sha256sum * > SHA256SUMS)
+

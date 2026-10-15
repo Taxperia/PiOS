@@ -1,0 +1,18 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+image_gen_dir=${RPI_IMAGE_GEN_DIR:-"$repo_dir/.cache/rpi-image-gen"}
+image_gen_version=${RPI_IMAGE_GEN_VERSION:-v2.8.0}
+
+if [ ! -x "$image_gen_dir/rpi-image-gen" ]; then
+    git clone --depth 1 --branch "$image_gen_version" https://github.com/raspberrypi/rpi-image-gen.git "$image_gen_dir"
+fi
+
+mkdir -p "$repo_dir/image/packages"
+cp "$repo_dir"/dist/*.deb "$repo_dir/image/packages/"
+
+cd "$image_gen_dir"
+exec ./rpi-image-gen build -S "$repo_dir/image" -c fidan-pi5.yaml
+

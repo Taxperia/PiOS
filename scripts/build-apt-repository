@@ -1,0 +1,35 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+apt_dir=${FIDAN_APT_DIR:-"$repo_dir/release/apt"}
+: "${FIDAN_RELEASE_KEY_ID:?FIDAN_RELEASE_KEY_ID is required}"
+
+pool_dir="$apt_dir/pool/main/f/fidan-desktop"
+binary_dir="$apt_dir/dists/trixie/main/binary-arm64"
+mkdir -p "$pool_dir" "$binary_dir"
+cp "$repo_dir"/dist/*.deb "$pool_dir/"
+
+(cd "$apt_dir" && apt-ftparchive packages pool >"dists/trixie/main/binary-arm64/Packages")
+gzip -9n -c "$binary_dir/Packages" >"$binary_dir/Packages.gz"
+
+release_dir="$apt_dir/dists/trixie"
+(cd "$apt_dir" && APT_CONFIG=/dev/null apt-ftparchive \
+    -o APT::FTPArchive::Release::Origin="Project Fidan" \
+    -o APT::FTPArchive::Release::Label="Project Fidan" \
+    -o APT::FTPArchive::Release::Suite="trixie" \
+    -o APT::FTPArchive::Release::Codename="trixie" \
+    -o APT::FTPArchive::Release::Architectures="arm64" \
+    -o APT::FTPArchive::Release::Components="main" \
+    -o APT::FTPArchive::Release::Description="Project Fidan alpha packages" \
+    release dists/trixie >dists/trixie/Release)
+
+gpg --batch --yes --local-user "$FIDAN_RELEASE_KEY_ID" \
+    --armor --detach-sign --output "$release_dir/Release.gpg" "$release_dir/Release"
+gpg --batch --yes --local-user "$FIDAN_RELEASE_KEY_ID" \
+    --armor --clearsign --output "$release_dir/InRelease" "$release_dir/Release"
+gpg --batch --armor --export "$FIDAN_RELEASE_KEY_ID" >"$apt_dir/fidan-archive-keyring.asc"
+
+tar --zstd -cf "$repo_dir/release/fidan-apt-repository.tar.zst" \
+    -C "$apt_dir" dists pool fidan-archive-keyring.asc

@@ -1,0 +1,22 @@
+[Unit]
+Description=Project Fidan privileged first-boot service
+ConditionPathExists=!/var/lib/fidan/firstboot-complete
+After=dbus.service NetworkManager.service
+
+[Service]
+Type=dbus
+BusName=org.fidan.FirstBoot1
+ExecStart=/usr/bin/fidan-firstbootd
+User=root
+Group=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/etc /home /var/lib/fidan /var/lib/AccountsService /var/lib/NetworkManager
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+SystemCallFilter=@system-service
+
+[Install]
+WantedBy=multi-user.target
+

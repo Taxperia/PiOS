@@ -1,0 +1,19 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+preferences="${XDG_CONFIG_HOME:-$HOME/.config}/fidan/shell.conf"
+keyboard_layout=$(sed -n 's/^keyboardLayout=//p' "$preferences" 2>/dev/null || true)
+case "$keyboard_layout" in us|tr|de|gb) export XKB_DEFAULT_LAYOUT="$keyboard_layout" ;; esac
+export XDG_CURRENT_DESKTOP=Fidan
+export XDG_SESSION_DESKTOP=Fidan
+export XDG_SESSION_TYPE=wayland
+export XDG_DATA_DIRS="${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share:/var/lib/flatpak/exports/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export QT_WAYLAND_SHELL_INTEGRATION=xdg-shell
+export QT_QPA_PLATFORM=wayland
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_STYLE_OVERRIDE=Fusion
+export MOZ_ENABLE_WAYLAND=1
+
+exec labwc -C /usr/share/fidan/labwc
+

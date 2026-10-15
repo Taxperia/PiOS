@@ -1,0 +1,78 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Render actual application QML with isolated preferences and sample files.
+set -eu
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+output=${1:-"$project_dir/artifacts/desktop-review"}
+mkdir -p "$output"
+output=$(CDPATH= cd -- "$output" && pwd)
+test_home=$(mktemp -d)
+trap 'rm -rf -- "$test_home"' EXIT HUP INT TERM
+export HOME="$test_home"
+export XDG_CONFIG_HOME="$test_home/.config"
+export XDG_DATA_HOME="$test_home/.local/share"
+export QT_QPA_PLATFORM=offscreen
+export QT_QUICK_BACKEND=software
+export QT_QPA_PLATFORMTHEME=
+export QT_LOGGING_RULES='*.debug=false'
+mkdir -p "$XDG_CONFIG_HOME/fidan" "$test_home/Desktop" "$test_home/Files/Projects"
+printf '%s\n' 'Sample document for the Fidan visual review.' > "$test_home/Files/Notes.txt"
+printf '%s\n' 'Sample file with a longer name.' > "$test_home/Files/Project notes with spaces.txt"
+printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=Files' 'Icon=system-file-manager' 'Exec=fidan-files' > "$test_home/Desktop/Files.desktop"
+settings="$project_dir/build/dev/src/settings/fidan-settings"
+files="$project_dir/build/dev/src/files/fidan-files"
+store="$project_dir/build/dev/src/store/fidan-store"
+tasks="$project_dir/build/dev/src/taskmanager/fidan-task-manager"
+shell="$project_dir/build/dev/src/shell/fidan-shell"
+for binary in "$settings" "$files" "$store" "$tasks" "$shell"; do
+    if [ ! -x "$binary" ]; then
+        echo "Missing application: $binary. Build the dev preset first." >&2
+        exit 1
+    fi
+done
+cat > "$test_home/capture-launcher" <<'EOF'
+#!/bin/sh
+set -eu
+"$FIDAN_REVIEW_SHELL" --preview --mock --screenshot "$FIDAN_REVIEW_IMAGE" &
+shell_pid=$!
+for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    if qdbus6 org.fidan.Shell /Shell org.fidan.Shell1.ToggleLauncher >/dev/null 2>&1; then
+        wait "$shell_pid"
+        exit 0
+    fi
+    sleep 0.05
+done
+wait "$shell_pid"
+echo "The launcher could not be opened through the real shell D-Bus API." >&2
+exit 1
+EOF
+for theme in dark light; do
+    case "$theme" in dark) dark=true ;; light) dark=false ;; esac
+    printf '[appearance]\ndarkTheme=%s\ninterfaceScale=1\n' "$dark" > "$XDG_CONFIG_HOME/fidan/shell.conf"
+    for page in System Display Network Bluetooth Sound Power 'Keyboard & Mouse' Personalization Applications Privacy About; do
+        slug=$(printf '%s' "$page" | tr ' &' '---')
+        name="settings-$theme-$slug"
+        FIDAN_UI_CAPTURE="$output/$name.png" timeout 20s "$settings" --page "$page" > "$output/$name.log" 2>&1
+        echo "Rendered $name"
+    done
+    for scale in 1 1.25 1.5; do
+        printf '[appearance]\ndarkTheme=%s\ninterfaceScale=%s\n' "$dark" "$scale" > "$XDG_CONFIG_HOME/fidan/shell.conf"
+        name="desktop-$theme-$scale"
+        FIDAN_SKIP_FIRSTBOOT=1 timeout 20s "$shell" --preview --mock --show-context-menu --screenshot "$output/$name.png" > "$output/$name.log" 2>&1
+        echo "Rendered $name"
+    done
+    printf '[appearance]\ndarkTheme=%s\ninterfaceScale=1.25\n' "$dark" > "$XDG_CONFIG_HOME/fidan/shell.conf"
+    FIDAN_SKIP_FIRSTBOOT=1 FIDAN_PREVIEW_QUICK_SETTINGS=1 timeout 20s "$shell" --preview --mock --screenshot "$output/quick-settings-$theme.png" > "$output/quick-settings-$theme.log" 2>&1
+    FIDAN_SKIP_FIRSTBOOT=1 FIDAN_REVIEW_SHELL="$shell" FIDAN_REVIEW_IMAGE="$output/launcher-$theme.png" timeout 20s dbus-run-session -- sh "$test_home/capture-launcher" > "$output/launcher-$theme.log" 2>&1
+    echo "Rendered quick settings and launcher ($theme)"
+done
+FIDAN_UI_CAPTURE="$output/files.png" timeout 20s "$files" "$test_home/Files" > "$output/files.log" 2>&1
+FIDAN_UI_CAPTURE="$output/store.png" timeout 30s "$store" > "$output/store.log" 2>&1
+FIDAN_UI_CAPTURE="$output/tasks.png" timeout 20s "$tasks" > "$output/tasks.log" 2>&1
+FIDAN_UI_CAPTURE="$output/tasks-performance.png" timeout 20s "$tasks" --performance > "$output/tasks-performance.log" 2>&1
+echo "Rendered Files, Store and Task Manager. Images and logs: $output"
+# Runtime QML faults are failures even if the screenshot was saved.
+if grep -E 'ReferenceError:|TypeError:|Binding loop detected|Cannot assign|is not a type|failed to load component|Unable to assign' "$output"/*.log; then
+    echo "QML runtime errors were found. Inspect the logs above." >&2
+    exit 1
+fi

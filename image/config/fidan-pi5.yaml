@@ -1,0 +1,15 @@
+device:
+  layer: rpi5
+  hostname: fidan
+
+image:
+  layer: image-rpios
+  name: fidan-0.1.0-alpha.1-pi5-arm64
+  compression: zstd
+  boot_part_size: 200%
+  root_part_size: 400%
+
+layer:
+  base: trixie-minbase
+  desktop: fidan-desktop
+

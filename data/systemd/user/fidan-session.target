@@ -1,0 +1,9 @@
+[Unit]
+Description=Project Fidan desktop session
+Documentation=https://github.com/Taxperia/PiOS
+Wants=fidan-shell.service fidan-update-check.timer
+After=graphical-session-pre.target
+
+[Install]
+WantedBy=graphical-session.target
+

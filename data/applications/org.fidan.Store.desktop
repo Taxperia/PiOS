@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Fidan Store
+Comment=Install and remove verified applications
+Exec=fidan-store
+Icon=org.fidan.Store
+Categories=System;PackageManager;
+Keywords=apps;software;flatpak;apt;
+StartupNotify=true

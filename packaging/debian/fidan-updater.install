@@ -1,0 +1,3 @@
+usr/bin/fidan-update
+usr/lib/systemd/user/fidan-update-check.service
+usr/lib/systemd/user/fidan-update-check.timer

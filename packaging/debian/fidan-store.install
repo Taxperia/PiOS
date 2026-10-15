@@ -1,0 +1,4 @@
+usr/bin/fidan-store
+usr/share/fidan/store/catalog.json
+usr/share/applications/org.fidan.Store.desktop
+usr/share/icons/hicolor/scalable/apps/org.fidan.Store.svg

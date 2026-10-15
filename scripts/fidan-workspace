@@ -1,0 +1,10 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+workspace="${1:-}"
+case "$workspace" in 1|2|3) ;; *) exit 2 ;; esac
+
+# Labwc receives the hidden binding and runs its native GoToDesktop action.
+exec wtype -M ctrl -M alt -P "$workspace" -p "$workspace" -m alt -m ctrl
+

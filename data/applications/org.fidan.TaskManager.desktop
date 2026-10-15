@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Task Manager
+Comment=Monitor and stop running processes
+Exec=fidan-task-manager
+Icon=org.fidan.TaskManager
+Categories=System;Monitor;
+Keywords=process;cpu;memory;tasks;
+StartupNotify=true

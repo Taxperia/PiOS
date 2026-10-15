@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Restore only confirmed, still-advertised modes; never disable outputs."""
+import json, math, os, subprocess, sys
+from pathlib import Path
+try:
+    path = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home()/'.config'))) / 'fidan/displays.json'
+    if not path.exists(): sys.exit(0)
+    profiles = json.loads(path.read_text())
+    if not isinstance(profiles, dict): raise ValueError('Invalid display profile')
+    outputs = json.loads(subprocess.check_output(['wlr-randr', '--json'], timeout=3))
+    if not isinstance(outputs, list): raise ValueError('Invalid monitor data')
+    for output in outputs:
+        if not isinstance(output, dict): continue
+        profile = profiles.get(output['name'], {})
+        if not isinstance(profile, dict): continue
+        if not output.get('enabled') or not profile: continue
+        scale = float(profile.get('scale', 1))
+        transform = profile.get('transform', 'normal')
+        width, height, refresh = int(profile.get('width', 0)), int(profile.get('height', 0)), float(profile.get('refresh', 0))
+        if not math.isfinite(scale) or not .75 <= scale <= 2 or transform not in ('normal','90','180','270'): continue
+        if not any(m['width']==width and m['height']==height and abs(m['refresh']-refresh)<.01 for m in output.get('modes', [])): continue
+        mode = f'{width}x{height}' + (f'@{refresh:.3f}Hz' if refresh > 0 else '')
+        args = ['--output', output['name'], '--mode', mode, '--scale', str(scale), '--transform', transform]
+        if subprocess.run(['wlr-randr', '--dryrun', *args], timeout=4).returncode == 0:
+            subprocess.run(['wlr-randr', *args], timeout=4, check=True)
+except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+    print('Saved display profile was not restored:', error, file=sys.stderr)

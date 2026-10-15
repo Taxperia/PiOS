@@ -1,0 +1,37 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+window {
+  background-image: linear-gradient(rgba(5, 12, 9, 0.30), rgba(5, 12, 9, 0.58)),
+                    url("/usr/share/backgrounds/fidan/fidan-mountain-dawn-4k.png");
+  background-size: cover;
+  background-position: center;
+  color: #f5f8f6;
+  font-family: Inter, sans-serif;
+}
+
+#clock-label {
+  font-size: 52px;
+  font-weight: 300;
+}
+
+#input-field {
+  min-width: 340px;
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(169, 205, 184, 0.42);
+  background: rgba(14, 25, 21, 0.88);
+  color: #f5f8f6;
+  padding: 0 14px;
+}
+
+#unlock-button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: #63de87;
+  color: #08110c;
+  font-weight: 700;
+}
+
+#unlock-button:hover { background: #7be99a; }
+#error-label { color: #ff9b9b; }
+

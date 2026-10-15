@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+if ! getent passwd fidan-setup >/dev/null; then
+    adduser --system --group --home /var/lib/fidan-setup --no-create-home fidan-setup
+fi
+
+if [ "$1" = configure ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+fi
+
+#DEBHELPER#
+

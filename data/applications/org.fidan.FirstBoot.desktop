@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Fidan Setup
+Name[tr]=Fidan Kurulum
+Comment=Complete initial system setup
+Comment[tr]=İlk sistem kurulumunu tamamla
+Exec=fidan-firstboot
+Icon=org.fidan.FirstBoot
+NoDisplay=true
+

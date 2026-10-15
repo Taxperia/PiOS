@@ -1,0 +1,7 @@
+[Unit]
+Description=Check GitHub for Project Fidan updates
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/fidan-update check --notify

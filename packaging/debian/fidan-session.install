@@ -1,0 +1,15 @@
+usr/bin/fidan-session
+usr/bin/fidan-shellctl
+usr/bin/fidan-screenshot
+usr/bin/fidan-display-restore
+usr/bin/fidan-night-light
+usr/bin/fidan-workspace
+usr/share/fidan/labwc
+usr/share/wayland-sessions/fidan.desktop
+usr/share/applications/org.fidan.Shell.desktop
+etc/xdg/fidan-mimeapps.list
+etc/xdg/qt6ct
+etc/xdg/qterminal.org
+etc/xdg/pcmanfm-qt
+usr/share/fidan/themes
+usr/share/xdg-desktop-portal/fidan-portals.conf

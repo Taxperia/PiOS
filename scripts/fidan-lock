@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Apply the user's selected wallpaper without changing gtklock authentication."""
+import configparser
+import json
+import os
+from pathlib import Path
+import sys
+from urllib.parse import urlparse, unquote
+
+project = Path(__file__).resolve().parents[1]
+base = Path('/usr/share/fidan/gtklock/style.css')
+if not base.is_file(): base = project/'data/gtklock/style.css'
+preferences = configparser.ConfigParser(interpolation=None, strict=False)
+preferences.optionxform = str
+preferences.read(Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home()/'.config')))/'fidan/shell.conf')
+def local_path(value):
+    value = value.strip('"')
+    parsed = urlparse(value)
+    if parsed.scheme != 'file' or parsed.netloc not in ('', 'localhost'): return None
+    path = Path(unquote(parsed.path))
+    return path if path.is_file() and os.access(path, os.R_OK) else None
+
+wallpaper = local_path(preferences.get('appearance', 'lockWallpaper', fallback=''))
+if wallpaper is None: wallpaper = local_path(preferences.get('appearance', 'wallpaper', fallback=''))
+if wallpaper is None:
+    wallpaper = Path('/usr/share/backgrounds/fidan/fidan-mountain-dawn-4k.png')
+    if not wallpaper.is_file(): wallpaper = project/'artwork/wallpapers/fidan-mountain-dawn-4k.png'
+runtime = Path(os.environ.get('XDG_RUNTIME_DIR', f'/tmp/fidan-runtime-{os.getuid()}'))
+runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
+style = runtime/'fidan-gtklock-style.css'
+css = base.read_text()
+css += '\nwindow { background-image: linear-gradient(rgba(5,12,9,.3), rgba(5,12,9,.58)), url('+json.dumps(wallpaper.resolve().as_uri())+'); }\n'
+accent = preferences.get('appearance', 'accentColor', fallback='#63de8a')
+import re
+if re.fullmatch(r'#[0-9a-fA-F]{6}', accent): css += '#unlock-button { background: '+accent+'; }\n'
+style.write_text(css)
+os.execvp('gtklock', ['gtklock', '--style', str(style), *sys.argv[1:]])

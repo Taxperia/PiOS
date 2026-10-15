@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: 4K desktop wallpaper for a lightweight Raspberry Pi 5 Linux desktop
+Primary request: Create an original cinematic mountain-valley desktop wallpaper inspired by a peaceful high-altitude sunrise, suitable behind a dark translucent desktop shell.
+Scene/backdrop: layered misty mountain ridges, pine-covered foreground cliffs, distant winding river or lake, soft dawn sky.
+Subject: a small generic green single-board computer resting naturally on a dark rock in the lower-right quadrant; no logos, trademarks, readable chip labels, or product branding.
+Composition: 16:9 landscape with calm, dark areas behind the top panel, left dock, and central-left application windows.
+Constraints: no text, no logo, no watermark, no people, no UI elements, no duplicate boards.
+

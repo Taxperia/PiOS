@@ -1,0 +1,7 @@
+usr/bin/fidan-firstboot
+usr/bin/fidan-firstbootd
+etc/dbus-1/system.d/org.fidan.FirstBoot1.conf
+usr/lib/systemd/system/fidan-firstbootd.service
+usr/lib/systemd/system/fidan-firstboot-session.service
+usr/share/applications/org.fidan.FirstBoot.desktop
+

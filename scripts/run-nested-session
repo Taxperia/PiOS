@@ -1,0 +1,167 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+# Electron applications require an ordinary desktop user. WSL terminals may
+# still start as root until their distribution has been restarted.
+if [ "$(id -u)" = "0" ]; then
+    session_user=${FIDAN_DESKTOP_USER:-fidan}
+    session_uid=$(id -u "$session_user" 2>/dev/null || printf '0')
+    session_gid=$(id -g "$session_user" 2>/dev/null || printf '0')
+    if [ -n "${WSL_DISTRO_NAME:-}" ] && [ "$session_uid" != "0" ]; then
+        if [ -d /tmp/.X11-unix ] && [ "$(stat -c %a /tmp/.X11-unix)" != "1777" ]; then
+            # WSLg owns a read-only X11 socket mount. Keep the development
+            # compositor's Xwayland sockets in its own mount namespace.
+            if [ "${FIDAN_PRIVATE_MOUNT:-0}" != "1" ]; then
+                export FIDAN_PRIVATE_MOUNT=1
+                exec unshare --mount --propagation private -- "$0" "$@"
+            fi
+            x11_directory="/run/user/$session_uid/fidan-x11"
+            mkdir -p "$x11_directory"
+            chown "$session_uid:$session_gid" "$x11_directory"
+            chmod 1777 "$x11_directory"
+            mount --bind "$x11_directory" /tmp/.X11-unix
+        fi
+        export FIDAN_SESSION_SCRIPT="$project_dir/scripts/run-nested-session"
+        export XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user
+        export LANG="${LANG:-C.UTF-8}"
+        # Login mode opens runuser-l's PAM/systemd session. A plain uid switch
+        # leaves PolicyKit without a session and its authentication agent fails.
+        exec runuser --login --shell /bin/sh \
+            --whitelist-environment=WAYLAND_DISPLAY,DISPLAY,WSL_DISTRO_NAME,WSL_INTEROP,FIDAN_PRIVATE_MOUNT,FIDAN_SESSION_SCRIPT,FIDAN_DESKTOP_USER,FIDAN_SHELL_BINARY,FIDAN_SESSION_TEST_APPS,XDG_SESSION_TYPE,XDG_SESSION_CLASS,LANG,LC_ALL,LANGUAGE \
+            --command 'export XDG_RUNTIME_DIR="/run/user/$(id -u)"; cd "$(dirname "$FIDAN_SESSION_SCRIPT")/.." && exec "$FIDAN_SESSION_SCRIPT"' \
+            "$session_user"
+    fi
+    echo "Start Fidan as a normal Debian user. Root sessions cannot run VS Code safely." >&2
+    echo "On WSL, create a normal user and set FIDAN_DESKTOP_USER to its name." >&2
+    exit 1
+fi
+shell_binary=${FIDAN_SHELL_BINARY:-"$project_dir/build/dev/src/shell/fidan-shell"}
+dev_runtime="$project_dir/build/dev-runtime/prefix"
+if [ -x "$dev_runtime/bin/labwc" ]; then
+    labwc_command="$dev_runtime/bin/labwc"
+    using_dev_labwc=1
+else
+    labwc_command=$(command -v labwc || true)
+    using_dev_labwc=0
+fi
+
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Missing runtime command: $1" >&2
+        echo "Run ./scripts/setup-debian-dev first." >&2
+        exit 1
+    fi
+}
+
+for command_name in qterminal pcmanfm-qt gtklock dbus-run-session featherpad xdg-open flatpak pkexec lxqt-policykit-agent; do
+    require_command "$command_name"
+done
+if [ -z "$labwc_command" ]; then
+    echo "Missing runtime command: labwc" >&2
+    echo "Run ./scripts/setup-debian-dev first." >&2
+    exit 1
+fi
+
+if [ ! -x "$shell_binary" ]; then
+    echo "Fidan shell is not built: $shell_binary" >&2
+    echo "Run: cmake --preset dev && cmake --build --preset dev" >&2
+    exit 1
+fi
+
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    echo "No parent Wayland display was found. Under Windows, run this inside WSLg." >&2
+    exit 1
+fi
+
+runtime_root=${XDG_RUNTIME_DIR:-"/tmp/fidan-runtime-$(id -u)"}
+mkdir -p "$runtime_root"
+chmod 700 "$runtime_root"
+if [ -n "${WSL_DISTRO_NAME:-}" ] && [ -S /mnt/wslg/runtime-dir/wayland-0 ] \
+    && [ ! -e "$runtime_root/wayland-0" ]; then
+    ln -s /mnt/wslg/runtime-dir/wayland-0 "$runtime_root/wayland-0"
+fi
+
+# Some WSLg versions expose this directory as a read-only bind mount without
+# the sticky bit. wlroots refuses that socket directory. Overlay a private,
+# correctly permissioned directory inside this process's mount namespace.
+if [ -d /tmp/.X11-unix ] \
+    && [ "$(stat -c %a /tmp/.X11-unix)" != "1777" ]; then
+    mkdir -p "$runtime_root/x11-unix"
+    chmod 1777 "$runtime_root/x11-unix"
+    echo "WSLg needs a private X11 mount namespace for this nested session." >&2
+    echo "Start this launcher with: wsl -d Debian -u root -- ./scripts/run-nested-session" >&2
+    echo "The launcher prepares that namespace and runs the desktop as $USER." >&2
+    exit 1
+fi
+
+session_dir=$(mktemp -d "$runtime_root/fidan-labwc.XXXXXX")
+cleanup() {
+    rm -rf -- "$session_dir"
+}
+trap cleanup EXIT HUP INT TERM
+
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+mkdir -p "$config_home"
+mkdir -p "$config_home/xdg-desktop-portal"
+cp "$project_dir/data/xdg-desktop-portal/fidan-portals.conf" "$config_home/xdg-desktop-portal/fidan-portals.conf"
+cp "$project_dir/data/fidan-mimeapps.list" "$config_home/fidan-mimeapps.list"
+mkdir -p "$config_home/qt6ct" "$config_home/qterminal.org" "$config_home/pcmanfm-qt/default"
+sed "s|/usr/share/fidan/themes|$project_dir/data/themes|g" \
+    "$project_dir/data/qt6ct/qt6ct.conf" > "$config_home/qt6ct/qt6ct.conf"
+if ! grep -q '^ConfigVersion=2$' "$config_home/qterminal.org/qterminal.ini" 2>/dev/null; then
+    cp "$project_dir/data/qterminal/qterminal.ini" "$config_home/qterminal.org/qterminal.ini"
+fi
+if ! grep -q '^ConfigVersion=2$' "$config_home/pcmanfm-qt/default/settings.conf" 2>/dev/null; then
+    cp "$project_dir/data/pcmanfm-qt/settings.conf" "$config_home/pcmanfm-qt/default/settings.conf"
+fi
+
+cp "$project_dir/data/labwc/rc.xml" "$session_dir/rc.xml"
+cp "$project_dir/data/labwc/themerc-override" "$session_dir/themerc-override"
+cat >"$session_dir/autostart" <<EOF
+#!/bin/sh
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS XDG_CONFIG_HOME
+lxqt-policykit-agent &
+fidan-display-restore
+fidan-night-light restore &
+"$shell_binary" &
+EOF
+if [ "${FIDAN_SESSION_TEST_APPS:-0}" = "1" ]; then
+    cat >>"$session_dir/autostart" <<EOF
+qterminal &
+pcmanfm-qt &
+"$project_dir/build/dev/src/files/fidan-files" &
+"$project_dir/build/dev/src/taskmanager/fidan-task-manager" &
+"$project_dir/build/dev/src/store/fidan-store" &
+"$project_dir/build/dev/src/settings/fidan-settings" &
+EOF
+fi
+chmod +x "$session_dir/autostart"
+
+export PATH="$project_dir/scripts:$project_dir/build/dev/src/photos:$project_dir/build/dev/src/store:$project_dir/build/dev/src/taskmanager:$project_dir/build/dev/src/settings:$project_dir/build/dev/src/files:$PATH"
+if [ "$using_dev_labwc" = "1" ]; then
+    export PATH="$dev_runtime/bin:$PATH"
+    export LD_LIBRARY_PATH="$dev_runtime/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+preferences="$config_home/fidan/shell.conf"
+keyboard_layout=$(sed -n 's/^keyboardLayout=//p' "$preferences" 2>/dev/null || true)
+case "$keyboard_layout" in us|tr|de|gb) export XKB_DEFAULT_LAYOUT="$keyboard_layout" ;; esac
+export XDG_CURRENT_DESKTOP=Fidan
+export XDG_CONFIG_HOME="$config_home"
+export XDG_SESSION_DESKTOP=fidan
+export XDG_SESSION_TYPE=wayland
+export XDG_DATA_DIRS="${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share:/var/lib/flatpak/exports/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export FIDAN_NESTED_SESSION=1
+export QT_WAYLAND_SHELL_INTEGRATION=xdg-shell
+export QT_QPA_PLATFORM=wayland
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_STYLE_OVERRIDE=Fusion
+export QT_LOGGING_RULES="*.debug=false"
+export WLR_BACKENDS=wayland
+export WLR_LIBINPUT_NO_DEVICES=1
+export WLR_NO_HARDWARE_CURSORS=1
+
+echo "Starting the real Project Fidan Labwc session."
+echo "Applications open as normal movable windows. Set FIDAN_SESSION_TEST_APPS=1 only for the multi-app test layout."
+exec dbus-run-session -- "$labwc_command" -C "$session_dir"

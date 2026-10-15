@@ -1,0 +1,29 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+if ! command -v grim >/dev/null 2>&1; then
+    notify-send 'Screenshot unavailable' 'Install grim to take screenshots.' || true
+    exit 1
+fi
+pictures=$(xdg-user-dir PICTURES 2>/dev/null || printf '%s/Pictures' "$HOME")
+if [ -z "$pictures" ] || [ "$pictures" = "$HOME" ]; then pictures="$HOME/Pictures"; fi
+directory="$pictures/Screenshots"
+mkdir -p "$directory"
+image=$(mktemp "$directory/Screenshot-$(date +%Y%m%d-%H%M%S)-XXXXXX.png")
+trap 'rm -f -- "$image"' HUP INT TERM
+if [ "${1:-}" = "--region" ]; then
+    if ! command -v slurp >/dev/null 2>&1; then
+        rm -f -- "$image"
+        notify-send 'Screenshot unavailable' 'Install slurp to select a region.' || true
+        exit 1
+    fi
+    geometry=$(slurp) || { rm -f -- "$image"; exit 0; }
+    grim -g "$geometry" "$image" || { rm -f -- "$image"; exit 1; }
+else
+    grim "$image" || { rm -f -- "$image"; exit 1; }
+fi
+if command -v wl-copy >/dev/null 2>&1; then
+    wl-copy --type image/png < "$image"
+fi
+notify-send 'Screenshot saved' "$image" || true
+printf '%s\n' "$image"

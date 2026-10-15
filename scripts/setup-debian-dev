@@ -1,0 +1,96 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+
+if [ "$(id -u)" = "0" ]; then
+    echo "Run this setup from the normal Debian desktop account, not root." >&2
+    echo "APT uses sudo; Flatpak applications belong to the account running this script." >&2
+    exit 1
+fi
+
+if [ ! -r /etc/os-release ] || ! grep -q '^ID=debian$' /etc/os-release; then
+    echo "This setup script supports Debian development hosts." >&2
+    exit 1
+fi
+
+sudo apt-get update
+sudo apt-get install -y \
+    build-essential \
+    cmake \
+    dbus-x11 \
+    debhelper \
+    devscripts \
+    g++ \
+    git \
+    featherpad \
+    xdg-utils \
+    flatpak \
+    pkexec \
+    polkitd \
+    xdg-desktop-portal \
+    xdg-desktop-portal-gtk \
+    fonts-inter \
+    liblayershellqtinterface-dev \
+    libdisplay-info-dev \
+    libdrm-dev \
+    libgbm-dev \
+    libinput-dev \
+    libliftoff-dev \
+    libpixman-1-dev \
+    libpng-dev \
+    librsvg2-dev \
+    libseat-dev \
+    libsfdo-dev \
+    libwayland-dev \
+    libxml2-dev \
+    libxkbcommon-dev \
+    libxcb-composite0-dev \
+    libxcb-ewmh-dev \
+    libxcb-icccm4-dev \
+    libxcb-res0-dev \
+    libxcb-render0-dev \
+    libxcb-xfixes0-dev \
+    xwayland \
+    labwc \
+    lxqt-policykit \
+    libnotify-bin \
+    meson \
+    ninja-build \
+    pcmanfm-qt \
+    papirus-icon-theme \
+    qterminal \
+    qt6-base-dev \
+    qt6ct \
+    qt6-declarative-dev \
+    qt6-tools-dev \
+    qt6-tools-dev-tools \
+    qt6-wayland \
+    gtklock \
+    network-manager \
+    bluez \
+    pulseaudio-utils \
+    brightnessctl \
+    dbus-user-session \
+    hwdata \
+    pkg-config \
+    scdoc \
+    wayland-protocols \
+    wlrctl \
+    grim \
+    slurp \
+    wl-clipboard \
+    wtype \
+    network-manager-gnome \
+    blueman \
+    pavucontrol \
+    wdisplays \
+    wlr-randr \
+    wlsunset \
+    qt6-image-formats-plugins
+
+flatpak remote-add --user --if-not-exists flathub \
+    https://dl.flathub.org/repo/flathub.flatpakrepo
+
+echo "Build tools and the real Labwc desktop runtime are installed."
+echo "Run ./scripts/build-labwc-dev-runtime once for the pinned WSLg-compatible compositor."
+echo "Then run ./scripts/run-nested-session to start the real development session."

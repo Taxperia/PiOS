@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Fidan Files
+Comment=Browse files and folders
+Icon=org.fidan.Files
+Exec=fidan-files %U
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;
+Terminal=false
+StartupNotify=true

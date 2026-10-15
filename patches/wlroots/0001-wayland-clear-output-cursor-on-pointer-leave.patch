@@ -1,0 +1,35 @@
+diff --git a/backend/wayland/output.c b/backend/wayland/output.c
+index fb4d1f9..ca35766 100644
+--- a/backend/wayland/output.c
++++ b/backend/wayland/output.c
+@@ -1001,9 +1001,8 @@ static void output_destroy(struct wlr_output *wlr_output) {
+ 
+ void update_wl_output_cursor(struct wlr_wl_output *output) {
+ 	struct wlr_wl_pointer *pointer = output->cursor.pointer;
+-	if (pointer) {
++	if (pointer && output->enter_serial) {
+ 		assert(pointer->output == output);
+-		assert(output->enter_serial);
+ 
+ 		struct wlr_wl_seat *seat = pointer->seat;
+ 		wl_pointer_set_cursor(seat->wl_pointer, output->enter_serial,
+diff --git a/backend/wayland/pointer.c b/backend/wayland/pointer.c
+index b61e32c..f6c6bed 100644
+--- a/backend/wayland/pointer.c
++++ b/backend/wayland/pointer.c
+@@ -69,12 +69,12 @@ static void pointer_handle_leave(void *data, struct wl_pointer *wl_pointer,
+ 		return;
+ 	}
+ 
+-	if (seat->active_pointer != NULL &&
+-			seat->active_pointer->output == output) {
++	struct wlr_wl_pointer *pointer = seat->active_pointer;
++	if (pointer != NULL && pointer->output == output) {
+ 		seat->active_pointer = NULL;
+ 	}
+ 
+-	if (output->cursor.pointer == seat->active_pointer) {
++	if (output->cursor.pointer == pointer) {
+ 		output->enter_serial = 0;
+ 		output->cursor.pointer = NULL;
+ 	}
