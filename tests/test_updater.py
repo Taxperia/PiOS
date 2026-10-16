@@ -153,5 +153,37 @@ class UpdaterTests(unittest.TestCase):
         release = self.release(); release['assets'][0]['browser_download_url'] = 'https://github.com/Other/Repo/releases/download/v0.1.0-alpha.2/release.json'
         self.assertNotIn('release.json', update.asset_map(release, self.product))
 
+    def test_download_never_follows_target_or_partial_symlinks(self):
+        victim = self.root/'important.conf'; victim.write_bytes(b'keep')
+        target = self.root/'payload.deb'; target.symlink_to(victim)
+        target.with_name(target.name+'.part').symlink_to(victim)
+        with patch.object(update.urllib.request,'urlopen',return_value=io.BytesIO(b'package')):
+            update.download('https://github.com/Taxperia/PiOS/releases/download/v0.1.0/payload.deb',target)
+        self.assertEqual(victim.read_bytes(),b'keep')
+        self.assertEqual(target.read_bytes(),b'package')
+        self.assertFalse(target.is_symlink())
+        self.assertFalse(list(self.root.glob('.download-*')))
+
+    def test_download_limit_cleans_incomplete_file(self):
+        target = self.root/'release.json'
+        original = target.read_bytes()
+        with patch.object(update,'METADATA_LIMIT',4), patch.object(update.urllib.request,'urlopen',return_value=io.BytesIO(b'oversized')):
+            with self.assertRaisesRegex(RuntimeError,'size'): update.download('https://github.com/Taxperia/PiOS/releases/download/v0.1.0/release.json',target)
+        self.assertEqual(target.read_bytes(),original)
+        self.assertFalse(list(self.root.glob('.download-*')))
+
+    def test_privileged_snapshot_rejects_symlinks_and_fifos(self):
+        source = self.root/'untrusted'; source.symlink_to(self.root/'release.json')
+        with self.assertRaises(OSError): update.snapshot(source,self.root/'snapshot',update.METADATA_LIMIT)
+        source.unlink(); os.mkfifo(source)
+        with self.assertRaisesRegex(RuntimeError,'regular'): update.snapshot(source,self.root/'snapshot',update.METADATA_LIMIT)
+        self.assertFalse((self.root/'snapshot').exists())
+
+    def test_cache_rejects_shared_or_symlink_directories(self):
+        directory = self.root/'cache'; directory.mkdir(); directory.chmod(0o777)
+        with self.assertRaisesRegex(RuntimeError,'not writable'): update.private_directory(directory)
+        directory.chmod(0o700); link = self.root/'cache-link'; link.symlink_to(directory,target_is_directory=True)
+        with self.assertRaises(OSError): update.private_directory(link)
+
 
 if __name__ == '__main__': unittest.main()

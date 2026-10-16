@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,41 @@ from urllib.parse import urlsplit
 
 PACKAGE = re.compile(r'fidan-[a-z0-9+.-]+')
 TAG = re.compile(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:alpha|beta|rc)\.[0-9]+)?')
+METADATA_LIMIT = 2 * 1024 * 1024
+PACKAGE_LIMIT = 2 * 1024 * 1024 * 1024
+
+
+def private_directory(path):
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(descriptor)
+        if info.st_uid != os.geteuid() or info.st_mode & 0o022:
+            raise RuntimeError('The update cache must be owned by this account and not writable by other accounts')
+    finally:
+        os.close(descriptor)
+
+
+def copy_bounded(source, output, limit):
+    remaining = limit
+    while chunk := source.read(min(1024 * 1024, remaining + 1)):
+        if len(chunk) > remaining:
+            raise RuntimeError('Update file exceeds the allowed size')
+        output.write(chunk)
+        remaining -= len(chunk)
+
+
+def snapshot(source, target, limit):
+    # Reject FIFOs/devices and symlinks before reading mutable user input as root.
+    descriptor = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise RuntimeError('Update input must be a regular file')
+        if info.st_size > limit:
+            raise RuntimeError('Update file exceeds the allowed size')
+        with target.open('xb') as output:
+            copy_bounded(stream, output, limit)
 
 
 def product_manifest():
@@ -37,11 +73,12 @@ def download(url, target):
     parsed = urlsplit(url)
     if parsed.scheme != 'https' or parsed.hostname != 'github.com':
         raise RuntimeError('Release assets must use HTTPS on github.com')
-    partial = target.with_name(target.name + '.part')
+    descriptor, name = tempfile.mkstemp(prefix='.download-', dir=target.parent)
+    partial = Path(name)
     try:
         request = urllib.request.Request(url, headers={'User-Agent': 'PiOS-Updater/2'})
-        with urllib.request.urlopen(request, timeout=90) as response, partial.open('wb') as output:
-            shutil.copyfileobj(response, output)
+        with os.fdopen(descriptor, 'wb') as output, urllib.request.urlopen(request, timeout=90) as response:
+            copy_bounded(response, output, PACKAGE_LIMIT if target.suffix == '.deb' else METADATA_LIMIT)
         partial.replace(target)
     finally:
         partial.unlink(missing_ok=True)
@@ -177,7 +214,8 @@ def download_release(product):
         return None
     assets = asset_map(release, product)
     directory = cache_root() / release['tag_name']
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    private_directory(cache_root())
+    private_directory(directory)
     (directory / 'ready.json').unlink(missing_ok=True)
     for name in ('SHA256SUMS', 'SHA256SUMS.asc', 'release.json'):
         if name not in assets:
@@ -197,7 +235,14 @@ def download_release(product):
         if digest != package['sha256']:
             target.unlink(missing_ok=True)
             raise RuntimeError(f'Checksum verification failed for {name}')
-    (directory / 'ready.json').write_text(json.dumps({'tag': manifest['tag']}), encoding='utf-8')
+    descriptor, name = tempfile.mkstemp(prefix='.ready-', dir=directory)
+    ready = Path(name)
+    try:
+        with os.fdopen(descriptor, 'w') as stream:
+            json.dump({'tag': manifest['tag']}, stream)
+        ready.replace(directory / 'ready.json')
+    finally:
+        ready.unlink(missing_ok=True)
     return directory
 
 
@@ -215,7 +260,7 @@ def install_verified(product, source):
         staging = Path(name)
         # Snapshot mutable metadata before verifying it as root.
         for filename in ('SHA256SUMS', 'SHA256SUMS.asc', 'release.json'):
-            (staging / filename).write_bytes((source / filename).read_bytes())
+            snapshot(source / filename, staging / filename, METADATA_LIMIT)
         manifest = verified_manifest(staging, product)
         if not newer(product['version'], manifest['version']):
             raise RuntimeError('Refusing an update that is not newer than the installed PiOS version')
@@ -229,7 +274,7 @@ def install_verified(product, source):
                     raise RuntimeError('Refusing to downgrade an installed PiOS package')
                 continue
             target = staging / package['name']
-            shutil.copyfile(source / package['name'], target)
+            snapshot(source / package['name'], target, PACKAGE_LIMIT)
             with target.open('rb') as stream:
                 digest = hashlib.file_digest(stream, 'sha256').hexdigest()
             if digest != package['sha256']:

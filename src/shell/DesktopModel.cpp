@@ -117,6 +117,39 @@ void DesktopModel::setSortMode(const QString &mode)
     emit sortModeChanged();
 }
 
+QStringList DesktopModel::paths() const
+{
+    QStringList result;
+    for (const auto &entry : m_entries) result.append(entry.path);
+    return result;
+}
+
+QStringList DesktopModel::dragUrls(const QStringList &paths) const
+{
+    QStringList urls;
+    for (const auto &entry : m_entries)
+        if (paths.contains(entry.path)) urls.append(QUrl::fromLocalFile(entry.path).toString(QUrl::FullyEncoded));
+    return urls;
+}
+
+bool DesktopModel::canDrop(const QList<QUrl> &urls, const QString &destination) const
+{
+    const QFileInfo folder(destination);
+    const QString canonicalDestination = folder.canonicalFilePath();
+    if (urls.isEmpty() || !folder.isDir() || canonicalDestination.isEmpty()) return false;
+    for (const auto &url : urls) {
+        if (!url.isLocalFile() || (!url.host().isEmpty() && url.host() != QStringLiteral("localhost"))) return false;
+        const QFileInfo source(url.toLocalFile());
+        if ((!source.exists() && !source.isSymbolicLink()) || source.fileName().isEmpty()) return false;
+        const QString canonicalSource = source.canonicalFilePath();
+        if (source.isDir() && !source.isSymbolicLink()
+            && (canonicalSource == canonicalDestination || canonicalDestination.startsWith(canonicalSource + QLatin1Char('/')))) return false;
+        const QFileInfo target(QDir(destination).filePath(source.fileName()));
+        if (target.exists() || target.isSymbolicLink()) return false;
+    }
+    return true;
+}
+
 bool DesktopModel::open(int row)
 {
     if (row < 0 || row >= m_entries.size()) return false;
@@ -127,14 +160,5 @@ bool DesktopModel::open(int row)
     }
     if (!entry.desktopFile) return openDesktopFile(entry.path);
 
-    QSettings desktop(entry.path, QSettings::IniFormat);
-    desktop.beginGroup(QStringLiteral("Desktop Entry"));
-    if (desktop.value(QStringLiteral("Type")).toString() != QStringLiteral("Application")) return false;
-    QString command = desktop.value(QStringLiteral("Exec")).toString();
-    command.remove(QRegularExpression(QStringLiteral("\\s+%[fFuUdDnNickvm]")));
-    command.remove(QRegularExpression(QStringLiteral("%[fFuUdDnNickvm]")));
-    QStringList parts = QProcess::splitCommand(command.trimmed());
-    if (parts.isEmpty()) return false;
-    const QString program = parts.takeFirst();
-    return startDesktopProcess(program, parts);
+    return launchDesktopShortcut(entry.path);
 }

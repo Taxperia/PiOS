@@ -8,6 +8,8 @@
 #include <QStandardPaths>
 #include <QDesktopServices>
 #include <QMimeDatabase>
+#include <QRegularExpression>
+#include <QSettings>
 #include <QUrl>
 
 // LayerShellQt changes the shell process environment. Never pass its surface
@@ -34,6 +36,28 @@ inline bool startDesktopProcess(const QString &program, const QStringList &argum
     return process.startDetached();
 }
 
+inline bool isTrustedDesktopLauncher(const QFileInfo &file)
+{
+    return file.isFile() && !file.isSymbolicLink() && file.isExecutable()
+        && !file.permissions().testFlag(QFileDevice::WriteGroup)
+        && !file.permissions().testFlag(QFileDevice::WriteOther);
+}
+
+inline bool launchDesktopShortcut(const QString &path)
+{
+    if (!isTrustedDesktopLauncher(QFileInfo(path))) return false;
+    QSettings desktop(path, QSettings::IniFormat);
+    desktop.beginGroup(QStringLiteral("Desktop Entry"));
+    if (desktop.value(QStringLiteral("Type")).toString() != QStringLiteral("Application")) return false;
+    QString command = desktop.value(QStringLiteral("Exec")).toString();
+    command.remove(QRegularExpression(QStringLiteral("\\s+%[fFuUdDnNickvm]")));
+    command.remove(QRegularExpression(QStringLiteral("%[fFuUdDnNickvm]")));
+    QStringList parts = QProcess::splitCommand(command.trimmed());
+    if (parts.isEmpty()) return false;
+    const QString program = parts.takeFirst();
+    return startDesktopProcess(program, parts);
+}
+
 // Text documents have a shipped editor even when the host has no MIME launcher.
 // Keep the path as a single argument, including spaces and non-ASCII names.
 inline bool openDesktopFile(const QString &path)
@@ -42,6 +66,12 @@ inline bool openDesktopFile(const QString &path)
     if (!file.exists() || !file.isFile() || !file.isReadable()) return false;
     const QString absolutePath = file.absoluteFilePath();
     const auto mime = QMimeDatabase().mimeTypeForFile(absolutePath, QMimeDatabase::MatchExtension);
+    // Do not delegate untrusted launchers to a MIME handler that may execute them.
+    if (file.suffix().compare(QStringLiteral("desktop"), Qt::CaseInsensitive) == 0
+        || mime.inherits(QStringLiteral("application/x-desktop"))) {
+        if (isTrustedDesktopLauncher(file)) return launchDesktopShortcut(absolutePath);
+        return startDesktopProcess(QStringLiteral("featherpad"), {absolutePath});
+    }
     // Honor the user's MIME choice. The shipped editor is only a fallback
     // when the profile has no registered text handler.
     QProcess query;

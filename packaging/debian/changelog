@@ -1,3 +1,12 @@
+fidan-desktop (0.1.0~alpha3-1) unstable; urgency=medium
+
+  * Restore desktop box selection and native multi-file folder drag and drop.
+  * Expand the application catalog and add details and transaction progress.
+  * Fix keyboard layout menus and improve the task manager.
+  * Harden first boot, Wi-Fi credentials, shortcuts, lock and update handling.
+
+ -- Project Fidan Maintainers <maintainers@project-fidan.invalid>  Fri, 16 Oct 2026 12:00:00 +0300
+
 fidan-desktop (0.1.0~alpha2-1) unstable; urgency=medium
 
   * Initial Project Fidan alpha packaging.

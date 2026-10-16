@@ -3,6 +3,22 @@
 The left dock remains the desktop's taskbar. These changes add file and
 application management without moving it to the bottom of the screen.
 
+## Desktop selection and dragging
+
+- Drag on empty desktop space with the left button to draw a selection box.
+  Ctrl-click toggles icons; Shift-click selects a range; Ctrl+A selects all
+  desktop entries after clicking the desktop. Escape or a plain empty click
+  clears the selection. Sorting and refresh preserve selection by file path.
+- Drag an icon or the selected group onto a desktop folder to move the actual
+  files or application shortcuts. Hold Ctrl while dragging to copy instead.
+  Dragging a selected group keeps the whole group together.
+- Files can also be dropped from another file manager onto the desktop or a
+  desktop folder. Existing names, recursive folder moves and remote URLs are
+  rejected; transfers reuse the Files background operation service.
+- Desktop icons stay fixed while selecting and dragging; the background does
+  not pan or flick. The icon area uses the available desktop width and respects
+  the dock position and interface scale.
+
 ## Files
 
 - Click to select, Ctrl-click to toggle an item, Shift-click to select a range.

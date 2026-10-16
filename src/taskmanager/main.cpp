@@ -1,6 +1,7 @@
 #include "../common/AppStyle.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ProcessModel.h"
+#include "../common/ThemeIconProvider.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -12,10 +13,11 @@ int main(int argc, char *argv[])
 {
     qputenv("QT_WAYLAND_SHELL_INTEGRATION", "xdg-shell"); QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("fidan-task-manager"));
-    QGuiApplication::setApplicationDisplayName(QStringLiteral("Fidan Task Manager"));
+    QGuiApplication::setApplicationDisplayName(QStringLiteral("PiOS Görev Yöneticisi"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     ProcessModel processes;
     AppStyle style; QQmlApplicationEngine engine; engine.rootContext()->setContextProperty("UiStyle", &style);
+    engine.addImageProvider(QStringLiteral("theme"), new ThemeIconProvider);
     engine.rootContext()->setContextProperty(QStringLiteral("processBackend"), &processes);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &app, [] { QCoreApplication::exit(EXIT_FAILURE); }, Qt::QueuedConnection);

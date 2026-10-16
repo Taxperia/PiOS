@@ -5,7 +5,11 @@ import configparser
 import json
 import os
 from pathlib import Path
+import shutil
+import stat
+import subprocess
 import sys
+import tempfile
 from urllib.parse import urlparse, unquote
 
 project = Path(__file__).resolve().parents[1]
@@ -28,11 +32,27 @@ if wallpaper is None:
     if not wallpaper.is_file(): wallpaper = project/'artwork/wallpapers/fidan-mountain-dawn-4k.png'
 runtime = Path(os.environ.get('XDG_RUNTIME_DIR', f'/tmp/fidan-runtime-{os.getuid()}'))
 runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
-style = runtime/'fidan-gtklock-style.css'
+# Never follow a pre-created /tmp runtime symlink or write a predictable CSS
+# filename that another account can redirect to one of the user's files.
+descriptor = os.open(runtime, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+try:
+    info = os.fstat(descriptor)
+    if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+        raise PermissionError('The lock runtime directory must be owned by this user with mode 0700')
+finally:
+    os.close(descriptor)
 css = base.read_text()
 css += '\nwindow { background-image: linear-gradient(rgba(5,12,9,.3), rgba(5,12,9,.58)), url('+json.dumps(wallpaper.resolve().as_uri())+'); }\n'
 accent = preferences.get('appearance', 'accentColor', fallback='#63de8a')
 import re
 if re.fullmatch(r'#[0-9a-fA-F]{6}', accent): css += '#unlock-button { background: '+accent+'; }\n'
-style.write_text(css)
-os.execvp('gtklock', ['gtklock', '--style', str(style), *sys.argv[1:]])
+private = Path(tempfile.mkdtemp(prefix='fidan-lock-', dir=runtime))
+try:
+    style = private/'style.css'
+    descriptor = os.open(style, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, 'w') as stream:
+        stream.write(css)
+    result = subprocess.run(['gtklock', '--style', str(style), *sys.argv[1:]], check=False)
+finally:
+    shutil.rmtree(private)
+raise SystemExit(result.returncode)

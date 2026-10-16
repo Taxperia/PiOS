@@ -21,5 +21,6 @@ target_link_libraries(fidan-store PRIVATE
 )
 
 install(TARGETS fidan-store RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS store-transaction DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/fidan)
 
 target_sources(fidan-store PRIVATE ${PROJECT_SOURCE_DIR}/src/common/AppStyle.h)

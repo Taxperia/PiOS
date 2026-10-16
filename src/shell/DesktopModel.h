@@ -3,11 +3,13 @@
 
 #include <QAbstractListModel>
 #include <QFileSystemWatcher>
+#include <QUrl>
 
 class DesktopModel final : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(QString sortMode READ sortMode WRITE setSortMode NOTIFY sortModeChanged)
+    Q_PROPERTY(QString directoryPath READ directoryPath CONSTANT)
 public:
     enum Role { NameRole = Qt::UserRole + 1, IconRole, PathRole, DirectoryRole, DesktopFileRole };
     explicit DesktopModel(QObject *parent = nullptr);
@@ -17,6 +19,10 @@ public:
     QHash<int, QByteArray> roleNames() const override;
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool open(int row);
+    Q_INVOKABLE QStringList paths() const;
+    Q_INVOKABLE QStringList dragUrls(const QStringList &paths) const;
+    Q_INVOKABLE bool canDrop(const QList<QUrl> &urls, const QString &destination) const;
+    QString directoryPath() const { return desktopPath(); }
     QString sortMode() const { return m_sortMode; }
     void setSortMode(const QString &mode);
 

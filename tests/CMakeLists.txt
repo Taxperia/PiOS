@@ -31,7 +31,7 @@ target_compile_definitions(fidan-unit-tests PRIVATE
 )
 target_link_libraries(fidan-unit-tests PRIVATE Qt6::Concurrent Qt6::Core Qt6::Gui Qt6::DBus Qt6::Test)
 add_test(NAME fidan-unit-tests COMMAND fidan-unit-tests)
-set_tests_properties(fidan-unit-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+set_tests_properties(fidan-unit-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;FIDAN_STORE_CATALOG=${PROJECT_SOURCE_DIR}/data/store/catalog.json")
 
 qt_add_executable(fidan-files-ui-tests
     tst_files_ui.cpp
@@ -97,3 +97,45 @@ add_test(NAME fidan-settings-tests COMMAND fidan-settings-tests)
 set_tests_properties(fidan-settings-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 add_test(NAME fidan-lock-preferences-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_lock_preferences.py)
 add_test(NAME fidan-updater-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_updater.py)
+
+qt_add_executable(fidan-store-ui-tests
+    tst_store_ui.cpp
+    ${PROJECT_SOURCE_DIR}/src/store/StoreModel.cpp
+    ${PROJECT_SOURCE_DIR}/src/store/StoreModel.h
+    ${PROJECT_SOURCE_DIR}/src/common/AppStyle.h
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.cpp
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.h)
+target_include_directories(fidan-store-ui-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/store ${PROJECT_SOURCE_DIR}/src/common)
+target_compile_definitions(fidan-store-ui-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-store-ui-tests PRIVATE Qt6::Concurrent Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
+add_test(NAME fidan-store-ui-tests COMMAND fidan-store-ui-tests)
+set_tests_properties(fidan-store-ui-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+qt_add_executable(fidan-taskmanager-ui-tests
+    tst_taskmanager_ui.cpp
+    ${PROJECT_SOURCE_DIR}/src/taskmanager/ProcessModel.cpp
+    ${PROJECT_SOURCE_DIR}/src/taskmanager/ProcessModel.h
+    ${PROJECT_SOURCE_DIR}/src/common/AppStyle.h
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.cpp
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.h)
+target_include_directories(fidan-taskmanager-ui-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/taskmanager ${PROJECT_SOURCE_DIR}/src/common)
+target_compile_definitions(fidan-taskmanager-ui-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-taskmanager-ui-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
+add_test(NAME fidan-taskmanager-ui-tests COMMAND fidan-taskmanager-ui-tests)
+set_tests_properties(fidan-taskmanager-ui-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+add_test(NAME fidan-nested-launcher-security-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_nested_launcher.py)
+
+qt_add_executable(fidan-desktop-ui-tests
+    tst_desktop_ui.cpp
+    ${PROJECT_SOURCE_DIR}/src/shell/DesktopModel.cpp
+    ${PROJECT_SOURCE_DIR}/src/shell/DesktopModel.h
+    ${PROJECT_SOURCE_DIR}/src/files/FilesModel.cpp
+    ${PROJECT_SOURCE_DIR}/src/files/FilesModel.h
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.cpp
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.h)
+target_include_directories(fidan-desktop-ui-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/shell ${PROJECT_SOURCE_DIR}/src/files ${PROJECT_SOURCE_DIR}/src/common)
+target_compile_definitions(fidan-desktop-ui-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-desktop-ui-tests PRIVATE Qt6::Concurrent Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
+add_test(NAME fidan-desktop-ui-tests COMMAND fidan-desktop-ui-tests)
+set_tests_properties(fidan-desktop-ui-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

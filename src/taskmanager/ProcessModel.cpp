@@ -61,7 +61,8 @@ QPair<quint64, quint64> ProcessModel::systemTicks()
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
     const QStringList fields = QString::fromUtf8(file.readLine()).simplified().split(QLatin1Char(' '));
     quint64 total = 0;
-    for (int i = 1; i < fields.size(); ++i) total += fields.at(i).toULongLong();
+    // guest and guest_nice are already included in user and nice.
+    for (int i = 1; i < std::min(9, static_cast<int>(fields.size())); ++i) total += fields.at(i).toULongLong();
     const quint64 idle = fields.value(4).toULongLong() + fields.value(5).toULongLong();
     return {total, idle};
 }
@@ -125,7 +126,7 @@ bool ProcessModel::readProcess(int pid, Entry &entry)
 void ProcessModel::refresh()
 {
     const auto [systemTicks, idleTicks] = ProcessModel::systemTicks();
-    const quint64 systemDelta = systemTicks > m_previousSystemTicks ? systemTicks - m_previousSystemTicks : 0;
+    const quint64 systemDelta = m_previousSystemTicks > 0 && systemTicks > m_previousSystemTicks ? systemTicks - m_previousSystemTicks : 0;
     const quint64 idleDelta = idleTicks > m_previousIdleTicks ? idleTicks - m_previousIdleTicks : 0;
     const quint64 memoryTotal = totalMemoryBytes();
     const int cpuCount = std::max(1L, sysconf(_SC_NPROCESSORS_ONLN));
@@ -149,24 +150,12 @@ void ProcessModel::refresh()
         nextTicks.insert(pid, entry.processTicks);
         next.append(entry);
     }
-    std::sort(next.begin(), next.end(), [](const Entry &left, const Entry &right) {
-        if (!qFuzzyCompare(left.cpu + 1.0, right.cpu + 1.0)) return left.cpu > right.cpu;
-        return left.memoryBytes > right.memoryBytes;
-    });
-
     beginResetModel();
-    m_entries = next;
+    m_entries = std::move(next);
     m_previousProcessTicks = nextTicks;
     m_previousSystemTicks = systemTicks;
     m_previousIdleTicks = idleTicks;
-    m_visible.clear();
-    const QString needle = m_filter.trimmed();
-    for (int row = 0; row < m_entries.size(); ++row) {
-        const Entry &entry = m_entries.at(row);
-        if (needle.isEmpty() || entry.name.contains(needle, Qt::CaseInsensitive)
-            || entry.command.contains(needle, Qt::CaseInsensitive)
-            || QString::number(entry.pid).contains(needle)) m_visible.append(row);
-    }
+    rebuildVisible(false);
     endResetModel();
 
     m_totalCpu = systemDelta > 0
@@ -183,33 +172,85 @@ void ProcessModel::refresh()
             }
         }
     }
-    m_totalMemory = memoryTotal > 0 ? 100.0 * (memoryTotal - available) / memoryTotal : 0;
+    m_memoryCapacity = memoryTotal;
+    m_memoryUsed = memoryTotal - std::min(memoryTotal, available);
+    m_totalMemory = memoryTotal > 0 ? 100.0 * m_memoryUsed / memoryTotal : 0;
+    QFile uptimeFile(QStringLiteral("/proc/uptime"));
+    if (uptimeFile.open(QIODevice::ReadOnly)) m_uptime = uptimeFile.readAll().split(' ').value(0).toDouble();
     emit totalsChanged();
 }
 
-void ProcessModel::rebuildVisible()
+void ProcessModel::rebuildVisible(bool resetModel)
 {
-    beginResetModel();
+    if (resetModel) beginResetModel();
     m_visible.clear();
     const QString needle = m_filter.trimmed();
     for (int row = 0; row < m_entries.size(); ++row) {
         const Entry &entry = m_entries.at(row);
         if (needle.isEmpty() || entry.name.contains(needle, Qt::CaseInsensitive)
             || entry.command.contains(needle, Qt::CaseInsensitive)
+            || entry.user.contains(needle, Qt::CaseInsensitive)
             || QString::number(entry.pid).contains(needle)) m_visible.append(row);
     }
-    endResetModel();
+    std::sort(m_visible.begin(), m_visible.end(), [this](int a, int b) {
+        const auto &left = m_entries.at(a);
+        const auto &right = m_entries.at(b);
+        int comparison = 0;
+        if (m_sortColumn == QStringLiteral("name")) comparison = QString::compare(left.name, right.name, Qt::CaseInsensitive);
+        else if (m_sortColumn == QStringLiteral("user")) comparison = QString::compare(left.user, right.user, Qt::CaseInsensitive);
+        else if (m_sortColumn == QStringLiteral("memory")) comparison = left.memoryBytes < right.memoryBytes ? -1 : left.memoryBytes > right.memoryBytes ? 1 : 0;
+        else if (m_sortColumn == QStringLiteral("pid")) comparison = left.pid < right.pid ? -1 : left.pid > right.pid ? 1 : 0;
+        else comparison = left.cpu < right.cpu ? -1 : left.cpu > right.cpu ? 1 : 0;
+        return comparison == 0 ? left.pid < right.pid : (m_sortDescending ? comparison > 0 : comparison < 0);
+    });
+    if (resetModel) endResetModel();
+}
+
+void ProcessModel::sortBy(const QString &column)
+{
+    if (!QStringList{QStringLiteral("name"), QStringLiteral("user"), QStringLiteral("cpu"), QStringLiteral("memory"), QStringLiteral("pid")}.contains(column)) return;
+    m_sortDescending = column == m_sortColumn ? !m_sortDescending : column == QStringLiteral("cpu") || column == QStringLiteral("memory");
+    m_sortColumn = column;
+    rebuildVisible();
+    emit sortChanged();
+}
+
+QVariantMap ProcessModel::details(int pid) const
+{
+    for (const auto &entry : m_entries) {
+        if (entry.pid == pid) return {{QStringLiteral("pid"), pid}, {QStringLiteral("name"), entry.name},
+            {QStringLiteral("user"), entry.user}, {QStringLiteral("command"), entry.command},
+            {QStringLiteral("state"), entry.state}, {QStringLiteral("cpu"), entry.cpu},
+            {QStringLiteral("memoryBytes"), QVariant::fromValue(entry.memoryBytes)}};
+    }
+    return {};
+}
+
+int ProcessModel::cpuCount() const
+{
+    return std::max(1L, sysconf(_SC_NPROCESSORS_ONLN));
+}
+
+QString ProcessModel::cpuName() const
+{
+    QFile file(QStringLiteral("/proc/cpuinfo"));
+    if (file.open(QIODevice::ReadOnly)) {
+        for (const auto &line : file.readAll().split('\n')) {
+            if (line.startsWith("model name") || line.startsWith("Hardware")) return QString::fromUtf8(line).section(':', 1).trimmed();
+        }
+    }
+    return tr("İşlemci");
 }
 
 bool ProcessModel::terminateProcess(int pid, bool force)
 {
     if (pid <= 1 || pid == static_cast<int>(getpid())) {
-        setError(tr("This system process cannot be stopped."));
+        setError(tr("Bu sistem işlemi durdurulamaz."));
         return false;
     }
     if (::kill(static_cast<pid_t>(pid), force ? SIGKILL : SIGTERM) != 0) {
-        setError(errno == EPERM ? tr("You do not have permission to stop this process.")
-                                : tr("The process could not be stopped."));
+        setError(errno == EPERM ? tr("Bu işlemi durdurma izniniz yok.")
+                                : tr("İşlem durdurulamadı; zaten kapanmış olabilir."));
         return false;
     }
     setError({});

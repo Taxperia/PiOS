@@ -35,7 +35,7 @@ Item {
         SettingsControls.Card {
             visible:root.category === "Keyboard & Mouse"
             SettingsControls.Title { text:qsTr("Klavye düzeni") }
-            SettingsControls.Combo { readonly property var layouts:["us","tr","de","gb"]; model:["English (US)","Türkçe","Deutsch","English (UK)"]; currentIndex:Math.max(0,layouts.indexOf(Controller.keyboardLayout)); onActivated:Controller.keyboardLayout=layouts[currentIndex] }
+            SettingsControls.Combo { objectName:"keyboard-layout"; readonly property var layouts:["us","tr","de","gb"]; model:["English (US)","Türkçe","Deutsch","English (UK)"]; currentIndex:Math.max(0,layouts.indexOf(Controller.keyboardLayout)); onActivated:Controller.keyboardLayout=layouts[currentIndex] }
             SettingsControls.Caption { text:qsTr("Seçilen düzen sonraki masaüstü oturumunda uygulanır.") }
             TextField { id:testInput; Layout.fillWidth:true; implicitHeight:42; placeholderText:qsTr("Klavyeni burada dene…"); selectByMouse:true; color:Controller.darkTheme?"#F2F7F4":"#18261F"; background:Rectangle { radius:8; color:Controller.darkTheme?"#102825":"#F4FAF6"; border.width:1; border.color:testInput.activeFocus?Controller.accentColor:"#426053" } }
         }

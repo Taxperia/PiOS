@@ -26,6 +26,7 @@ set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/SettingsContent
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/DisplayPage.qml PROPERTIES QT_RESOURCE_ALIAS qml/DisplayPage.qml)
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/SettingsScrollView.qml PROPERTIES QT_RESOURCE_ALIAS qml/SettingsScrollView.qml)
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/SettingsControls.qml PROPERTIES QT_RESOURCE_ALIAS qml/SettingsControls.qml)
+set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/SettingsCombo.qml PROPERTIES QT_RESOURCE_ALIAS qml/SettingsCombo.qml)
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/PersonalizationPage.qml PROPERTIES QT_RESOURCE_ALIAS qml/PersonalizationPage.qml)
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/MachineCard.qml PROPERTIES QT_RESOURCE_ALIAS qml/MachineCard.qml)
 set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/SystemPages.qml PROPERTIES QT_RESOURCE_ALIAS qml/SystemPages.qml)
@@ -40,6 +41,7 @@ qt_add_qml_module(fidan-settings
         ${PROJECT_SOURCE_DIR}/src/common/qml/DisplayPage.qml
         ${PROJECT_SOURCE_DIR}/src/common/qml/SettingsScrollView.qml
         ${PROJECT_SOURCE_DIR}/src/common/qml/SettingsControls.qml
+        ${PROJECT_SOURCE_DIR}/src/common/qml/SettingsCombo.qml
         ${PROJECT_SOURCE_DIR}/src/common/qml/PersonalizationPage.qml
         ${PROJECT_SOURCE_DIR}/src/common/qml/MachineCard.qml
         ${PROJECT_SOURCE_DIR}/src/common/qml/SystemPages.qml

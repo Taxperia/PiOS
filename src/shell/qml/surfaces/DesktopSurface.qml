@@ -13,13 +13,15 @@ Window {
     }
     DesktopBackground { anchors.fill: parent }
     DesktopIcons {
+        id: desktopIcons
         anchors.left: parent.left
         anchors.leftMargin: Controller.dockPosition === "left" ? 92 * Controller.interfaceScale : 22
         anchors.top: parent.top
         anchors.topMargin: Theme.panelHeight * Controller.interfaceScale + 18
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Controller.dockPosition === "bottom" ? 90 * Controller.interfaceScale : 10
-        width: 390
+        anchors.right: parent.right
+        anchors.rightMargin: Controller.dockPosition === "right" ? 92 * Controller.interfaceScale : 22
         z: 2
     }
     MouseArea {

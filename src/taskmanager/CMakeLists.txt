@@ -2,6 +2,8 @@ qt_add_executable(fidan-task-manager
     main.cpp
     ProcessModel.cpp
     ProcessModel.h
+    ../common/ThemeIconProvider.cpp
+    ../common/ThemeIconProvider.h
 )
 
 qt_add_qml_module(fidan-task-manager

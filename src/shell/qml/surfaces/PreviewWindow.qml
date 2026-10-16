@@ -43,7 +43,8 @@ Window {
             anchors.top: parent.top
             anchors.topMargin: Theme.panelHeight + 18
             anchors.bottom: parent.bottom
-            width: 390
+            anchors.right: parent.right
+            anchors.rightMargin: 22
             z: 2
         }
         MouseArea {

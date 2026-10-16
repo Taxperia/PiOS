@@ -17,8 +17,10 @@ if [ "$(id -u)" = "0" ]; then
                 export FIDAN_PRIVATE_MOUNT=1
                 exec unshare --mount --propagation private -- "$0" "$@"
             fi
-            x11_directory="/run/user/$session_uid/fidan-x11"
-            mkdir -p "$x11_directory"
+            # /run/user/UID is writable by that user. Root must never chown or
+            # chmod a predictable child there: it could be a symlink to /etc.
+            # /run is root-owned; mktemp creates a fresh, non-replaceable entry.
+            x11_directory=$(mktemp -d /run/fidan-x11.XXXXXX)
             chown "$session_uid:$session_gid" "$x11_directory"
             chmod 1777 "$x11_directory"
             mount --bind "$x11_directory" /tmp/.X11-unix

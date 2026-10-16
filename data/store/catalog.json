@@ -3,105 +3,733 @@
   "apps": [
     {
       "name": "Visual Studio Code",
-      "summary": "Code editor with extension support",
+      "summary": "Kod yazma, hata ayıklama ve eklentilerle çalışma için Visual Studio Code.",
       "category": "Development",
       "icon": "com.visualstudio.code",
       "source": "flatpak",
-      "id": "com.visualstudio.code"
+      "id": "com.visualstudio.code",
+      "description": "Kod yazma, hata ayıklama ve eklentilerle çalışma için Visual Studio Code. Dil sunucuları ve geliştirme araçları kullandığın teknolojiye göre ayrıca kurulabilir.",
+      "features": [
+        "Kod düzenleme",
+        "Eklenti desteği",
+        "Hata ayıklama"
+      ],
+      "website": "https://apps.flathub.org/com.visualstudio.code",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
     },
     {
       "name": "Chromium",
-      "summary": "Web browser",
-      "category": "Multimedia",
+      "summary": "Chromium ile web sitelerini ve web uygulamalarını aç.",
+      "category": "Internet",
       "icon": "chromium",
       "source": "apt",
       "id": "chromium",
-      "desktopId": "chromium.desktop"
+      "desktopId": "chromium.desktop",
+      "description": "Chromium ile web sitelerini ve web uygulamalarını aç. Sekmelerini, yer imlerini ve tarayıcı tercihlerini yönet.",
+      "features": [
+        "Sekmeli tarama",
+        "Web uygulamaları",
+        "Tarayıcı eklentileri"
+      ],
+      "website": "https://packages.debian.org/trixie/chromium"
     },
     {
       "name": "VLC",
-      "summary": "Video and audio player",
+      "summary": "Yerel ses ve video dosyalarını VLC ile oynat.",
       "category": "Multimedia",
       "icon": "org.videolan.VLC",
       "source": "flatpak",
-      "id": "org.videolan.VLC"
+      "id": "org.videolan.VLC",
+      "description": "Yerel ses ve video dosyalarını VLC ile oynat. Altyazı, çalma listesi ve desteklenen ağ akışlarını kullan.",
+      "features": [
+        "Ses ve video oynatma",
+        "Altyazılar",
+        "Çalma listeleri"
+      ],
+      "website": "https://apps.flathub.org/org.videolan.VLC",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
     },
     {
       "name": "GPIO Tools",
-      "summary": "Control your hardware",
+      "summary": "Python ile GPIO aygıtlarını kontrol etmek için kitaplık.",
       "category": "Tools & Makers",
       "icon": "applications-engineering",
       "source": "apt",
-      "id": "python3-gpiozero"
+      "id": "python3-gpiozero",
+      "description": "Python ile GPIO aygıtlarını kontrol etmek için kitaplık. Grafik uygulama değildir; uygun Raspberry Pi donanımı ve gerekli aygıt erişimi gerekir.",
+      "features": [
+        "Python kitaplığı",
+        "GPIO bileşenleri",
+        "Donanım projeleri"
+      ],
+      "website": "https://packages.debian.org/trixie/python3-gpiozero"
     },
     {
       "name": "QTerminal",
-      "summary": "Lightweight terminal emulator",
+      "summary": "Gerçek Linux kabuğuna sekmeli bir terminalden eriş.",
       "category": "System",
       "icon": "utilities-terminal",
       "source": "apt",
       "id": "qterminal",
-      "desktopId": "qterminal.desktop"
+      "desktopId": "qterminal.desktop",
+      "description": "Gerçek Linux kabuğuna sekmeli bir terminalden eriş. Bölünmüş görünümler ve klavye kısayollarıyla komutlarını düzenle.",
+      "features": [
+        "Terminal sekmeleri",
+        "Bölünmüş görünüm",
+        "Klavye kısayolları"
+      ],
+      "website": "https://packages.debian.org/trixie/qterminal"
     },
     {
       "name": "GIMP",
-      "summary": "Image editing and graphic design",
+      "summary": "Fotoğrafları ve görüntüleri düzenle, katmanlarla çalış ve çizimler oluştur.",
       "category": "Graphics",
       "icon": "org.gimp.GIMP",
       "source": "flatpak",
-      "id": "org.gimp.GIMP"
+      "id": "org.gimp.GIMP",
+      "description": "Fotoğrafları ve görüntüleri düzenle, katmanlarla çalış ve çizimler oluştur. Filtreler, seçimler ve dışa aktarma araçlarını kullan.",
+      "features": [
+        "Fotoğraf düzenleme",
+        "Katmanlar",
+        "Filtreler ve seçimler"
+      ],
+      "website": "https://apps.flathub.org/org.gimp.GIMP",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
     },
     {
       "name": "LibreOffice",
-      "summary": "Documents, spreadsheets and presentations",
+      "summary": "Belgeler, hesap tabloları ve sunumlar oluştur.",
       "category": "Office",
       "icon": "org.libreoffice.LibreOffice",
       "source": "flatpak",
-      "id": "org.libreoffice.LibreOffice"
+      "id": "org.libreoffice.LibreOffice",
+      "description": "Belgeler, hesap tabloları ve sunumlar oluştur. Writer, Calc ve Impress araçlarını tek ofis paketi içinde kullan.",
+      "features": [
+        "Metin belgeleri",
+        "Hesap tabloları",
+        "Sunumlar"
+      ],
+      "website": "https://apps.flathub.org/org.libreoffice.LibreOffice",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
     },
     {
       "name": "Kdenlive",
-      "summary": "Non-linear video editor",
+      "summary": "Video ve ses parçalarını zaman çizelgesinde düzenle.",
       "category": "Multimedia",
       "icon": "org.kde.kdenlive",
       "source": "flatpak",
-      "id": "org.kde.kdenlive"
+      "id": "org.kde.kdenlive",
+      "description": "Video ve ses parçalarını zaman çizelgesinde düzenle. Geçişler, efektler ve dışa aktarma profilleriyle videolar oluştur.",
+      "features": [
+        "Çok parçalı kurgu",
+        "Geçiş ve efektler",
+        "Video dışa aktarma"
+      ],
+      "website": "https://apps.flathub.org/org.kde.kdenlive",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
     },
     {
       "name": "FeatherPad",
-      "summary": "Notes and text editing",
-      "category": "Education",
+      "summary": "Metin dosyalarını ve günlük notlarını hafif bir düzenleyicide aç.",
+      "category": "Office",
       "icon": "featherpad",
       "source": "apt",
       "id": "featherpad",
-      "desktopId": "featherpad.desktop"
+      "desktopId": "featherpad.desktop",
+      "description": "Metin dosyalarını ve günlük notlarını hafif bir düzenleyicide aç. Sekmeler, arama ve sözdizimi vurgulama ile çalış.",
+      "features": [
+        "Metin düzenleme",
+        "Sekmeler",
+        "Bul ve değiştir"
+      ],
+      "website": "https://packages.debian.org/trixie/featherpad"
     },
     {
       "name": "GNOME Disks",
-      "summary": "Disk information and partition management",
+      "summary": "Diskleri, bölümleri ve desteklenen sürücü bilgilerini incele.",
       "category": "System",
       "icon": "org.gnome.DiskUtility",
       "source": "apt",
       "id": "gnome-disk-utility",
-      "desktopId": "org.gnome.DiskUtility.desktop"
+      "desktopId": "org.gnome.DiskUtility.desktop",
+      "description": "Diskleri, bölümleri ve desteklenen sürücü bilgilerini incele. Biçimlendirme ve bölüm değişiklikleri yönetici yetkisi ister ve verileri etkileyebilir.",
+      "features": [
+        "Disk bilgileri",
+        "Bölüm yönetimi",
+        "Sürücü kontrolleri"
+      ],
+      "website": "https://packages.debian.org/trixie/gnome-disk-utility"
     },
     {
       "name": "Disk Usage Analyzer",
-      "summary": "Find folders using disk space",
+      "summary": "Klasörlerin kapladığı alanı incele ve büyük dosyaların bulunduğu yerleri gör.",
       "category": "System",
       "icon": "org.gnome.baobab",
       "source": "apt",
       "id": "baobab",
-      "desktopId": "org.gnome.baobab.desktop"
+      "desktopId": "org.gnome.baobab.desktop",
+      "description": "Klasörlerin kapladığı alanı incele ve büyük dosyaların bulunduğu yerleri gör. Tarama erişebildiğin dosya ve konumlarla sınırlıdır.",
+      "features": [
+        "Klasör taraması",
+        "Alan grafikleri",
+        "Depolama analizi"
+      ],
+      "website": "https://packages.debian.org/trixie/baobab"
     },
     {
       "name": "Déjà Dup Backups",
-      "summary": "Back up and restore personal files",
+      "summary": "Kişisel dosyaların için yedekleme ve geri yükleme işlemleri yap.",
       "category": "System",
       "icon": "org.gnome.DejaDup",
       "source": "apt",
       "id": "deja-dup",
-      "desktopId": "org.gnome.DejaDup.desktop"
+      "desktopId": "org.gnome.DejaDup.desktop",
+      "description": "Kişisel dosyaların için yedekleme ve geri yükleme işlemleri yap. Hedef konumu ve yedekleme tercihlerini uygulama içinde ayarla.",
+      "features": [
+        "Dosya yedekleme",
+        "Geri yükleme",
+        "Yedekleme tercihleri"
+      ],
+      "website": "https://packages.debian.org/trixie/deja-dup"
+    },
+    {
+      "name": "Firefox",
+      "id": "org.mozilla.firefox",
+      "icon": "firefox",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "Gizlilik seçenekleri ve eklentiler sunan web tarayıcısı.",
+      "description": "Gizlilik seçenekleri ve eklentiler sunan web tarayıcısı. Sekmeler, yer imleri ve hesap eşitlemesiyle günlük web kullanımını düzenle.",
+      "features": [
+        "Sekmeli tarama",
+        "Eklenti desteği",
+        "Yer imi eşitlemesi"
+      ],
+      "website": "https://apps.flathub.org/org.mozilla.firefox",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Brave",
+      "id": "com.brave.Browser",
+      "icon": "brave",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "Yerleşik reklam ve izleyici engelleme özellikleri olan Chromium tabanlı tarayıcı.",
+      "description": "Yerleşik reklam ve izleyici engelleme özellikleri olan Chromium tabanlı tarayıcı. Web uygulamalarını ve tarayıcı eklentilerini kullan.",
+      "features": [
+        "İzleyici engelleme",
+        "Tarayıcı eklentileri",
+        "Özel pencereler"
+      ],
+      "website": "https://apps.flathub.org/com.brave.Browser",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Thunderbird",
+      "id": "org.mozilla.thunderbird",
+      "icon": "thunderbird",
+      "category": "Office",
+      "source": "flatpak",
+      "summary": "E-posta hesaplarını, kişilerini ve takvimlerini tek uygulamada yönet.",
+      "description": "E-posta hesaplarını, kişilerini ve takvimlerini tek uygulamada yönet. Birden fazla hesap arasında arama yap ve iletilerini klasörlere ayır.",
+      "features": [
+        "Birden fazla hesap",
+        "Takvim ve kişiler",
+        "E-posta araması"
+      ],
+      "website": "https://apps.flathub.org/org.mozilla.thunderbird",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "Telegram",
+      "id": "org.telegram.desktop",
+      "icon": "telegram",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "Telegram hesabındaki sohbetlere masaüstünden eriş.",
+      "description": "Telegram hesabındaki sohbetlere masaüstünden eriş. Gruplar, kanallar ve dosya paylaşımı için mobil hesabınla birlikte kullan.",
+      "features": [
+        "Grup sohbetleri",
+        "Kanallar",
+        "Dosya paylaşımı"
+      ],
+      "website": "https://apps.flathub.org/org.telegram.desktop",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Discord",
+      "id": "com.discordapp.Discord",
+      "icon": "discord",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "Topluluk sunucularında yazılı ve sesli görüşmelere katıl.",
+      "description": "Topluluk sunucularında yazılı ve sesli görüşmelere katıl. Kanallar, arkadaş mesajları ve ekran paylaşımıyla iletişim kur.",
+      "features": [
+        "Topluluk sunucuları",
+        "Sesli görüşme",
+        "Ekran paylaşımı"
+      ],
+      "website": "https://apps.flathub.org/com.discordapp.Discord",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "Signal",
+      "id": "org.signal.Signal",
+      "icon": "signal-desktop",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "Signal hesabını masaüstüne bağlayarak mesajlaş ve görüşme yap.",
+      "description": "Signal hesabını masaüstüne bağlayarak mesajlaş ve görüşme yap. İlk kullanımda desteklenen bir mobil Signal hesabıyla eşleştirme gerekir.",
+      "features": [
+        "Cihaz eşleştirme",
+        "Mesajlaşma",
+        "Sesli ve görüntülü görüşme"
+      ],
+      "website": "https://apps.flathub.org/org.signal.Signal",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Spotify",
+      "id": "com.spotify.Client",
+      "icon": "spotify",
+      "category": "Multimedia",
+      "source": "flatpak",
+      "summary": "Spotify hesabınla müzik ve podcast dinle.",
+      "description": "Spotify hesabınla müzik ve podcast dinle. Çalma listelerini düzenle ve dinleme geçmişine eriş; bazı özellikler abonelik gerektirir.",
+      "features": [
+        "Müzik ve podcast",
+        "Çalma listeleri",
+        "Hesap eşitlemesi"
+      ],
+      "website": "https://apps.flathub.org/com.spotify.Client",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "OBS Studio",
+      "id": "com.obsproject.Studio",
+      "icon": "obs",
+      "category": "Multimedia",
+      "source": "flatpak",
+      "summary": "Ekran kaydı ve canlı yayın için sahneler oluştur.",
+      "description": "Ekran kaydı ve canlı yayın için sahneler oluştur. Ses ve görüntü kaynaklarını birleştir; ekran yakalama desteği masaüstü portalına ve donanıma bağlıdır.",
+      "features": [
+        "Sahne düzenleyici",
+        "Ekran kaydı",
+        "Ses miksajı"
+      ],
+      "website": "https://apps.flathub.org/com.obsproject.Studio",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "Inkscape",
+      "id": "org.inkscape.Inkscape",
+      "icon": "inkscape",
+      "category": "Graphics",
+      "source": "flatpak",
+      "summary": "SVG tabanlı vektör çizimleri oluştur ve düzenle.",
+      "description": "SVG tabanlı vektör çizimleri oluştur ve düzenle. Logolar, simgeler, diyagramlar ve baskı çalışmaları için ölçeklenebilir şekiller kullan.",
+      "features": [
+        "Vektör çizimi",
+        "SVG düzenleme",
+        "Metin ve yollar"
+      ],
+      "website": "https://apps.flathub.org/org.inkscape.Inkscape",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Krita",
+      "id": "org.kde.krita",
+      "icon": "krita",
+      "category": "Graphics",
+      "source": "flatpak",
+      "summary": "Dijital çizim ve boyama için fırçalar, katmanlar ve seçim araçları kullan.",
+      "description": "Dijital çizim ve boyama için fırçalar, katmanlar ve seçim araçları kullan. Çizim tableti desteği aygıtına ve sürücüsüne bağlıdır.",
+      "features": [
+        "Fırça araçları",
+        "Katmanlar",
+        "Çizim ve boyama"
+      ],
+      "website": "https://apps.flathub.org/org.kde.krita",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Blender",
+      "id": "org.blender.Blender",
+      "icon": "blender",
+      "category": "Graphics",
+      "source": "flatpak",
+      "summary": "Üç boyutlu modeller, sahneler ve animasyonlar oluştur.",
+      "description": "Üç boyutlu modeller, sahneler ve animasyonlar oluştur. Görüntü işleme hızı ve GPU desteği donanımına bağlıdır.",
+      "features": [
+        "3B modelleme",
+        "Animasyon",
+        "Görüntü oluşturma"
+      ],
+      "website": "https://apps.flathub.org/org.blender.Blender",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "Audacity",
+      "id": "org.audacityteam.Audacity",
+      "icon": "audacity",
+      "category": "Multimedia",
+      "source": "flatpak",
+      "summary": "Ses kaydet, parçaları düzenle ve efektler uygula.",
+      "description": "Ses kaydet, parçaları düzenle ve efektler uygula. Çok kanallı projeler üzerinde kesme, birleştirme ve dışa aktarma işlemleri yap.",
+      "features": [
+        "Ses kaydı",
+        "Çok kanallı düzenleme",
+        "Ses efektleri"
+      ],
+      "website": "https://apps.flathub.org/org.audacityteam.Audacity",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Steam",
+      "id": "com.valvesoftware.Steam",
+      "icon": "steam",
+      "category": "Games",
+      "source": "flatpak",
+      "summary": "Steam hesabındaki oyun kitaplığını yönet.",
+      "description": "Steam hesabındaki oyun kitaplığını yönet. Oyunların çalışması kendi sistem gereksinimlerine, mimariye ve grafik sürücülerine bağlıdır.",
+      "features": [
+        "Oyun kitaplığı",
+        "Oyun indirme",
+        "Topluluk özellikleri"
+      ],
+      "website": "https://apps.flathub.org/com.valvesoftware.Steam",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "SuperTuxKart",
+      "id": "net.supertuxkart.SuperTuxKart",
+      "icon": "supertuxkart",
+      "category": "Games",
+      "source": "flatpak",
+      "summary": "Farklı pistlerde kart yarışlarına katıl.",
+      "description": "Farklı pistlerde kart yarışlarına katıl. Tek oyunculu yarışlar ve desteklenen çok oyunculu kiplerle oyna.",
+      "features": [
+        "Kart yarışları",
+        "Farklı pistler",
+        "Çok oyunculu kipler"
+      ],
+      "website": "https://apps.flathub.org/net.supertuxkart.SuperTuxKart",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "OpenTTD",
+      "id": "org.openttd.OpenTTD",
+      "icon": "openttd",
+      "category": "Games",
+      "source": "flatpak",
+      "summary": "Kara yolu, demir yolu, hava ve deniz taşımacılığı ağı kur.",
+      "description": "Kara yolu, demir yolu, hava ve deniz taşımacılığı ağı kur. Şirketini büyütürken hatları ve araçları planla.",
+      "features": [
+        "Ulaşım ağı kurma",
+        "Ekonomi simülasyonu",
+        "Çok oyunculu oyun"
+      ],
+      "website": "https://apps.flathub.org/org.openttd.OpenTTD",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "KeePassXC",
+      "id": "org.keepassxc.KeePassXC",
+      "icon": "keepassxc",
+      "category": "Security",
+      "source": "flatpak",
+      "summary": "Parolalarını yerel, şifreli bir parola kasasında düzenle.",
+      "description": "Parolalarını yerel, şifreli bir parola kasasında düzenle. Kasa dosyanı ve ana parolanı korumak senin sorumluluğundadır.",
+      "features": [
+        "Şifreli kasa",
+        "Parola üretici",
+        "Tarayıcı entegrasyonu"
+      ],
+      "website": "https://apps.flathub.org/org.keepassxc.KeePassXC",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Bitwarden",
+      "id": "com.bitwarden.desktop",
+      "icon": "bitwarden",
+      "category": "Security",
+      "source": "flatpak",
+      "summary": "Bitwarden hesabındaki parola kasasına eriş ve girişlerini düzenle.",
+      "description": "Bitwarden hesabındaki parola kasasına eriş ve girişlerini düzenle. Hizmetin desteklediği eşitleme ve hesap güvenliği seçeneklerini kullan.",
+      "features": [
+        "Parola kasası",
+        "Cihazlar arası eşitleme",
+        "Parola üretici"
+      ],
+      "website": "https://apps.flathub.org/com.bitwarden.desktop",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Transmission",
+      "id": "com.transmissionbt.Transmission",
+      "icon": "transmission",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "BitTorrent aktarımlarını sade bir arayüzle yönet.",
+      "description": "BitTorrent aktarımlarını sade bir arayüzle yönet. Hız sınırları ve aktarma durumları üzerinden indirmelerini takip et.",
+      "features": [
+        "BitTorrent aktarımları",
+        "Hız sınırları",
+        "Aktarım yönetimi"
+      ],
+      "website": "https://apps.flathub.org/com.transmissionbt.Transmission",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "FileZilla",
+      "id": "org.filezillaproject.Filezilla",
+      "icon": "filezilla",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "Uzak sunucularla dosya aktarımı yap.",
+      "description": "Uzak sunucularla dosya aktarımı yap. Kaydedilmiş bağlantılar ve aktarım kuyruğuyla FTP ve SFTP işlerini düzenle.",
+      "features": [
+        "FTP ve SFTP",
+        "Aktarım kuyruğu",
+        "Bağlantı yöneticisi"
+      ],
+      "website": "https://apps.flathub.org/org.filezillaproject.Filezilla",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Remmina",
+      "id": "org.remmina.Remmina",
+      "icon": "remmina",
+      "category": "Internet",
+      "source": "flatpak",
+      "summary": "Desteklenen uzak masaüstü protokolleriyle diğer bilgisayarlara bağlan.",
+      "description": "Desteklenen uzak masaüstü protokolleriyle diğer bilgisayarlara bağlan. Kullanılabilir bağlantılar sunucunun ve paketin desteğine bağlıdır.",
+      "features": [
+        "Uzak masaüstü",
+        "Bağlantı profilleri",
+        "RDP ve VNC"
+      ],
+      "website": "https://apps.flathub.org/org.remmina.Remmina",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "DBeaver Community",
+      "id": "io.dbeaver.DBeaverCommunity",
+      "icon": "dbeaver",
+      "category": "Development",
+      "source": "flatpak",
+      "summary": "Veritabanı bağlantılarını ve SQL sorgularını bir çalışma alanında yönet.",
+      "description": "Veritabanı bağlantılarını ve SQL sorgularını bir çalışma alanında yönet. Desteklenen veritabanları için uygun bağlantı sürücüsünü kullan.",
+      "features": [
+        "SQL düzenleyici",
+        "Veri tabloları",
+        "Bağlantı profilleri"
+      ],
+      "website": "https://apps.flathub.org/io.dbeaver.DBeaverCommunity",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Geany",
+      "id": "org.geany.Geany",
+      "icon": "geany",
+      "category": "Development",
+      "source": "flatpak",
+      "summary": "Kaynak dosyalarını hafif bir kod düzenleyicide aç.",
+      "description": "Kaynak dosyalarını hafif bir kod düzenleyicide aç. Sözdizimi vurgulama ve proje dosyalarıyla çalış; derleme araçları ayrıca gerekebilir.",
+      "features": [
+        "Sözdizimi vurgulama",
+        "Proje dosyaları",
+        "Kod gezinme"
+      ],
+      "website": "https://apps.flathub.org/org.geany.Geany",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Godot",
+      "id": "org.godotengine.Godot",
+      "icon": "godot",
+      "category": "Development",
+      "source": "flatpak",
+      "summary": "İki ve üç boyutlu oyun projeleri oluştur.",
+      "description": "İki ve üç boyutlu oyun projeleri oluştur. Sahne düzenleyicisi, betikler ve dışa aktarma araçlarıyla oyun geliştir.",
+      "features": [
+        "2B ve 3B geliştirme",
+        "Sahne düzenleyici",
+        "Betik desteği"
+      ],
+      "website": "https://apps.flathub.org/org.godotengine.Godot",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Bottles",
+      "id": "com.usebottles.bottles",
+      "icon": "bottles",
+      "category": "Games",
+      "source": "flatpak",
+      "summary": "Wine tabanlı uygulama ortamlarını ayrı şişeler halinde yönet.",
+      "description": "Wine tabanlı uygulama ortamlarını ayrı şişeler halinde yönet. Windows uygulamalarının çalışması uyumluluğa ve sistemine bağlıdır.",
+      "features": [
+        "Ayrı uygulama ortamları",
+        "Wine yönetimi",
+        "Uyumluluk seçenekleri"
+      ],
+      "website": "https://apps.flathub.org/com.usebottles.bottles",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "Lutris",
+      "id": "net.lutris.Lutris",
+      "icon": "lutris",
+      "category": "Games",
+      "source": "flatpak",
+      "summary": "Farklı kaynaklardaki oyunlarını bir kitaplıkta düzenle.",
+      "description": "Farklı kaynaklardaki oyunlarını bir kitaplıkta düzenle. Gerekli oyun dosyaları, hesaplar ve çalıştırıcılar ayrıca gerekebilir.",
+      "features": [
+        "Oyun kitaplığı",
+        "Çalıştırıcı yönetimi",
+        "Kurulum betikleri"
+      ],
+      "website": "https://apps.flathub.org/net.lutris.Lutris",
+      "architectures": [
+        "amd64"
+      ]
+    },
+    {
+      "name": "Calibre",
+      "id": "com.calibre_ebook.calibre",
+      "icon": "calibre-gui",
+      "category": "Office",
+      "source": "flatpak",
+      "summary": "E-kitap kitaplığını, kitap bilgilerini ve desteklenen biçimleri yönet.",
+      "description": "E-kitap kitaplığını, kitap bilgilerini ve desteklenen biçimleri yönet. Okuma ve biçim dönüştürme araçlarını birlikte kullan.",
+      "features": [
+        "E-kitap kitaplığı",
+        "Kitap bilgileri",
+        "Biçim dönüştürme"
+      ],
+      "website": "https://apps.flathub.org/com.calibre_ebook.calibre",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "Obsidian",
+      "id": "md.obsidian.Obsidian",
+      "icon": "obsidian",
+      "category": "Office",
+      "source": "flatpak",
+      "summary": "Markdown notlarını yerel klasörlerde düzenle ve bağlantılarla ilişkilendir.",
+      "description": "Markdown notlarını yerel klasörlerde düzenle ve bağlantılarla ilişkilendir. İsteğe bağlı hizmetler ve bazı özellikler ayrı koşullara tabidir.",
+      "features": [
+        "Markdown notları",
+        "Not bağlantıları",
+        "Yerel klasörler"
+      ],
+      "website": "https://apps.flathub.org/md.obsidian.Obsidian",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "name": "draw.io",
+      "id": "com.jgraph.drawio.desktop",
+      "icon": "drawio",
+      "category": "Office",
+      "source": "flatpak",
+      "summary": "Akış şemaları, ağ çizimleri ve diyagramlar oluştur.",
+      "description": "Akış şemaları, ağ çizimleri ve diyagramlar oluştur. Şekilleri bağla, belgelerini kaydet ve farklı biçimlerde dışa aktar.",
+      "features": [
+        "Akış şemaları",
+        "Diyagram şekilleri",
+        "Dışa aktarma"
+      ],
+      "website": "https://apps.flathub.org/com.jgraph.drawio.desktop",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
     }
   ]
 }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "FirstBootService.h"
+#include "FirstBootValidation.h"
 
 #include <QDBusConnectionInterface>
 #include <QDBusReply>
@@ -24,7 +25,8 @@ FirstBootService::FirstBootService(QObject *parent)
 
 bool FirstBootService::callerIsSetupUser() const
 {
-    if (!calledFromDBus()) {
+    // An existing setup process must lose provisioning rights after completion.
+    if (QFileInfo::exists(completeMarker) || !calledFromDBus()) {
         return false;
     }
     const QDBusReply<uint> uid = connection().interface()->serviceUid(message().service());
@@ -66,11 +68,14 @@ bool FirstBootService::SetLocale(const QString &locale, const QString &keymap, c
         fail(QStringLiteral("org.fidan.Error.AccessDenied"), QStringLiteral("The caller is not the local setup session."));
         return false;
     }
-    static const QRegularExpression localePattern(QStringLiteral("^[A-Za-z]{2}_[A-Za-z]{2}\\.UTF-8$"));
-    static const QRegularExpression keymapPattern(QStringLiteral("^[A-Za-z0-9_-]{2,24}$"));
+    static const QRegularExpression localePattern(QStringLiteral("\\A[A-Za-z]{2}_[A-Za-z]{2}\\.UTF-8\\z"));
+    static const QRegularExpression keymapPattern(QStringLiteral("\\A[A-Za-z0-9][A-Za-z0-9_-]{1,23}\\z"));
+    static const QRegularExpression zonePattern(QStringLiteral("\\A[A-Za-z0-9_+-]+(?:/[A-Za-z0-9_+-]+)*\\z"));
+    const QFileInfo zone(QStringLiteral("/usr/share/zoneinfo/") + timezone);
+    const QString zoneRoot = QFileInfo(QStringLiteral("/usr/share/zoneinfo")).canonicalFilePath();
     if (!localePattern.match(locale).hasMatch() || !keymapPattern.match(keymap).hasMatch()
-        || timezone.contains(QStringLiteral(".."))
-        || !QFileInfo::exists(QStringLiteral("/usr/share/zoneinfo/") + timezone)) {
+        || !zonePattern.match(timezone).hasMatch() || !zone.isFile() || zoneRoot.isEmpty()
+        || !zone.canonicalFilePath().startsWith(zoneRoot + QLatin1Char('/'))) {
         fail(QStringLiteral("org.fidan.Error.InvalidInput"), QStringLiteral("Locale, keymap, or timezone is invalid."));
         return false;
     }
@@ -87,9 +92,7 @@ bool FirstBootService::CreateUser(const QString &username, const QString &displa
         fail(QStringLiteral("org.fidan.Error.AccessDenied"), QStringLiteral("The caller is not the local setup session."));
         return false;
     }
-    static const QRegularExpression userPattern(QStringLiteral("^[a-z][a-z0-9_-]{1,30}$"));
-    if (!userPattern.match(username).hasMatch() || displayName.size() > 80
-        || displayName.contains(QLatin1Char(':')) || password.size() < 8 || password.size() > 256) {
+    if (!FirstBootValidation::account(username, displayName, password)) {
         fail(QStringLiteral("org.fidan.Error.InvalidInput"), QStringLiteral("The account information is invalid."));
         return false;
     }
@@ -113,7 +116,8 @@ bool FirstBootService::CreateUser(const QString &username, const QString &displa
 
 bool FirstBootService::ConnectWifi(const QString &ssid, const QString &password)
 {
-    if (!callerIsSetupUser() || ssid.isEmpty() || ssid.size() > 32 || password.size() > 63) {
+    if (!callerIsSetupUser() || ssid.isEmpty() || ssid.toUtf8().size() > 32 || password.size() > 63
+        || !FirstBootValidation::singleLine(ssid) || !FirstBootValidation::singleLine(password)) {
         fail(QStringLiteral("org.fidan.Error.InvalidInput"), QStringLiteral("The Wi-Fi settings are invalid."));
         return false;
     }

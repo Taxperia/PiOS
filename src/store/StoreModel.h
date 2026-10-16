@@ -5,6 +5,7 @@
 #include <QProcess>
 #include <QFutureWatcher>
 #include <QSet>
+#include <QVariantMap>
 
 class StoreModel final : public QAbstractListModel
 {
@@ -20,6 +21,11 @@ class StoreModel final : public QAbstractListModel
     Q_PROPERTY(QString operationOutput READ operationOutput NOTIFY operationOutputChanged)
     Q_PROPERTY(int progress READ progress NOTIFY operationOutputChanged)
     Q_PROPERTY(bool canRetry READ canRetry NOTIFY errorTextChanged)
+    Q_PROPERTY(QVariantMap selectedApp READ selectedApp NOTIFY selectedAppChanged)
+    Q_PROPERTY(QString operationIdentifier READ operationIdentifier NOTIFY operationOutputChanged)
+    Q_PROPERTY(QString operationName READ operationName NOTIFY operationOutputChanged)
+    Q_PROPERTY(QString phaseText READ phaseText NOTIFY operationOutputChanged)
+    Q_PROPERTY(int catalogSize READ catalogSize CONSTANT)
 
 public:
     enum Role {
@@ -30,7 +36,7 @@ public:
         SourceRole,
         IdentifierRole,
         InstalledRole,
-        EntryBusyRole, UpdateAvailableRole, LaunchableRole
+        EntryBusyRole, UpdateAvailableRole, LaunchableRole, CompatibleRole
     };
 
     explicit StoreModel(QObject *parent = nullptr);
@@ -58,11 +64,24 @@ public:
     Q_INVOKABLE bool openEntry(int row);
     Q_INVOKABLE void removeApplication(const QString &identifier);
     Q_INVOKABLE void retry();
+    QVariantMap selectedApp() const;
+    QString operationIdentifier() const { return m_operationIdentifier; }
+    QString operationName() const { return m_operationName; }
+    QString phaseText() const { return m_phaseText; }
+    int catalogSize() const { return m_entries.size(); }
+    Q_INVOKABLE void selectEntry(int row);
+    Q_INVOKABLE void clearSelection();
+    Q_INVOKABLE void installSelected();
+    Q_INVOKABLE void removeSelected();
+    Q_INVOKABLE void updateSelected();
+    Q_INVOKABLE bool openSelected();
+    Q_INVOKABLE bool openWebsite();
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void installOrRemove(int row);
 
 signals:
+    void selectedAppChanged();
     void updatesChanged();
     void filterChanged();
     void categoryChanged();
@@ -83,6 +102,10 @@ private:
         bool installed = false;
         bool updateAvailable = false;
         QString desktopId;
+        QString description;
+        QStringList features;
+        QString website;
+        QStringList architectures;
     };
 
     void loadCatalog();
@@ -94,6 +117,11 @@ private:
     void collectOperationOutput();
     void setError(const QString &message);
     void setStatus(const QString &message);
+    int selectedSourceRow() const;
+    bool compatible(const Entry &entry) const;
+    void beginOperation(int sourceRow, bool removing, bool updating = false);
+    bool openApplication(int sourceRow);
+    void queryDetails();
 
     QList<Entry> m_entries;
     QList<int> m_visible;
@@ -118,4 +146,10 @@ private:
     bool m_lastUpdating = false;
     QFutureWatcher<QSet<QString>> m_refresh;
     bool m_refreshing = false;
+    QString m_selectedIdentifier;
+    QVariantMap m_metadata;
+    QProcess *m_details = nullptr;
+    QString m_operationIdentifier;
+    QString m_operationName;
+    QString m_phaseText;
 };

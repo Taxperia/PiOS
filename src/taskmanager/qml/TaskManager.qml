@@ -6,548 +6,335 @@ import QtQuick.Window
 
 ApplicationWindow {
     id: root
-
-    width: Math.max(minimumWidth, Math.min(940, Screen.width * 0.8))
-    height: Math.max(minimumHeight, Math.min(600, Screen.height * 0.8))
-    minimumWidth: 860
-    minimumHeight: 460
-    x: Math.max(78, (Screen.width - width) / 2)
-    y: Math.max(60, (Screen.height - height) / 2)
-    visible: true
-    title: qsTr("Fidan Task Manager")
-    color: "transparent"
+    width: Math.min(1100, Screen.width - 110); height: Math.min(710, Screen.height - 110)
+    minimumWidth: 880; minimumHeight: 540
+    x: Math.max(78, (Screen.width - width) / 2); y: Math.max(40, (Screen.height - height) / 2)
+    visible: true; title: qsTr("PiOS Görev Yöneticisi"); color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint
-
-    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark)
-    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark)
-    readonly property color secondary: UiStyle.color("#9FB2A8", UiStyle.dark)
+    font.family: "Inter"
     readonly property bool maximized: visibility === Window.Maximized
-    readonly property real nameColumnWidth: Math.max(145, processList.width - 395)
+    readonly property color bg: UiStyle.dark ? "#101917" : "#f2f6f3"
+    readonly property color panel: UiStyle.dark ? "#17231f" : "#ffffff"
+    readonly property color line: UiStyle.dark ? "#2b3a34" : "#dce5df"
+    readonly property color ink: UiStyle.dark ? "#edf5ef" : "#192b21"
+    readonly property color muted: UiStyle.dark ? "#95aaa0" : "#65796d"
+    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark)
+    readonly property color blue: UiStyle.dark ? "#79b7ff" : "#246cc0"
     property string page: InitialTaskPage
-    property var cpuHistory: []
-    property var memoryHistory: []
+    property bool paused: false
+    property int selectedPid: -1
+    property var selection: ({})
+    property var cpuHistory: [processBackend.totalCpu]
+    property var memoryHistory: [processBackend.totalMemory]
+    readonly property real nameWidth: Math.max(160, table.width - 390)
+
+    function bytes(value) { return value >= 1073741824 ? (value / 1073741824).toFixed(1) + " GiB" : (value / 1048576).toFixed(1) + " MiB" }
+    function duration(seconds) { return Math.floor(seconds / 86400) + " gün " + Math.floor(seconds % 86400 / 3600) + " sa " + Math.floor(seconds % 3600 / 60) + " dk" }
+    function stateName(state) { return ({"R":"Çalışıyor", "S":"Bekliyor", "D":"Disk bekliyor", "T":"Durduruldu", "t":"İzleniyor", "Z":"Sonlandı", "I":"Boşta"})[state] || state }
+    function selectProcess(pid) { selectedPid = pid; selection = processBackend.details(pid) }
+    function toggleMaximized() { if (maximized) showNormal(); else showMaximized() }
+    function endTask(force) {
+        if (!processBackend.terminateProcess(selectedPid, force)) return
+        confirmDialog.close(); selectedPid = -1; selection = ({}); processBackend.refresh()
+    }
     Connections {
         target: processBackend
         function onTotalsChanged() {
             root.cpuHistory = root.cpuHistory.concat([processBackend.totalCpu]).slice(-45)
             root.memoryHistory = root.memoryHistory.concat([processBackend.totalMemory]).slice(-45)
+            if (root.selectedPid > 0) {
+                root.selection = processBackend.details(root.selectedPid)
+                if (!root.selection.pid) { root.selectedPid = -1; confirmDialog.close() }
+            }
         }
     }
-    property int selectedPid: -1
-    property string selectedName: ""
+    Timer { interval: 2000; running: !root.paused; repeat: true; onTriggered: processBackend.refresh() }
+    Shortcut { sequence: "Ctrl+F"; onActivated: { root.page = "processes"; search.forceActiveFocus() } }
+    Shortcut { sequence: "F5"; onActivated: processBackend.refresh() }
+    Shortcut { sequence: "Escape"; enabled: !confirmDialog.opened; onActivated: { root.selectedPid = -1; root.selection = ({}) } }
 
-    function endSelectedTask(force) {
-        if (!processBackend.terminateProcess(selectedPid, force)) return
-        selectedPid = -1
-        selectedName = ""
-        confirmDialog.close()
-        processBackend.refresh()
+    component Label: Text { color: root.ink; font.family: "Inter"; font.pixelSize: 12; elide: Text.ElideRight }
+    component Icon: Image {
+        property string name
+        source: "image://theme/" + name + "?theme=" + (UiStyle.dark ? "dark" : "light")
+        sourceSize.width: 32; sourceSize.height: 32; fillMode: Image.PreserveAspectFit
     }
-
-    function toggleMaximized() {
-        if (maximized)
-            showNormal()
-        else
-            showMaximized()
+    component Action: Button {
+        id: action
+        property bool primary: false
+        property bool danger: false
+        implicitHeight: 34; implicitWidth: contentItem.implicitWidth + 26
+        hoverEnabled: true
+        background: Rectangle {
+            radius: 7
+            color: !action.enabled ? root.line : action.danger ? (UiStyle.dark ? "#4a292c" : "#ffe8e9") : action.primary ? root.accent : action.hovered ? (UiStyle.dark ? "#2b3d33" : "#e5eee8") : root.panel
+            border.color: action.danger ? (UiStyle.dark ? "#744148" : "#efb7bd") : action.primary ? root.accent : root.line
+        }
+        contentItem: Text {
+            text: action.text; color: !action.enabled ? root.muted : action.danger ? (UiStyle.dark ? "#ffafb7" : "#ab3040") : action.primary ? (UiStyle.dark ? "#102519" : "white") : root.ink
+            font.family: "Inter"; font.pixelSize: 11; font.weight: Font.Medium
+            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+        }
     }
-
     component WindowControl: Rectangle {
         id: control
         property string symbol
         property bool destructive: false
-        signal invoked
-
-        width: 46
-        height: 42
-        color: controlMouse.containsMouse
-               ? (destructive ? UiStyle.color("#C74646", UiStyle.dark) : UiStyle.color("#304039", UiStyle.dark)) : "transparent"
-
-        Text {
-            anchors.centerIn: parent
-            text: control.symbol
-            color: control.destructive && controlMouse.containsMouse ? "white" : root.foreground
-            font.family: "Inter"
-            font.pixelSize: 14
-        }
-        MouseArea {
-            id: controlMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: control.invoked()
-        }
+        signal invoked()
+        width: 44; height: 42
+        color: mouse.containsMouse ? (destructive ? "#bd3e4b" : root.line) : "transparent"
+        Label { anchors.centerIn: parent; text: control.symbol; font.pixelSize: 17; color: control.destructive && mouse.containsMouse ? "white" : root.ink }
+        MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; onClicked: control.invoked() }
     }
-
-    component ActionButton: Rectangle {
-        id: action
+    component Metric: Rectangle {
+        id: metric
         property string label
-        property bool enabled: true
-        property bool danger: false
-        signal invoked
-
-        implicitWidth: actionText.implicitWidth + 28
-        implicitHeight: 32
-        radius: 6
-        opacity: enabled ? 1.0 : 0.45
-        color: actionMouse.containsMouse && enabled
-               ? (danger ? UiStyle.color("#A94444", UiStyle.dark) : UiStyle.color("#397D58", UiStyle.dark))
-               : (danger ? UiStyle.color("#753A3A", UiStyle.dark) : UiStyle.color("#28533E", UiStyle.dark))
-        border.width: 1
-        border.color: danger ? UiStyle.color("#A95151", UiStyle.dark) : UiStyle.color("#347551", UiStyle.dark)
-
-        Text {
-            id: actionText
-            anchors.centerIn: parent
-            text: action.label
-            color: action.danger ? UiStyle.color("#FFE8E8", UiStyle.dark) : root.foreground
-            font.family: "Inter"
-            font.pixelSize: 10
-            font.weight: Font.DemiBold
-        }
-        MouseArea {
-            id: actionMouse
-            anchors.fill: parent
-            enabled: action.enabled
-            hoverEnabled: true
-            cursorShape: action.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: action.invoked()
+        property string value
+        property string detail
+        property string icon
+        property real percent: -1
+        property color tint: root.accent
+        Layout.fillWidth: true; Layout.preferredHeight: 100
+        color: root.panel; radius: 12; border.color: root.line
+        Icon { x: 16; y: 15; width: 18; height: 18; name: metric.icon }
+        Label { x: 42; y: 17; text: metric.label; color: root.muted; font.pixelSize: 11 }
+        Label { x: 16; y: 38; text: metric.value; color: metric.tint; font.pixelSize: 27; font.weight: Font.DemiBold }
+        Label { anchors.right: parent.right; anchors.rightMargin: 15; y: 51; width: parent.width - 130; text: metric.detail; horizontalAlignment: Text.AlignRight; font.pixelSize: 10; color: root.muted }
+        Rectangle {
+            x: 16; y: 82; width: parent.width - 32; height: 3; radius: 2; color: root.line; visible: metric.percent >= 0
+            Rectangle { width: parent.width * Math.min(100, metric.percent) / 100; height: 3; radius: 2; color: metric.tint }
         }
     }
-
-    Timer {
-        interval: 2000
-        running: true
-        repeat: true
-        onTriggered: processBackend.refresh()
-    }
-
-    background: Rectangle {
-        radius: root.maximized ? 0 : 13
-        color: UiStyle.color("#0E1715", UiStyle.dark)
-        border.width: root.maximized ? 0 : 1
-        border.color: UiStyle.color("#465750", UiStyle.dark)
-        clip: true
-    }
-
-    Rectangle {
-        id: titleBar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
+    component SortHeader: Item {
+        id: heading
+        property string label
+        property string column
+        property bool numeric: false
         height: 42
-        color: UiStyle.color("#101A17", UiStyle.dark)
-
-        MouseArea {
-            anchors.left: parent.left
-            anchors.right: windowControls.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            cursorShape: root.maximized ? Qt.ArrowCursor : Qt.SizeAllCursor
-            onPressed: root.startSystemMove()
-            onDoubleClicked: root.toggleMaximized()
+        Label {
+            anchors.fill: parent; anchors.rightMargin: 12; verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: heading.numeric ? Text.AlignRight : Text.AlignLeft
+            text: heading.label + (processBackend.sortColumn === heading.column ? (processBackend.sortDescending ? "  ↓" : "  ↑") : "")
+            font.pixelSize: 10; font.weight: Font.DemiBold
+            color: processBackend.sortColumn === heading.column ? root.accent : root.muted
         }
-
-        Row {
-            anchors.left: parent.left
-            anchors.leftMargin: 14
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 9
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "▥"
-                color: root.accent
-                font.family: "Inter"
-                font.pixelSize: 18
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Task Manager")
-                color: root.foreground
-                font.family: "Inter"
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
+        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: processBackend.sortBy(heading.column) }
+    }
+    component Chart: Rectangle {
+        id: graph
+        property string label
+        property string subtitle
+        property real value
+        property var points
+        property color tint
+        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 170
+        color: root.panel; radius: 12; border.color: root.line
+        Label { x: 18; y: 16; text: graph.label; font.pixelSize: 15; font.weight: Font.DemiBold }
+        Label { x: 18; y: 40; width: parent.width - 130; text: graph.subtitle; color: root.muted; font.pixelSize: 10 }
+        Label { anchors.right: parent.right; anchors.rightMargin: 18; y: 18; text: graph.value.toFixed(1) + "%"; color: graph.tint; font.pixelSize: 28; font.weight: Font.DemiBold }
+        Label { anchors.right: parent.right; anchors.rightMargin: 18; y: 65; text: "100%"; color: root.muted; font.pixelSize: 9 }
+        Canvas {
+            id: plot
+            anchors.fill: parent; anchors.leftMargin: 18; anchors.rightMargin: 18; anchors.topMargin: 82; anchors.bottomMargin: 33
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            Connections { target: graph; function onPointsChanged() { plot.requestPaint() } function onTintChanged() { plot.requestPaint() } }
+            Connections { target: UiStyle; function onChanged() { plot.requestPaint() } }
+            onPaint: {
+                const ctx = getContext("2d"); ctx.reset(); ctx.lineWidth = 1; ctx.strokeStyle = root.line
+                for (let n = 0; n <= 4; ++n) { ctx.beginPath(); ctx.moveTo(0, height*n/4); ctx.lineTo(width,height*n/4); ctx.stroke() }
+                for (let n = 0; n <= 8; ++n) { ctx.beginPath(); ctx.moveTo(width*n/8,0); ctx.lineTo(width*n/8,height); ctx.stroke() }
+                if (!graph.points.length) return
+                let startX = 0
+                ctx.beginPath()
+                for (let i=0; i<graph.points.length; ++i) {
+                    const x = width * (45-graph.points.length+i)/44
+                    const y = height * (1 - Math.max(0, Math.min(100,graph.points[i]))/100)
+                    if (i===0) { ctx.moveTo(x,y); startX=x } else ctx.lineTo(x,y)
+                }
+                ctx.strokeStyle = graph.tint; ctx.lineWidth = 2; ctx.stroke()
+                ctx.lineTo(width,height); ctx.lineTo(startX,height); ctx.closePath()
+                const fill = ctx.createLinearGradient(0,0,0,height); fill.addColorStop(0,Qt.rgba(graph.tint.r,graph.tint.g,graph.tint.b,.28)); fill.addColorStop(1,Qt.rgba(graph.tint.r,graph.tint.g,graph.tint.b,.02)); ctx.fillStyle=fill; ctx.fill()
             }
         }
+        Label { x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 13; text: "Son 45 ölçüm · 2 sn aralıkla"; color: root.muted; font.pixelSize: 9 }
+        Label { anchors.right: parent.right; anchors.rightMargin: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 13; text: "Şimdi"; color: root.muted; font.pixelSize: 9 }
+    }
 
+    background: Rectangle { color: root.bg; radius: root.maximized ? 0 : 12; border.color: root.line }
+    Item {
+        id: titleBar; width: parent.width; height: 42
+        MouseArea { anchors.fill: parent; anchors.rightMargin: 132; onPressed: root.startSystemMove(); onDoubleClicked: root.toggleMaximized() }
+        Icon { x: 16; anchors.verticalCenter: parent.verticalCenter; width: 19; height: 19; name: "utilities-system-monitor" }
+        Label { x: 45; anchors.verticalCenter: parent.verticalCenter; text: "Görev Yöneticisi"; font.pixelSize: 11; font.weight: Font.Medium }
         Row {
-            id: windowControls
             anchors.right: parent.right
-            anchors.top: parent.top
-            height: parent.height
-
             WindowControl { symbol: "−"; onInvoked: root.showMinimized() }
             WindowControl { symbol: root.maximized ? "❐" : "□"; onInvoked: root.toggleMaximized() }
             WindowControl { symbol: "×"; destructive: true; onInvoked: root.close() }
         }
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: root.line }
     }
-
     Rectangle {
-        anchors.left: parent.left; anchors.top: titleBar.bottom; anchors.bottom: footer.top
-        width: 154; color: UiStyle.color("#111C19", UiStyle.dark)
+        id: sidebar; width: 170; anchors.top: titleBar.bottom; anchors.bottom: parent.bottom; color: root.panel
+        Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: root.line }
         Column {
-            anchors.fill: parent; anchors.margins: 10; spacing: 8
+            x: 12; y: 22; width: parent.width - 24; spacing: 7
+            Label { x: 10; text: "SİSTEMİ İZLE"; color: root.muted; font.pixelSize: 9; font.letterSpacing: 1.2; height: 26 }
             Repeater {
-                model: [qsTr("Processes"), qsTr("Performance")]
+                model: [{key:"processes",label:"İşlemler",icon:"view-list-details-symbolic"}, {key:"performance",label:"Performans",icon:"utilities-system-monitor-symbolic"}]
                 Rectangle {
-                    required property int index
-                    required property string modelData
-                    width: parent.width; height: 38; radius: 7
-                    color: root.page === (index === 0 ? "processes" : "performance") ? UiStyle.color("#315F46", UiStyle.dark) : "transparent"
-                    Text { anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: modelData; color: root.foreground; font.family: "Inter"; font.pixelSize: 11 }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.page = index === 0 ? "processes" : "performance" }
+                    id: nav; required property var modelData
+                    objectName: "nav-" + modelData.key
+                    width: 146; height: 42; radius: 8
+                    color: root.page === modelData.key ? Qt.rgba(root.accent.r,root.accent.g,root.accent.b,.14) : navMouse.containsMouse ? root.line : "transparent"
+                    Rectangle { x: 0; y: 12; width: 3; height: 18; radius: 2; color: root.accent; visible: root.page === nav.modelData.key }
+                    Icon { x: 13; y: 12; width: 18; height: 18; name: nav.modelData.icon }
+                    Label { x: 42; anchors.verticalCenter: parent.verticalCenter; text: nav.modelData.label; font.weight: root.page === nav.modelData.key ? Font.DemiBold : Font.Normal }
+                    MouseArea { id: navMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.page = nav.modelData.key }
                 }
             }
+        }
+        Column {
+            x: 22; width: parent.width-42; anchors.bottom: parent.bottom; anchors.bottomMargin: 25; spacing: 8
+            Row { spacing: 7; Rectangle { width: 6; height: 6; radius: 3; y: 4; color: root.paused ? root.muted : root.accent } Label { text: root.paused ? "İzleme duraklatıldı" : "Canlı sistem verileri"; font.pixelSize: 9; color: root.muted } }
+            Label { text: "Her 2 saniyede yenilenir"; font.pixelSize: 9; color: root.muted }
+            Label { text: "PiOS"; font.pixelSize: 17; font.weight: Font.Bold; color: root.accent }
         }
     }
     ColumnLayout {
-        visible: root.page === "processes"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: titleBar.bottom
-        anchors.bottom: footer.top
-        anchors.leftMargin: 174
-        anchors.rightMargin: 16
-        anchors.topMargin: 14
-        anchors.bottomMargin: 10
-        spacing: 9
-
+        anchors.left: sidebar.right; anchors.right: parent.right; anchors.top: titleBar.bottom; anchors.bottom: parent.bottom
+        anchors.margins: 22; spacing: 16
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 46
-            spacing: 10
-
-            Text {
-                text: qsTr("Processes")
-                color: root.foreground
-                font.family: "Inter"
-                font.pixelSize: 20
-                font.weight: Font.Bold
+            ColumnLayout {
+                spacing: 5
+                Label { text: root.page === "processes" ? "İşlemler" : "Performans"; font.pixelSize: 25; font.weight: Font.DemiBold }
+                Label { text: root.page === "processes" ? "Çalışan işlemleri ve kaynak kullanımını yönetin." : "Sisteminizin kaynak kullanımını canlı takip edin."; color: root.muted; font.pixelSize: 11 }
             }
-
-            Rectangle {
-                Layout.preferredWidth: 98
-                Layout.preferredHeight: 38
-                radius: 8
-                color: UiStyle.color("#1A2A24", UiStyle.dark)
-                border.width: 1
-                border.color: UiStyle.color("#30483D", UiStyle.dark)
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 7
-                    Text { text: qsTr("CPU"); color: root.secondary; font.family: "Inter"; font.pixelSize: 11 }
-                    Text { text: processBackend.totalCpu.toFixed(1) + "%"; color: root.accent; font.family: "Inter"; font.pixelSize: 11; font.weight: Font.DemiBold }
-                }
-            }
-
-            Rectangle {
-                Layout.preferredWidth: 120
-                Layout.preferredHeight: 38
-                radius: 8
-                color: UiStyle.color("#1A2A24", UiStyle.dark)
-                border.width: 1
-                border.color: UiStyle.color("#30483D", UiStyle.dark)
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 7
-                    Text { text: qsTr("Memory"); color: root.secondary; font.family: "Inter"; font.pixelSize: 11 }
-                    Text { text: processBackend.totalMemory.toFixed(1) + "%"; color: root.accent; font.family: "Inter"; font.pixelSize: 11; font.weight: Font.DemiBold }
-                }
-            }
-
             Item { Layout.fillWidth: true }
-
-            TextField {
-                id: processSearch
-                Layout.preferredWidth: Math.min(220, Math.max(120, root.width * 0.2))
-                Layout.preferredHeight: 36
-                leftPadding: 13
-                rightPadding: 13
-                placeholderText: qsTr("Search processes…")
-                placeholderTextColor: UiStyle.color("#71847A", UiStyle.dark)
-                color: root.foreground
-                selectByMouse: true
-                font.family: "Inter"
-                font.pixelSize: 10
-                onTextChanged: processBackend.filter = text
-                background: Rectangle {
-                    radius: 7
-                    color: UiStyle.color("#17221F", UiStyle.dark)
-                    border.width: processSearch.activeFocus ? 1 : 0
-                    border.color: root.accent
-                }
-            }
-
-            ActionButton {
-                label: qsTr("Refresh")
-                onInvoked: processBackend.refresh()
-            }
+            Action { objectName: "pause-action"; text: root.paused ? "▶  Devam et" : "Ⅱ  Duraklat"; onClicked: root.paused = !root.paused }
+            Action { text: "↻  Yenile"; onClicked: processBackend.refresh(); ToolTip.visible: hovered; ToolTip.text: "F5" }
         }
-
-        Text {
-            Layout.fillWidth: true
-            visible: processBackend.errorText.length > 0
-            text: processBackend.errorText
-            color: UiStyle.color("#FF9292", UiStyle.dark)
-            font.family: "Inter"
-            font.pixelSize: 10
-            wrapMode: Text.Wrap
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 36
-            radius: 7
-            color: UiStyle.color("#1A2823", UiStyle.dark)
-
-            Row {
-                anchors.fill: parent
-                anchors.leftMargin: 12
-
-                component HeaderCell: Text {
-                    height: 36
-                    verticalAlignment: Text.AlignVCenter
-                    color: root.secondary
-                    elide: Text.ElideRight
-                    font.family: "Inter"
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                }
-
-                HeaderCell { width: root.nameColumnWidth; text: qsTr("Name") }
-                HeaderCell { width: 60; text: qsTr("PID") }
-                HeaderCell { width: 90; text: qsTr("User") }
-                HeaderCell { width: 70; text: qsTr("CPU") }
-                HeaderCell { width: 95; text: qsTr("Memory") }
-                HeaderCell { width: 55; text: qsTr("State") }
-            }
-        }
-
-        ListView {
-            id: processList
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: 3
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            model: processBackend
-            ScrollBar.vertical: ScrollBar { }
-
-            delegate: Rectangle {
-                id: processRow
-                required property int pid
-                required property string name
-                required property string user
-                required property real cpu
-                required property real memory
-                required property real memoryBytes
-                required property string state
-                required property string command
-
-                width: processList.width
-                height: 42
-                radius: 7
-                color: root.selectedPid === pid ? UiStyle.color("#315F46", UiStyle.dark)
-                       : (rowMouse.containsMouse ? UiStyle.color("#20322B", UiStyle.dark) : "transparent")
-
-                Row {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-
-                    component DataCell: Text {
-                        height: 42
-                        verticalAlignment: Text.AlignVCenter
-                        color: root.foreground
-                        elide: Text.ElideRight
-                        font.family: "Inter"
-                        font.pixelSize: 10
-                    }
-
-                    DataCell { width: root.nameColumnWidth; text: processRow.name; font.weight: Font.DemiBold }
-                    DataCell { width: 60; text: processRow.pid }
-                    DataCell { width: 90; text: processRow.user }
-                    DataCell { width: 70; text: processRow.cpu.toFixed(1) + "%" }
-                    DataCell {
-                        width: 95
-                        text: processRow.memoryBytes >= 1073741824
-                              ? (processRow.memoryBytes / 1073741824).toFixed(1) + " GiB"
-                              : (processRow.memoryBytes / 1048576).toFixed(0) + " MiB"
-                    }
-                    DataCell { width: 55; text: processRow.state }
-                }
-
-                MouseArea {
-                    id: rowMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: {
-                        root.selectedPid = processRow.pid
-                        root.selectedName = processRow.name
-                    }
-                }
-
-                ToolTip.visible: rowMouse.containsMouse
-                ToolTip.text: processRow.command
-                ToolTip.delay: 700
-            }
-        }
-    }
-
-
-    ColumnLayout {
-        visible: root.page === "performance"
-        anchors.left: parent.left; anchors.right: parent.right; anchors.top: titleBar.bottom; anchors.bottom: footer.top
-        anchors.leftMargin: 174; anchors.rightMargin: 20; anchors.topMargin: 20; anchors.bottomMargin: 20
-        spacing: 14
-        Text { text: qsTr("Performance"); color: root.foreground; font.family: "Inter"; font.pixelSize: 23; font.weight: Font.Bold }
-        Repeater {
-            model: [ { title: "CPU", value: processBackend.totalCpu, history: root.cpuHistory }, { title: qsTr("Memory"), value: processBackend.totalMemory, history: root.memoryHistory } ]
-            Rectangle {
-                id: graph
-                required property var modelData
-                Layout.fillWidth: true; Layout.fillHeight: true; radius: 10; color: UiStyle.color("#17251F", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#34473F", UiStyle.dark)
-                Text { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 16; text: graph.modelData.title; color: root.foreground; font.pixelSize: 14; font.weight: Font.DemiBold }
-                Text { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 16; text: graph.modelData.value.toFixed(1) + "%"; color: root.accent; font.pixelSize: 22 }
-                Canvas {
-                    id: plot
-                    anchors.fill: parent; anchors.leftMargin: 16; anchors.rightMargin: 16; anchors.topMargin: 55; anchors.bottomMargin: 16
-                    property var points: graph.modelData.history
-                    onPointsChanged: requestPaint()
-                    onWidthChanged: requestPaint()
-                    onHeightChanged: requestPaint()
-                    onPaint: {
-                        const ctx = getContext("2d"); ctx.reset(); ctx.strokeStyle = UiStyle.color("#2B4136", UiStyle.dark); ctx.lineWidth = 1
-                        for (let n = 0; n <= 4; ++n) { ctx.beginPath(); ctx.moveTo(0,height*n/4); ctx.lineTo(width,height*n/4); ctx.stroke() }
-                        ctx.beginPath(); ctx.strokeStyle = UiStyle.color("#63DE8A", UiStyle.dark); ctx.lineWidth = 2
-                        for (let i = 0; i < points.length; ++i) {
-                            const x = width * (45-points.length+i)/44; const y = height*(1-Math.max(0,Math.min(100,points[i]))/100)
-                            if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y)
-                        }
-                        ctx.stroke()
-                    }
-                }
-            }
-        }
-        Text { text: qsTr("Live samples every 2 seconds · %1 processes").arg(processBackend.processCount); color: root.secondary; font.pixelSize: 11 }
-    }
-
-    Rectangle {
-        id: footer
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 48
-        color: UiStyle.color("#101A17", UiStyle.dark)
-        border.width: 1
-        border.color: UiStyle.color("#2B3A35", UiStyle.dark)
-
         RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-
-            Text {
-                text: qsTr("%1 processes").arg(processBackend.processCount)
-                color: root.secondary
-                font.family: "Inter"
-                font.pixelSize: 10
-            }
-            Item { Layout.fillWidth: true }
-            Text {
-                visible: root.selectedPid > 1
-                text: root.selectedName
-                color: root.secondary
-                elide: Text.ElideRight
-                font.family: "Inter"
-                font.pixelSize: 10
-                Layout.maximumWidth: 260
-            }
-            ActionButton {
-                label: qsTr("End task")
-                enabled: root.selectedPid > 1
-                danger: true
-                onInvoked: confirmDialog.open()
-            }
+            Layout.fillWidth: true; spacing: 12
+            Metric { label: "İŞLEMCİ"; value: processBackend.totalCpu.toFixed(1) + "%"; detail: processBackend.cpuCount + " mantıksal çekirdek"; icon: "cpu-symbolic"; percent: processBackend.totalCpu }
+            Metric { label: "BELLEK"; value: processBackend.totalMemory.toFixed(1) + "%"; detail: root.bytes(processBackend.memoryUsed) + " / " + root.bytes(processBackend.memoryCapacity); icon: "media-flash-symbolic"; percent: processBackend.totalMemory; tint: root.blue }
+            Metric { label: "İŞLEMLER"; value: processBackend.processCount; detail: "Çalışma süresi\n" + root.duration(processBackend.uptime); icon: "view-list-details-symbolic"; tint: root.ink }
         }
-    }
-
-    Dialog {
-        id: confirmDialog
-        anchors.centerIn: parent
-        width: 390
-        modal: true
-        title: qsTr("End %1?").arg(root.selectedName)
-        header: Text {
-            text: confirmDialog.title; color: root.foreground
-            padding: 12; font.family: "Inter"; font.pixelSize: 14; font.bold: true
-        }
-        standardButtons: Dialog.NoButton
-        closePolicy: Popup.CloseOnEscape
-
-        background: Rectangle {
-            radius: 11
-            color: UiStyle.color("#17231F", UiStyle.dark)
-            border.width: 1
-            border.color: UiStyle.color("#465750", UiStyle.dark)
-        }
-
-        contentItem: ColumnLayout {
-            spacing: 16
-            Text {
+        ColumnLayout {
+            visible: root.page === "processes"; Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
+            RowLayout {
                 Layout.fillWidth: true
-                text: qsTr("The process will first be asked to close safely.")
-                color: root.foreground
-                wrapMode: Text.Wrap
-                font.family: "Inter"
-                font.pixelSize: 11
+                TextField {
+                    id: search; objectName: "process-search"
+                    Layout.fillWidth: true; Layout.preferredHeight: 36
+                    color: root.ink; placeholderTextColor: root.muted; placeholderText: "İşlem adı, kullanıcı veya PID ara…"; selectByMouse: true
+                    font.pixelSize: 11; leftPadding: 13
+                    onTextChanged: processBackend.filter = text
+                    background: Rectangle { radius: 8; color: root.panel; border.color: search.activeFocus ? root.accent : root.line }
+                }
+                Action { text: "Temizle"; visible: search.text.length > 0; onClicked: search.clear() }
+                Action { objectName: "end-task"; text: "Görevi sonlandır"; danger: true; enabled: root.selectedPid > 1; onClicked: confirmDialog.open() }
             }
-            Text {
-                Layout.fillWidth: true; visible: processBackend.errorText.length > 0
-                text: processBackend.errorText; color: UiStyle.color("#FF9292", UiStyle.dark)
-                wrapMode: Text.Wrap; font.pixelSize: 12
+            Rectangle {
+                id: table; Layout.fillWidth: true; Layout.fillHeight: true; color: root.panel; radius: 10; border.color: root.line; clip: true
+                Row {
+                    id: headings; x: 14; width: parent.width-28; height: 42
+                    SortHeader { width: root.nameWidth; label: "AD"; column: "name" }
+                    SortHeader { width: 62; label: "PID"; column: "pid" }
+                    SortHeader { width: 86; label: "KULLANICI"; column: "user" }
+                    SortHeader { objectName: "sort-cpu"; width: 70; label: "CPU"; column: "cpu"; numeric: true }
+                    SortHeader { objectName: "sort-memory"; width: 88; label: "BELLEK"; column: "memory"; numeric: true }
+                    Label { width: 56; height: 42; text: "DURUM"; font.pixelSize: 9; color: root.muted; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignRight }
+                }
+                Rectangle { y: 42; width: parent.width; height: 1; color: root.line }
+                ListView {
+                    id: processList; objectName: "process-list"; anchors.fill: parent; anchors.topMargin: 44; anchors.bottomMargin: 4
+                    clip: true; boundsBehavior: Flickable.StopAtBounds; model: processBackend
+                    ScrollBar.vertical: ScrollBar { }
+                    delegate: Rectangle {
+                        id: row
+                        required property int pid; required property string name; required property string user
+                        required property real cpu; required property real memory; required property real memoryBytes
+                        required property string state; required property string command
+                        objectName: "process-row-" + pid
+                        width: processList.width; height: 45
+                        color: root.selectedPid === pid ? Qt.rgba(root.accent.r,root.accent.g,root.accent.b,.13) : rowMouse.containsMouse ? (UiStyle.dark ? "#203028" : "#edf3ef") : "transparent"
+                        Rectangle { width: 3; height: 24; y: 10; radius: 2; color: root.accent; visible: root.selectedPid === row.pid }
+                        Row {
+                            x: 14; height: parent.height
+                            Item {
+                                width: root.nameWidth; height: parent.height
+                                Rectangle { x: 0; y: 9; width: 27; height: 27; radius: 7; color: root.line
+                                    Icon { anchors.centerIn: parent; width: 19; height: 19; name: row.name.startsWith("fidan-") ? "utilities-system-monitor" : row.name } }
+                                Label { x: 37; width: parent.width-45; height: parent.height; verticalAlignment: Text.AlignVCenter; text: row.name; font.pixelSize: 11; font.weight: Font.Medium }
+                            }
+                            Label { width: 62; height: parent.height; verticalAlignment: Text.AlignVCenter; text: row.pid; color: root.muted; font.pixelSize: 10 }
+                            Label { width: 86; height: parent.height; verticalAlignment: Text.AlignVCenter; text: row.user; color: root.muted; font.pixelSize: 10 }
+                            Item { width: 70; height: parent.height
+                                Rectangle { anchors.right: parent.right; anchors.rightMargin: 4; y: 6; height: 33; width: 64 * Math.min(row.cpu / 100,1); radius: 4; color: Qt.rgba(root.accent.r,root.accent.g,root.accent.b,.12) }
+                                Label { anchors.fill: parent; anchors.rightMargin: 12; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignRight; text: row.cpu.toFixed(1) + "%"; font.pixelSize: 10; color: row.cpu > 0 ? root.accent : root.muted }
+                            }
+                            Item { width: 88; height: parent.height
+                                Rectangle { anchors.right: parent.right; anchors.rightMargin: 4; y: 6; height: 33; width: 82 * Math.min(row.memory / 100,1); radius: 4; color: Qt.rgba(root.blue.r,root.blue.g,root.blue.b,.10) }
+                                Label { anchors.fill: parent; anchors.rightMargin: 12; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignRight; text: root.bytes(row.memoryBytes); font.pixelSize: 10 }
+                            }
+                            Label { width: 56; height: parent.height; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignRight; text: row.state === "R" ? "Aktif" : row.state === "S" ? "Bekliyor" : row.state === "I" ? "Boşta" : row.state; color: row.state === "R" ? root.accent : root.muted; font.pixelSize: 9 }
+                        }
+                        MouseArea { id: rowMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.selectProcess(row.pid) }
+                        ToolTip.visible: rowMouse.containsMouse; ToolTip.delay: 900; ToolTip.text: root.stateName(row.state) + "\n" + row.command
+                    }
+                    Label { anchors.centerIn: parent; visible: processList.count === 0; text: "Aramanızla eşleşen işlem yok."; color: root.muted }
+                }
             }
             RowLayout {
-                Layout.alignment: Qt.AlignRight
-                Item { Layout.fillWidth: true }
-                ActionButton { label: qsTr("Cancel"); onInvoked: confirmDialog.close() }
-                ActionButton {
-                    label: qsTr("End task")
-                    onInvoked: root.endSelectedTask(false)
-                }
-                ActionButton {
-                    label: qsTr("Force stop")
-                    danger: true
-                    onInvoked: root.endSelectedTask(true)
+                Layout.fillWidth: true; spacing: 10
+                Label { text: root.selectedPid > 0 ? root.selection.name + "  ·  PID " + root.selectedPid : "Ayrıntıları görmek için bir işlem seçin."; color: root.selectedPid > 0 ? root.ink : root.muted; font.pixelSize: 10; Layout.maximumWidth: 280 }
+                Label { Layout.fillWidth: true; text: root.selection.command || ""; color: root.muted; font.pixelSize: 9; ToolTip.visible: commandHover.hovered; ToolTip.text: text; HoverHandler { id: commandHover } }
+                Label { text: processList.count + " sonuç"; color: root.muted; font.pixelSize: 10 }
+            }
+        }
+        ColumnLayout {
+            visible: root.page === "performance"; Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
+            RowLayout {
+                Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
+                Chart { label: "İşlemci"; subtitle: processBackend.cpuName; value: processBackend.totalCpu; points: root.cpuHistory; tint: root.accent }
+                Chart { label: "Bellek"; subtitle: root.bytes(processBackend.memoryUsed) + " kullanımda"; value: processBackend.totalMemory; points: root.memoryHistory; tint: root.blue }
+            }
+            Rectangle {
+                Layout.fillWidth: true; Layout.preferredHeight: 54; radius: 9; color: root.panel; border.color: root.line
+                RowLayout { anchors.fill: parent; anchors.margins: 15; spacing: 16
+                    Label { text: "Kullanılabilir bellek"; color: root.muted; font.pixelSize: 10 }
+                    Label { text: root.bytes(processBackend.memoryCapacity-processBackend.memoryUsed); font.weight: Font.DemiBold }
+                    Item { Layout.fillWidth: true }
+                    Label { text: "CPU işlem değerlerinde %100 = bir mantıksal çekirdek"; color: root.muted; font.pixelSize: 9 }
                 }
             }
         }
+        Label { visible: processBackend.errorText.length > 0; Layout.fillWidth: true; text: processBackend.errorText; color: UiStyle.dark ? "#ffafb7" : "#ab3040"; wrapMode: Text.Wrap }
     }
-
-    MouseArea {
-        anchors.left: parent.left
-        anchors.top: titleBar.bottom
-        anchors.bottom: footer.top
-        width: 6
-        visible: !root.maximized
-        cursorShape: Qt.SizeHorCursor
-        onPressed: root.startSystemResize(Qt.LeftEdge)
+    Dialog {
+        id: confirmDialog; objectName: "end-confirmation"; anchors.centerIn: parent; width: 460; modal: true; padding: 22
+        closePolicy: Popup.CloseOnEscape
+        background: Rectangle { radius: 13; color: root.panel; border.color: root.line }
+        header: Item { }
+        contentItem: ColumnLayout {
+            spacing: 16
+            Label { text: "Görev sonlandırılsın mı?"; font.pixelSize: 20; font.weight: Font.DemiBold }
+            Label { Layout.fillWidth: true; text: (root.selection.name || "") + " · PID " + root.selectedPid; color: root.accent }
+            Label { Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; text: "Önce işlemin normal şekilde kapanması istenir. Kaydedilmemiş çalışmalar kaybolabilir. Zorla durdurmayı yalnızca yanıt vermeyen işlemlerde kullanın."; color: root.muted; font.pixelSize: 12 }
+            Label { Layout.fillWidth: true; visible: processBackend.errorText.length > 0; wrapMode: Text.Wrap; text: processBackend.errorText; color: "#df6f7f" }
+            RowLayout {
+                Layout.fillWidth: true
+                Action { text: "Vazgeç"; onClicked: confirmDialog.close() }
+                Item { Layout.fillWidth: true }
+                Action { text: "Zorla durdur"; danger: true; onClicked: root.endTask(true) }
+                Action { text: "Sonlandır"; primary: true; onClicked: root.endTask(false) }
+            }
+        }
     }
-    MouseArea {
-        anchors.right: parent.right
-        anchors.top: titleBar.bottom
-        anchors.bottom: footer.top
-        width: 6
-        visible: !root.maximized
-        cursorShape: Qt.SizeHorCursor
-        onPressed: root.startSystemResize(Qt.RightEdge)
-    }
-    MouseArea {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 6
-        visible: !root.maximized
-        cursorShape: Qt.SizeVerCursor
-        onPressed: root.startSystemResize(Qt.BottomEdge)
-    }
+    MouseArea { anchors.left: parent.left; anchors.top: titleBar.bottom; anchors.bottom: parent.bottom; width: 5; visible: !root.maximized; cursorShape: Qt.SizeHorCursor; onPressed: root.startSystemResize(Qt.LeftEdge) }
+    MouseArea { anchors.right: parent.right; anchors.top: titleBar.bottom; anchors.bottom: parent.bottom; width: 5; visible: !root.maximized; cursorShape: Qt.SizeHorCursor; onPressed: root.startSystemResize(Qt.RightEdge) }
+    MouseArea { anchors.bottom: parent.bottom; width: parent.width; height: 5; visible: !root.maximized; cursorShape: Qt.SizeVerCursor; onPressed: root.startSystemResize(Qt.BottomEdge) }
 }

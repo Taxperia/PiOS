@@ -78,16 +78,7 @@ Item {
         background: Rectangle { x: slider.leftPadding; y: slider.topPadding + slider.availableHeight/2-3; width: slider.availableWidth; height: 6; radius: 3; color: Controller.darkTheme ? "#3A5350" : "#BFD2C6"; Rectangle { width: slider.visualPosition*parent.width; height: 6; radius: 3; color: Controller.accentColor } }
         handle: Rectangle { x: slider.leftPadding + slider.visualPosition*(slider.availableWidth-width); y: slider.topPadding + slider.availableHeight/2-height/2; width: 17; height: 17; radius: 9; color: Controller.accentColor; border.width: 1; border.color: "#D1EBDD" }
     }
-    component Combo: QQC.ComboBox {
-        id: choice; Layout.fillWidth: true; implicitHeight: 36; font.family: "Inter"; font.pixelSize: 12
-        leftPadding: 11; rightPadding: 28; opacity: enabled ? 1 : 0.4
-        palette.text: Controller.darkTheme ? "#F2F7F4" : "#18261F"; palette.base: Controller.darkTheme ? "#19312E" : "#F7FCF9"
-        contentItem: Text { text: choice.displayText; color: choice.palette.text; font: choice.font; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-        indicator: Text { anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: "⌄"; color: choice.palette.text }
-        background: Rectangle { radius: 7; color: choice.palette.base; border.width: 1; border.color: Controller.darkTheme ? "#3B5650" : "#BDCEC4" }
-        delegate: ItemDelegate { width: choice.width; height: 36; contentItem: Text { text: modelData; color: choice.palette.text; font: choice.font; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight } background: Rectangle { radius: 5; color: highlighted ? Qt.alpha(Controller.accentColor,0.25) : "transparent" } highlighted: choice.highlightedIndex === index }
-        popup: Popup { y: choice.height+4; width: choice.width; padding: 4; implicitHeight: Math.min(240, contentItem.implicitHeight+8); background: Rectangle { radius: 8; color: choice.palette.base; border.width: 1; border.color: Controller.darkTheme ? "#3B5650" : "#BDCEC4" } contentItem: ListView { clip: true; implicitHeight: contentHeight; model: choice.popup.visible ? choice.delegateModel : null; currentIndex: choice.highlightedIndex; ScrollIndicator.vertical: ScrollIndicator {} } }
-    }
+    component Combo: SettingsCombo { }
     component Link: Rectangle {
         id: link; property string label; property string hint: ""; property string value: ""; property string iconName: "go-next-symbolic"
         signal triggered()

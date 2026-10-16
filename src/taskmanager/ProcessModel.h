@@ -3,6 +3,7 @@
 
 #include <QAbstractListModel>
 #include <QHash>
+#include <QVariantMap>
 
 class ProcessModel final : public QAbstractListModel
 {
@@ -12,6 +13,13 @@ class ProcessModel final : public QAbstractListModel
     Q_PROPERTY(double totalMemory READ totalMemory NOTIFY totalsChanged)
     Q_PROPERTY(int processCount READ processCount NOTIFY totalsChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged)
+    Q_PROPERTY(QString sortColumn READ sortColumn NOTIFY sortChanged)
+    Q_PROPERTY(bool sortDescending READ sortDescending NOTIFY sortChanged)
+    Q_PROPERTY(quint64 memoryCapacity READ memoryCapacity NOTIFY totalsChanged)
+    Q_PROPERTY(quint64 memoryUsed READ memoryUsed NOTIFY totalsChanged)
+    Q_PROPERTY(int cpuCount READ cpuCount CONSTANT)
+    Q_PROPERTY(QString cpuName READ cpuName CONSTANT)
+    Q_PROPERTY(quint64 uptime READ uptime NOTIFY totalsChanged)
 
 public:
     enum Role {
@@ -36,14 +44,24 @@ public:
     double totalMemory() const { return m_totalMemory; }
     int processCount() const { return m_entries.size(); }
     QString errorText() const { return m_errorText; }
+    QString sortColumn() const { return m_sortColumn; }
+    bool sortDescending() const { return m_sortDescending; }
+    quint64 memoryCapacity() const { return m_memoryCapacity; }
+    quint64 memoryUsed() const { return m_memoryUsed; }
+    int cpuCount() const;
+    QString cpuName() const;
+    quint64 uptime() const { return m_uptime; }
 
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void sortBy(const QString &column);
+    Q_INVOKABLE QVariantMap details(int pid) const;
     Q_INVOKABLE bool terminateProcess(int pid, bool force = false);
 
 signals:
     void filterChanged();
     void totalsChanged();
     void errorTextChanged();
+    void sortChanged();
 
 private:
     struct Entry {
@@ -61,7 +79,7 @@ private:
     static QPair<quint64, quint64> systemTicks();
     static quint64 totalMemoryBytes();
     static bool readProcess(int pid, Entry &entry);
-    void rebuildVisible();
+    void rebuildVisible(bool resetModel = true);
     void setError(const QString &error);
 
     QList<Entry> m_entries;
@@ -71,6 +89,11 @@ private:
     quint64 m_previousIdleTicks = 0;
     QString m_filter;
     QString m_errorText;
+    QString m_sortColumn = QStringLiteral("cpu");
+    bool m_sortDescending = true;
+    quint64 m_memoryCapacity = 0;
+    quint64 m_memoryUsed = 0;
+    quint64 m_uptime = 0;
     double m_totalCpu = 0;
     double m_totalMemory = 0;
 };

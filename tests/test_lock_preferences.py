@@ -42,4 +42,25 @@ class LockPreferencesTest(unittest.TestCase):
         self.assertNotIn('https://example.invalid',css)
         self.assertIn(json.dumps(self.desktop.as_uri()),css)
 
+    def test_predictable_style_symlink_cannot_overwrite_user_file(self):
+        runtime = Path(self.env['XDG_RUNTIME_DIR']); runtime.mkdir(mode=0o700)
+        victim = self.root/'important.conf'; victim.write_text('keep this')
+        (runtime/'fidan-gtklock-style.css').symlink_to(victim)
+        self.run_lock('')
+        self.assertEqual(victim.read_text(),'keep this')
+        self.assertFalse(list(runtime.glob('fidan-lock-*')))
+
+    def test_symlink_runtime_is_rejected(self):
+        elsewhere = self.root/'elsewhere'; elsewhere.mkdir(mode=0o700)
+        Path(self.env['XDG_RUNTIME_DIR']).symlink_to(elsewhere, target_is_directory=True)
+        result = subprocess.run(['python3',str(SCRIPT)],env=self.env,capture_output=True,timeout=4)
+        self.assertNotEqual(result.returncode,0)
+        self.assertFalse((self.root/'captured.css').exists())
+
+    def test_shared_runtime_is_rejected(self):
+        runtime = Path(self.env['XDG_RUNTIME_DIR']); runtime.mkdir(); runtime.chmod(0o777)
+        result = subprocess.run(['python3',str(SCRIPT)],env=self.env,capture_output=True,timeout=4)
+        self.assertNotEqual(result.returncode,0)
+        self.assertFalse((self.root/'captured.css').exists())
+
 if __name__=='__main__': unittest.main()

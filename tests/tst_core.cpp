@@ -9,6 +9,7 @@
 #include "ProcessModel.h"
 #include "FilesModel.h"
 #include "../src/common/DesktopLaunch.h"
+#include "../src/firstboot/FirstBootValidation.h"
 
 #include <QFile>
 #include <QUuid>
@@ -64,6 +65,8 @@ private slots:
     void notificationActionsAndReplacementTimers();
     void respectsDefaultApplicationChoice();
     void pastesClipboardWithoutKeyboardFocus();
+    void rejectsFirstBootCredentialInjection();
+    void refusesUntrustedDesktopLaunchers();
 };
 
 void CoreTest::initTestCase()
@@ -359,7 +362,7 @@ void CoreTest::loadsStoreCatalog()
 
     store.setFilter({});
     store.setCategory(QStringLiteral("Graphics"));
-    QCOMPARE(store.rowCount(), 1);
+    QVERIFY(store.rowCount() >= 4);
     QCOMPARE(store.data(store.index(0), StoreModel::NameRole).toString(), QStringLiteral("GIMP"));
 
     store.setCategory({});
@@ -450,7 +453,7 @@ void CoreTest::installsFlatpakWithoutBlocking()
         QVERIFY(store.errorText().isEmpty());
         QFile arguments(state);
         QVERIFY(arguments.open(QIODevice::ReadOnly));
-        QCOMPARE(arguments.readAll(), QByteArray("install\n--user\n--noninteractive\n--assumeyes\nflathub\norg.gimp.GIMP\n"));
+        QCOMPARE(arguments.readAll(), QByteArray("install\n--user\n--assumeyes\nflathub\norg.gimp.GIMP\n"));
     }
     QVERIFY(!store.busy());
     QVERIFY(!store.data(store.index(0), StoreModel::EntryBusyRole).toBool());
@@ -491,7 +494,7 @@ void CoreTest::reportsAptAuthorizationFailure()
     QFile arguments(capture);
     QVERIFY(arguments.open(QIODevice::ReadOnly));
     QCOMPARE(arguments.readAll(), (tools.filePath(QStringLiteral("apt-get"))
-        + QStringLiteral("\ninstall\n-y\nqterminal\n")).toUtf8());
+        + QStringLiteral("\n-oAPT::Status-Fd=1\n-oDpkg::Use-Pty=0\ninstall\n-y\n--no-remove\nqterminal\n")).toUtf8());
 #endif
 }
 
@@ -831,6 +834,44 @@ void CoreTest::measuresStorageWithoutCountingReservedBlocks()
     QVERIFY(qAbs(monitor.storageUsage() - expected) < 0.2);
 #endif
 }
+
+void CoreTest::rejectsFirstBootCredentialInjection()
+{
+    QVERIFY(FirstBootValidation::account("fidan", "Fidan", "long:valid password"));
+    QVERIFY(FirstBootValidation::account("fidan", QString::fromUtf8("Çağrı"), "validpass"));
+    QVERIFY(!FirstBootValidation::account("fidan", "Fidan", "validpass\nroot:injected"));
+    QVERIFY(!FirstBootValidation::account("fidan", "Fidan", "validpass\rroot:injected"));
+    QVERIFY(!FirstBootValidation::account("fidan", "Fidan", QStringLiteral("validpass") + QChar::Null));
+    QVERIFY(!FirstBootValidation::account("fidan\n", "Fidan", "validpass"));
+    QVERIFY(!FirstBootValidation::account("fidan", "Fake\nrecord", "validpass"));
+    QVERIFY(!FirstBootValidation::account("fidan", "Fake:record", "validpass"));
+}
+
+void CoreTest::refusesUntrustedDesktopLaunchers()
+{
+#ifdef Q_OS_UNIX
+    QTemporaryDir directory;
+    const QString capture = directory.filePath("executed");
+    const QString path = directory.filePath("invoice.pdf.desktop");
+    QFile launcher(path); QVERIFY(launcher.open(QIODevice::WriteOnly));
+    launcher.write(("[Desktop Entry]\nType=Application\nName=Invoice.pdf\nIcon=application-pdf\nExec=/usr/bin/touch " + capture + "\n").toUtf8()); launcher.close();
+    QVERIFY(launcher.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner));
+    DesktopModel desktop(directory.path()); QCOMPARE(desktop.rowCount(), 1);
+    QVERIFY(!desktop.open(0)); QVERIFY(!QFile::exists(capture));
+    QVERIFY(launcher.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner | QFileDevice::WriteOther));
+    QVERIFY(!desktop.open(0)); QVERIFY(!QFile::exists(capture));
+    QVERIFY(launcher.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+    const QString link = directory.filePath("shortcut.desktop"); QVERIFY(QFile::link(path, link));
+    desktop.refresh();
+    for (int row=0; row<desktop.rowCount(); ++row)
+        if (desktop.data(desktop.index(row), DesktopModel::PathRole).toString() == link) QVERIFY(!desktop.open(row));
+    QVERIFY(!QFile::exists(capture));
+    for (int row=0; row<desktop.rowCount(); ++row)
+        if (desktop.data(desktop.index(row), DesktopModel::PathRole).toString() == path) QVERIFY(desktop.open(row));
+    QTRY_VERIFY(QFile::exists(capture));
+#endif
+}
+
 
 QTEST_MAIN(CoreTest)
 #include "tst_core.moc"

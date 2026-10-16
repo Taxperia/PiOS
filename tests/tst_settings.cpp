@@ -82,6 +82,18 @@ private slots:
             settings->setProperty("selectedCategory",page); QTest::qWait(80);
             auto *loader=window->findChild<QQuickItem *>("settingsPageLoader"); QVERIFY(loader); QCOMPARE(loader->property("status").toInt(),1);
             QVERIFY2(warnings.isEmpty(),qPrintable(page+": "+warnings.join('\n')));
+            if (page == "Keyboard & Mouse") {
+                auto *combo=visual(window->contentItem(),"keyboard-layout"); QVERIFY(combo);
+                for(int selection : {1,0,2,0}) {
+                    QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,combo->mapToScene(QPointF(combo->width()/2,combo->height()/2)).toPoint());
+                    QTest::qWait(80);
+                    auto *option=visual(window->contentItem(),QStringLiteral("keyboard-layout-option-%1").arg(selection)); QVERIFY(option);
+                    QCOMPARE(option->property("text").toString(),QStringList({"English (US)","Türkçe","Deutsch","English (UK)"}).at(selection));
+                    QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,option->mapToScene(QPointF(option->width()/2,option->height()/2)).toPoint());
+                    QCOMPARE(controller.keyboardLayout(),QStringList({"us","tr","de","gb"}).at(selection));
+                    QVERIFY(window->isVisible());
+                }
+            }
         }
         settings->setProperty("selectedCategory","Personalization"); QTest::qWait(50);
         auto *light=visual(window->contentItem(),"theme-light"); QVERIFY(light);
@@ -100,7 +112,18 @@ private slots:
     }
     void readsEscapedNetworksAndRetriesFailedConnection() {
         QTemporaryDir tools;
-        const QByteArray program="#!/usr/bin/python3\nimport pathlib,sys\np=pathlib.Path(__file__).parent\na=sys.argv[1:]\nif 'status' in a: print('wlan0:wifi:connected:Home\\\\:5G')\nelif 'list' in a: print('*:Home\\\\:5G:86:5180 MHz:WPA2:866 Mbit/s\\n:Guest:40:2412 MHz:--:54 Mbit/s')\nelif 'show' in a: print('GENERAL.DEVICE:wlan0\\nGENERAL.TYPE:wifi\\nGENERAL.CONNECTION:Home\\\\:5G\\nIP4.ADDRESS[1]:192.168.1.42/24\\nIP4.GATEWAY:192.168.1.1\\nIP4.DNS[1]:1.1.1.1')\nelif 'connect' in a and (p/'reject').exists(): print('Wrong password',file=sys.stderr);sys.exit(10)\n";
+        const QByteArray program=R"PY(#!/usr/bin/python3
+import pathlib,sys
+p=pathlib.Path(__file__).parent
+a=sys.argv[1:]
+if 'status' in a: print('wlan0:wifi:connected:Home\\:5G')
+elif 'list' in a: print('*:Home\\:5G:86:5180 MHz:WPA2:866 Mbit/s\n:Guest:40:2412 MHz:--:54 Mbit/s')
+elif 'show' in a: print('GENERAL.DEVICE:wlan0\nGENERAL.TYPE:wifi\nGENERAL.CONNECTION:Home\\:5G\nIP4.ADDRESS[1]:192.168.1.42/24\nIP4.GATEWAY:192.168.1.1\nIP4.DNS[1]:1.1.1.1')
+elif 'connect' in a:
+    (p/'connect-args').write_text('\n'.join(a))
+    (p/'connect-input').write_text(sys.stdin.read())
+    if (p/'reject').exists(): print('Wrong password',file=sys.stderr);sys.exit(10)
+)PY";
         write(tools.filePath("nmcli"),program); QVERIFY(QFile::setPermissions(tools.filePath("nmcli"),QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
         qputenv("PATH",tools.path().toUtf8()+":"+originalPath);
         SettingsData data; data.refreshNetwork(true); QTRY_VERIFY(!data.networkBusy());
@@ -108,6 +131,10 @@ private slots:
         QCOMPARE(data.networks().first().toMap().value("ssid").toString(),"Home:5G"); QCOMPARE(data.connection().value("address").toString(),"192.168.1.42/24");
         write(tools.filePath("reject"),"1"); data.connectNetwork("Home:5G","bad password"); QTRY_VERIFY(!data.networkBusy()); QVERIFY(data.networkError().contains("Wrong password"));
         QFile::remove(tools.filePath("reject")); data.connectNetwork("Home:5G","correct password"); QTRY_VERIFY(!data.networkBusy()); QVERIFY(data.networkError().isEmpty()); QCOMPARE(data.networks().size(),2);
+        QFile arguments(tools.filePath("connect-args")); QVERIFY(arguments.open(QIODevice::ReadOnly));
+        const auto invocation=arguments.readAll(); QVERIFY(invocation.contains("--ask")); QVERIFY(!invocation.contains("password"));
+        QFile input(tools.filePath("connect-input")); QVERIFY(input.open(QIODevice::ReadOnly)); QCOMPARE(input.readAll(),QByteArray("correct password\n"));
+        data.connectNetwork("Home:5G","injected\nsecond-line"); QVERIFY(!data.networkBusy()); QVERIFY(!data.networkError().isEmpty());
         QCOMPARE(SettingsData::splitFields("a\\:b:c\\\\d"),QStringList({"a:b","c\\d"}));
     }
 };

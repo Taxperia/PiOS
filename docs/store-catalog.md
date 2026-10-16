@@ -15,7 +15,11 @@ Add one object to the `apps` array:
   "category": "Graphics",
   "icon": "org.gimp.GIMP",
   "source": "flatpak",
-  "id": "org.gimp.GIMP"
+  "id": "org.gimp.GIMP",
+  "description": "A factual description of what the application does.",
+  "features": ["Image editing", "Layers", "Filters"],
+  "website": "https://apps.flathub.org/org.gimp.GIMP",
+  "architectures": ["amd64", "arm64"]
 }
 ```
 
@@ -31,6 +35,29 @@ Use a stable application or package ID. The store rejects IDs containing shell
 syntax and starts package programs directly without a shell. Keep application
 names and summaries factual; the catalog is a curated list, not an arbitrary
 command launcher.
+
+The current catalog contains 40 applications. Verify Flatpak IDs and architectures
+with `flatpak remote-ls --user --app --arch='*' --columns=application,arch flathub`.
+The store disables installation for incompatible catalog architectures. The
+`FIDAN_STORE_CATALOG` environment variable selects a development/test catalog.
+
+## Details and progress
+
+Click a card to open its detail page. Descriptions and feature lists come from
+the catalog. Download size, installed size, architecture, version/commit and
+available license fields are queried asynchronously from `apt-cache` or
+`flatpak remote-info`. Missing data is shown as unavailable; there are no
+invented ratings, download counts, screenshots or package sizes. Flatpak shared
+runtimes can require additional space beyond the application's package size.
+
+Details and actions use a stable application ID, so filtering or a model refresh
+does not silently change the target of an installation. The Downloads page
+shows the active/last transaction, its real percentage when provided, phase,
+bounded output log and error/retry control. Only one package writer runs at a
+time. APT reports structured `dlstatus`/`pmstatus` progress. The unprivileged
+`store-transaction` helper gives Flatpak a pseudo-terminal to expose its real
+progress output. Unknown progress remains indeterminate; completion is shown
+only after the package manager exits successfully and installed state is checked.
 
 The development session starts `lxqt-policykit-agent` for APT authentication.
 Run `./scripts/setup-debian-dev` to install `pkexec`, `polkitd`, Flatpak and the
@@ -55,10 +82,10 @@ installed application with the store before the entry is removed, or with
 
 ## GitHub updates
 
-`fidan-update check --notify` runs daily from a systemd user timer. Feature
-updates are never installed silently. `fidan-update download` accepts only
-packages listed in a GPG-signed `SHA256SUMS`; `fidan-update install` then opens
-PolicyKit authorization.
+PiOS desktop updates use a separate signed GitHub release updater and system
+timer. Installed PiOS packages are checked and updated every six hours when
+automatic updates are enabled. The store manages third-party APT/Flatpak apps;
+it does not silently upgrade every application. See [release maintenance](release.md).
 
 Before publishing the first image, install the project release public key at
 the `updateKeyring` path in `config/product.json`. The corresponding private

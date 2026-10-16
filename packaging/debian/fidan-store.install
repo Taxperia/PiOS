@@ -1,4 +1,5 @@
 usr/bin/fidan-store
+usr/libexec/fidan/store-transaction
 usr/share/fidan/store/catalog.json
 usr/share/applications/org.fidan.Store.desktop
 usr/share/icons/hicolor/scalable/apps/org.fidan.Store.svg

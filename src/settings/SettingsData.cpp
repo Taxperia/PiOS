@@ -189,9 +189,16 @@ void SettingsData::networkFinished(int code, QProcess::ExitStatus status) {
 void SettingsData::connectNetwork(const QString &ssid, const QString &password) {
     if (networkBusy() || m_mock || m_wifiDevice.isEmpty() || ssid.isEmpty()) return;
     bool found = false; for (const auto &n : m_networks) if (n.toMap().value("ssid").toString() == ssid) found = true; if (!found) return;
-    m_networkError.clear(); QStringList args{"--wait", "20", "device", "wifi", "connect", ssid, "ifname", m_wifiDevice};
-    if (!password.isEmpty()) args << "password" << password;
+    if (password.contains(QLatin1Char('\n')) || password.contains(QLatin1Char('\r'))
+        || password.contains(QChar::Null) || ssid.contains(QChar::Null)) {
+        m_networkError = tr("The Wi-Fi settings are invalid."); emit networkChanged(); return;
+    }
+    // Password arguments are visible through /proc and process inspection.
+    // nmcli's prompt reads the secret from this private pipe instead.
+    m_networkError.clear(); QStringList args{"--ask", "--wait", "20", "device", "wifi", "connect", ssid, "ifname", m_wifiDevice};
     networkStart("connect", args);
+    if (!password.isEmpty()) m_network.write(password.toUtf8() + '\n');
+    m_network.closeWriteChannel();
 }
 void SettingsData::disconnectNetwork() {
     if (networkBusy() || m_mock || m_wifiDevice.isEmpty()) return;

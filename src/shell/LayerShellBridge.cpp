@@ -62,6 +62,7 @@ void LayerShellBridge::configure(QObject *windowObject, const QString &role)
         surface->setAnchors(anchors({LayerWindow::AnchorTop, LayerWindow::AnchorBottom,
                                      LayerWindow::AnchorLeft, LayerWindow::AnchorRight}));
         surface->setExclusiveZone(-1);
+        surface->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityOnDemand);
     } else if (role == QStringLiteral("panel")) {
         surface->setLayer(LayerWindow::LayerTop);
         surface->setAnchors(anchors({LayerWindow::AnchorTop, LayerWindow::AnchorLeft,
