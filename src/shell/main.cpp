@@ -1,3 +1,4 @@
+#include "../common/IconLookup.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "AppModel.h"
 #include "DesktopModel.h"
@@ -35,7 +36,7 @@ int main(int argc, char *argv[])
     QGuiApplication::setOrganizationName(QStringLiteral("Project Fidan"));
     QGuiApplication::setOrganizationDomain(QStringLiteral("fidan.org"));
 
-    QGuiApplication app(argc, argv);
+    QGuiApplication app(argc, argv); setPiOSApplicationIdentity(app,QStringLiteral("org.fidan.Shell"));
     QTranslator translator;
     if (QLocale::system().language() == QLocale::Turkish
         && translator.load(QStringLiteral(":/i18n/fidan-shell_tr.qm"))) {
@@ -147,3 +148,4 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
+

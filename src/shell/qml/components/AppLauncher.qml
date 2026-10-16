@@ -149,6 +149,7 @@ GlassPanel {
                             anchors.fill: parent
                             anchors.margins: 6
                             source: "image://theme/" + encodeURIComponent(iconName) + (Controller.darkTheme ? "?theme=dark" : "?theme=light")
+                            cache: false
                             sourceSize: Qt.size(40, 40)
                             fillMode: Image.PreserveAspectFit
                             asynchronous: true

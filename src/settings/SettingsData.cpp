@@ -24,6 +24,7 @@
 namespace {
 QString read(const QString &path) { QFile f(path); return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()).trimmed() : QString(); }
 const QMap<QString, QStringList> tools{
+    {"credentials", {"keepassxc", "seahorse"}},
     {"network", {"nm-connection-editor"}}, {"storage", {"gnome-disks", "partitionmanager", "gparted"}},
     {"usage", {"baobab", "filelight"}}, {"users", {"lxqt-admin-user", "users-admin"}},
     {"backup", {"deja-dup", "pika-backup"}}, {"input", {"rpd-preferences", "lxqt-config-input"}}
@@ -31,6 +32,7 @@ const QMap<QString, QStringList> tools{
 }
 
 SettingsData::SettingsData(bool mock, QObject *parent) : QObject(parent), m_mock(mock) {
+    m_desktop=new DesktopSettings(mock,this);
     connect(&m_network, &QProcess::stateChanged, this, [this] { emit networkChanged(); });
     connect(&m_network, qOverload<int,QProcess::ExitStatus>(&QProcess::finished), this, &SettingsData::networkFinished);
     connect(&m_network, &QProcess::errorOccurred, this, [this](QProcess::ProcessError e) {

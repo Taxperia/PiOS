@@ -25,7 +25,7 @@ jobs:
       - name: Install Debian build dependencies
         run: |
           apt-get update
-          apt-get install -y ca-certificates gnupg git build-essential devscripts debhelper cmake ninja-build python3 qt6-base-dev qt6-declarative-dev qt6-tools-dev qt6-tools-dev-tools liblayershellqtinterface-dev libxkbcommon-dev dbus-x11 qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-dialogs qml6-module-qtquick-layouts qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-workerscript libqt6svg6 qt6-image-formats-plugins papirus-icon-theme fonts-inter
+          apt-get install -y ca-certificates gnupg git build-essential devscripts debhelper cmake ninja-build python3 qt6-pdf-dev qml6-module-qtquick-pdf qt6-image-formats-plugin-pdf qt6-base-dev qt6-declarative-dev qt6-tools-dev qt6-tools-dev-tools liblayershellqtinterface-dev libxkbcommon-dev dbus-x11 qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-dialogs qml6-module-qtquick-layouts qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-workerscript libqt6svg6 qt6-image-formats-plugins papirus-icon-theme fonts-inter
       - uses: actions/checkout@v4
       - name: Build and test Debian packages
         env:

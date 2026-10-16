@@ -20,6 +20,13 @@ UpdateController::UpdateController(QObject *parent)
             this, &UpdateController::finish);
 }
 
+UpdateController::~UpdateController()
+{
+    m_refreshTimer.stop();
+    disconnect(&m_process, nullptr, this, nullptr);
+    if (busy()) { m_process.kill(); m_process.waitForFinished(1000); }
+}
+
 void UpdateController::startAutomaticChecks()
 {
     if (m_refreshTimer.isActive())

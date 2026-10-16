@@ -1,0 +1,9 @@
+usr/bin/fidan-apps
+usr/share/applications/org.fidan.Pdf.desktop
+usr/share/applications/org.fidan.Calculator.desktop
+usr/share/applications/org.fidan.Clock.desktop
+usr/share/applications/org.fidan.Calendar.desktop
+usr/share/icons/hicolor/scalable/apps/org.fidan.Pdf.svg
+usr/share/icons/hicolor/scalable/apps/org.fidan.Calculator.svg
+usr/share/icons/hicolor/scalable/apps/org.fidan.Clock.svg
+usr/share/icons/hicolor/scalable/apps/org.fidan.Calendar.svg

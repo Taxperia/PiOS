@@ -23,6 +23,7 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS
     QuickControls2
     DBus
     Network
+    Pdf
     LinguistTools
 )
 
@@ -36,11 +37,31 @@ add_subdirectory(src/taskmanager)
 add_subdirectory(src/settings)
 add_subdirectory(src/files)
 add_subdirectory(src/photos)
+add_subdirectory(src/apps)
 
 if(BUILD_TESTING)
     find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
     add_subdirectory(tests)
 endif()
+
+file(GLOB FIDAN_ICON_FILES CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/data/icons/*.svg"
+    "${PROJECT_SOURCE_DIR}/data/icons/mimetypes/*.svg")
+foreach(icon_target fidan-shell fidan-firstboot fidan-greeter fidan-store
+        fidan-task-manager fidan-settings fidan-files fidan-photos fidan-apps
+        fidan-files-ui-tests fidan-photos-display-tests fidan-settings-tests
+        fidan-store-ui-tests fidan-taskmanager-ui-tests fidan-desktop-ui-tests
+        fidan-utilities-tests fidan-icon-tests)
+    if(TARGET ${icon_target})
+        string(MAKE_C_IDENTIFIER "fidan_icons_${icon_target}" icon_resource)
+        qt_add_resources(${icon_target} ${icon_resource}
+            PREFIX "/fidan/icons" BASE "${PROJECT_SOURCE_DIR}/data/icons"
+            FILES ${FIDAN_ICON_FILES})
+    endif()
+endforeach()
+install(DIRECTORY data/icons/mimetypes/
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/mimetypes
+    FILES_MATCHING PATTERN "*.svg")
 
 install(FILES config/product.json
     DESTINATION ${CMAKE_INSTALL_DATADIR}/fidan
@@ -56,7 +77,7 @@ install(DIRECTORY data/labwc/
 )
 install(DIRECTORY data/icons/
     DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
-    FILES_MATCHING PATTERN "*.svg"
+    FILES_MATCHING PATTERN "*.svg" PATTERN "mimetypes" EXCLUDE
 )
 install(FILES
     data/applications/org.fidan.Shell.desktop
@@ -74,6 +95,7 @@ install(FILES data/wayland-sessions/fidan.desktop
 install(PROGRAMS scripts/fidan-session
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+install(PROGRAMS scripts/fidan-input DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(PROGRAMS scripts/fidan-shellctl scripts/fidan-workspace scripts/fidan-lock scripts/fidan-screenshot scripts/fidan-display-restore scripts/fidan-night-light
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
@@ -139,4 +161,4 @@ install(FILES
 )
 
 install(DIRECTORY artwork/wallpapers/collection DESTINATION ${CMAKE_INSTALL_DATADIR}/backgrounds/fidan)
-install(FILES docs/daily-desktop.md docs/photos-display.md docs/settings-redesign.md DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/fidan-shell)
+install(FILES docs/daily-desktop.md docs/photos-display.md docs/settings-redesign.md docs/settings-expanded.md docs/builtin-apps.md docs/virtualbox.md DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/fidan-shell)

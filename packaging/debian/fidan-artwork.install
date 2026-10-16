@@ -2,6 +2,7 @@ usr/share/fidan/product.json
 usr/share/backgrounds/fidan
 usr/share/icons/hicolor/scalable/apps/org.fidan.Shell.svg
 usr/share/icons/hicolor/scalable/apps/org.fidan.FirstBoot.svg
+usr/share/icons/hicolor/scalable/mimetypes/*.svg
 usr/share/doc/fidan-artwork/ASSET-LICENSES.md
 usr/share/doc/fidan-artwork/fidan-mountain-dawn.prompt.txt
 

@@ -11,6 +11,7 @@ Build-Depends:
  gnupg,
  qt6-base-dev (>= 6.8),
  qt6-declarative-dev (>= 6.8),
+ qt6-pdf-dev (>= 6.8),
  qt6-tools-dev,
  qt6-tools-dev-tools,
  libxkbcommon-dev,
@@ -193,6 +194,7 @@ Depends:
  lxqt-policykit,
  unattended-upgrades,
  openssh-server
+Recommends: fidan-apps (= ${binary:Version})
 Suggests: rpd-preferences
 Description: Project Fidan lightweight desktop metapackage
  Installs the complete Project Fidan alpha desktop and its lightweight default
@@ -212,3 +214,22 @@ Depends:
  qml6-module-qtquick-layouts
 Description: Project Fidan photo viewer
  Opens local photos with zoom, rotation, folder navigation and fullscreen.
+
+Package: fidan-apps
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ fidan-artwork (= ${binary:Version}),
+ qt6-wayland,
+ qt6-image-formats-plugin-pdf,
+ qml6-module-qtquick-pdf,
+ qml6-module-qtquick,
+ qml6-module-qtquick-controls,
+ qml6-module-qtquick-dialogs,
+ qml6-module-qtquick-layouts,
+ libnotify-bin,
+ tzdata
+Description: PiOS PDF viewer, calculator, clock and calendar
+ Native desktop utilities with PDF text search and navigation, arithmetic
+ history, world clocks, stopwatch, countdown and a local event calendar.

@@ -120,6 +120,7 @@ if ! grep -q '^ConfigVersion=2$' "$config_home/pcmanfm-qt/default/settings.conf"
 fi
 
 cp "$project_dir/data/labwc/rc.xml" "$session_dir/rc.xml"
+export FIDAN_LABWC_CONFIG="$session_dir"
 cp "$project_dir/data/labwc/themerc-override" "$session_dir/themerc-override"
 cat >"$session_dir/autostart" <<EOF
 #!/bin/sh
@@ -151,6 +152,7 @@ keyboard_layout=$(sed -n 's/^keyboardLayout=//p' "$preferences" 2>/dev/null || t
 case "$keyboard_layout" in us|tr|de|gb) export XKB_DEFAULT_LAYOUT="$keyboard_layout" ;; esac
 export XDG_CURRENT_DESKTOP=Fidan
 export XDG_CONFIG_HOME="$config_home"
+python3 "$project_dir/scripts/fidan-input" configure
 export XDG_SESSION_DESKTOP=fidan
 export XDG_SESSION_TYPE=wayland
 export XDG_DATA_DIRS="${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share:/var/lib/flatpak/exports/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
@@ -163,6 +165,10 @@ export QT_LOGGING_RULES="*.debug=false"
 export WLR_BACKENDS=wayland
 export WLR_LIBINPUT_NO_DEVICES=1
 export WLR_NO_HARDWARE_CURSORS=1
+if [ -n "${WSL_DISTRO_NAME:-}" ]; then
+    # Composite fullscreen surfaces before handing their buffers to WSLg.
+    export WLR_SCENE_DISABLE_DIRECT_SCANOUT=1
+fi
 
 echo "Starting the real Project Fidan Labwc session."
 echo "Applications open as normal movable windows. Set FIDAN_SESSION_TEST_APPS=1 only for the multi-app test layout."

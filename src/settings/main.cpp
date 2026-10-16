@@ -1,3 +1,4 @@
+#include "../common/IconLookup.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ProductInfo.h"
 #include "ShellController.h"
@@ -15,7 +16,7 @@
 
 int main(int argc, char *argv[])
 {
-    qputenv("QT_WAYLAND_SHELL_INTEGRATION", "xdg-shell"); QGuiApplication app(argc, argv);
+    qputenv("QT_WAYLAND_SHELL_INTEGRATION", "xdg-shell"); QGuiApplication app(argc, argv); setPiOSApplicationIdentity(app,QStringLiteral("org.fidan.Settings"));
     QGuiApplication::setApplicationName(QStringLiteral("fidan-settings"));
     QGuiApplication::setApplicationDisplayName(QStringLiteral("Fidan Settings"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
@@ -44,3 +45,4 @@ int main(int argc, char *argv[])
     engine.loadFromModule(QStringLiteral("Fidan.Settings"), QStringLiteral("Settings"));
     scheduleUiCapture(app); return app.exec();
 }
+

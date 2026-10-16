@@ -15,5 +15,7 @@ export QT_QPA_PLATFORMTHEME=qt6ct
 export QT_STYLE_OVERRIDE=Fusion
 export MOZ_ENABLE_WAYLAND=1
 
-exec labwc -C /usr/share/fidan/labwc
+FIDAN_LABWC_CONFIG="$(fidan-input prepare)"
+export FIDAN_LABWC_CONFIG
+exec labwc -C "$FIDAN_LABWC_CONFIG"
 

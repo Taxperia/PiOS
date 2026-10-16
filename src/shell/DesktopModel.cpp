@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QProcess>
 #include "../common/DesktopLaunch.h"
+#include "../common/FileIcon.h"
 #include <QRegularExpression>
 #include <QSettings>
 #include <QStandardPaths>
@@ -80,12 +81,11 @@ void DesktopModel::refresh()
         entry.desktopFile = file.suffix().compare(QStringLiteral("desktop"), Qt::CaseInsensitive) == 0;
         entry.modified = file.lastModified().toMSecsSinceEpoch();
         entry.suffix = file.suffix().toLower();
-        entry.icon = entry.directory ? QStringLiteral("folder") : QStringLiteral("file");
+        entry.icon = fileIconName(file);
         if (entry.desktopFile) {
             QSettings desktop(entry.path, QSettings::IniFormat);
             desktop.beginGroup(QStringLiteral("Desktop Entry"));
             entry.name = desktop.value(QStringLiteral("Name"), entry.name).toString();
-            entry.icon = desktop.value(QStringLiteral("Icon"), QStringLiteral("application-x-executable")).toString();
         }
         entries.append(entry);
     }

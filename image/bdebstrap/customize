@@ -23,6 +23,11 @@ EOF
 chroot "$root" flatpak remote-add --system --if-not-exists flathub \
     https://dl.flathub.org/repo/flathub.flatpakrepo
 
+# Mitigate Avahi wide-area DNS spoofing (CVE-2024-52615/52616).
+if [ -f "$root/etc/avahi/avahi-daemon.conf" ]; then
+    sed -i 's/^[[:space:]]*enable-wide-area=.*/enable-wide-area=no/' "$root/etc/avahi/avahi-daemon.conf"
+fi
+
 # Keep remote access and the normal greeter off until setup is complete.
 chroot "$root" systemctl disable ssh.service 2>/dev/null || true
 chroot "$root" systemctl disable greetd.service 2>/dev/null || true

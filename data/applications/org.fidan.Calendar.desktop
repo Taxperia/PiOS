@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PiOS Takvim
+Name[tr]=PiOS Takvim
+Exec=fidan-apps --calendar
+Icon=org.fidan.Calendar
+Terminal=false
+Categories=Office;Calendar;
+StartupNotify=true
+Keywords=PiOS;Fidan;calendar;
+StartupWMClass=fidan-calendar

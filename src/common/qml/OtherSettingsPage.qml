@@ -4,7 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Item {
-    id: root; property string category: "Bluetooth"; property string feedback:""
+    id: root; property string category: "Bluetooth"; property string feedback:""; property bool modernPower: false
     implicitHeight: layout.implicitHeight
     ColumnLayout {
         id: layout; width: root.width; spacing: 14
@@ -22,7 +22,7 @@ Item {
         }
         SettingsControls.Link { visible:root.category === "Sound"; label:qsTr("Giriş, çıkış ve uygulama sesleri"); hint:qsTr("Hoparlör, mikrofon ve uygulama başına ses düzeyi"); iconName:"audio-input-microphone-symbolic"; onTriggered:Controller.openSystemTool("sound") }
         SettingsControls.Card {
-            visible:root.category === "Power"
+            visible:root.category === "Power" && !root.modernPower
             SettingsControls.Title { text:qsTr("Güç profili") }
             RowLayout { Layout.fillWidth:true; SettingsControls.Icon { name:"battery-good-symbolic"; Layout.preferredWidth:36; Layout.preferredHeight:36 } ColumnLayout { Layout.fillWidth:true; SettingsControls.Label { text:Controller.powerProfilesAvailable?Controller.powerProfile:qsTr("Bu cihazda güç profilleri desteklenmiyor") } SettingsControls.Caption { text:qsTr("Donanımın desteklediği enerji profili kullanılır") } } SettingsControls.Button { text:qsTr("Profili değiştir"); enabled:Controller.powerProfilesAvailable; onClicked:Controller.cyclePowerProfile() } }
         }

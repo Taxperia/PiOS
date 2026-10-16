@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Apply personal Labwc input settings without editing the system profile."""
+import configparser
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
+
+def settings(config):
+    values=configparser.ConfigParser(); values.read(config/'fidan/input.conf')
+    section=values['General'] if values.has_section('General') else {}
+    def number(key,default,low,high):
+        value=float(section.get(key,default))
+        if not low<=value<=high: raise ValueError('Input value outside supported range')
+        return str(value) if key=='pointerSpeed' else str(int(value))
+    def boolean(key,default): return 'yes' if str(section.get(key,default)).lower() in ('true','1','yes') else 'no'
+    return {'pointerSpeed':number('pointerSpeed',0,-1,1),'repeatRate':number('repeatRate',25,1,80),'repeatDelay':number('repeatDelay',600,200,1500),'naturalScroll':boolean('naturalScroll',False),'leftHanded':boolean('leftHanded',False),'tap':boolean('tap',True)}
+
+def apply_xml(path,values):
+    tree=ET.parse(path); root=tree.getroot()
+    def child(parent,name):
+        value=parent.find(name)
+        return value if value is not None else ET.SubElement(parent,name)
+    keyboard=child(root,'keyboard')
+    for key in ('repeatRate','repeatDelay'): child(keyboard,key).text=values[key]
+    libinput=child(root,'libinput')
+    for category in ('default','touchpad'):
+        device=next((d for d in libinput.findall('device') if d.get('category','default')==category),None)
+        if device is None: device=ET.SubElement(libinput,'device',category=category)
+        for key in ('pointerSpeed','naturalScroll','leftHanded'): child(device,key).text=values[key]
+        if category=='touchpad': child(device,'tap').text=values['tap']
+    ET.indent(tree)
+    descriptor,name=tempfile.mkstemp(prefix='.input-',dir=path.parent)
+    temporary=Path(name)
+    try:
+        with os.fdopen(descriptor,'wb') as output: tree.write(output,encoding='utf-8',xml_declaration=True)
+        temporary.chmod(0o600); temporary.replace(path)
+    finally: temporary.unlink(missing_ok=True)
+
+def active_directory(config):
+    candidates=[os.environ.get('FIDAN_LABWC_CONFIG',''),os.environ.get('LABWC_CONFIG_DIR','')]
+    for entry in Path('/proc').iterdir():
+        if not entry.name.isdigit(): continue
+        try:
+            if entry.stat().st_uid!=os.getuid(): continue
+            args=(entry/'cmdline').read_bytes().decode().split('\0')
+            if Path(args[0]).name=='labwc' and '-C' in args: candidates.append(args[args.index('-C')+1])
+        except (OSError,ValueError,UnicodeError,IndexError): pass
+    runtime=Path(os.environ.get('XDG_RUNTIME_DIR',f'/run/user/{os.getuid()}')).resolve()
+    for name in candidates:
+        if not name: continue
+        path=Path(name).resolve()
+        if (path.is_relative_to(config.resolve()) or path.is_relative_to(runtime)) and (path/'rc.xml').is_file(): return path
+    raise RuntimeError('Ayar kaydedildi. Kişisel Labwc profilini kullanmak için oturumu kapatıp tekrar aç.')
+
+def main():
+    if os.geteuid()==0: raise RuntimeError('Run input preferences as the desktop user.')
+    config=Path(os.environ.get('XDG_CONFIG_HOME',str(Path.home()/'.config')))
+    values=settings(config)
+    if sys.argv[1:] == ['prepare']:
+        target=config/'fidan/labwc'; target.mkdir(parents=True,exist_ok=True)
+        for source in Path('/usr/share/fidan/labwc').iterdir():
+            if source.is_file() and not (target/source.name).exists(): shutil.copyfile(source,target/source.name); (target/source.name).chmod(0o755 if source.name=='autostart' else 0o644)
+        apply_xml(target/'rc.xml',values); print(target)
+    elif sys.argv[1:] in (['apply'],['configure']):
+        apply_xml(active_directory(config)/'rc.xml',values)
+        if sys.argv[1]=='apply': subprocess.run(['labwc','--reconfigure'],timeout=5,check=True)
+    else: raise ValueError('usage: fidan-input {prepare|configure|apply}')
+
+if __name__=='__main__':
+    try: main()
+    except (OSError,ValueError,RuntimeError,ET.ParseError,subprocess.SubprocessError) as error:
+        print(error,file=sys.stderr); sys.exit(1)

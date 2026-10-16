@@ -163,6 +163,7 @@ FocusScope {
                     SystemIcon { anchors.centerIn: parent; width: 27; height: 27; visible: icon.isDirectory; name: "folder"; color: "white" }
                     Image {
                         id: artwork
+                        cache: false
                         anchors.fill: parent; anchors.margins: 5
                         visible: !icon.isDirectory
                         source: "image://theme/" + encodeURIComponent(icon.iconName) + (Controller.darkTheme ? "?theme=dark" : "?theme=light")

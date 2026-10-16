@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PiOS PDF Görüntüleyici
+Name[tr]=PiOS PDF Görüntüleyici
+Exec=fidan-apps --pdf %f
+Icon=org.fidan.Pdf
+Terminal=false
+Categories=Office;Viewer;
+StartupNotify=true
+MimeType=application/pdf;
+StartupWMClass=fidan-pdf

@@ -66,6 +66,15 @@ class UpdaterTests(unittest.TestCase):
         with patch.object(update, 'request_json', return_value=[self.release('v0.1.0-alpha.2'), self.release('v0.1.0-alpha.8'), self.release('v0.2.0-beta.1')]):
             self.assertEqual(update.latest_release(self.product)['tag_name'], 'v0.1.0-alpha.8')
 
+    def test_api_json_is_size_bounded_even_without_content_length(self):
+        with patch.object(update.urllib.request,'urlopen',return_value=io.BytesIO(b'['+b' '*256+b']')),patch.object(update,'METADATA_LIMIT',128):
+            with self.assertRaisesRegex(RuntimeError,'exceeds'):
+                update.request_json('https://api.github.com/repos/Taxperia/PiOS/releases')
+
+    def test_api_json_reads_valid_response(self):
+        with patch.object(update.urllib.request,'urlopen',return_value=io.BytesIO(b'[{"tag_name":"v0.1.0"}]')):
+            self.assertEqual(update.request_json('https://api.github.com/repos/Taxperia/PiOS/releases'),[{'tag_name':'v0.1.0'}])
+
     def test_draft_and_unsafe_tags_are_ignored(self):
         with patch.object(update, 'request_json', return_value=[self.release(draft=True), self.release('v../../evil')]):
             self.assertIsNone(update.latest_release(self.product))

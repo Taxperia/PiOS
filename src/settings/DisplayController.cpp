@@ -123,6 +123,20 @@ void DisplayController::loadOutputs(const QByteArray &json) {
         output.insert("label", builtin ? tr("Built-in Display") : name.startsWith("HDMI") ? tr("HDMI Display") : name.startsWith("WL-") ? tr("Virtual Display") : tr("Display %1").arg(number + 1));
         output.insert("number", ++number);
         output.insert("primary", QGuiApplication::primaryScreen() && QGuiApplication::primaryScreen()->name() == name);
+        const bool virtualOutput=name.startsWith("WL-") || name.startsWith("HEADLESS-");
+        output.insert("virtual",virtualOutput);
+        if(virtualOutput) {
+            auto modes=output.value("modes").toList();
+            // Nested Wayland outputs report 0 Hz: the parent compositor owns refresh.
+            double virtualRefresh=name.startsWith("WL-")?0.0:60.0;
+            for(const auto &entry:modes) if(entry.toMap().value("current").toBool()) virtualRefresh=entry.toMap().value("refresh").toDouble();
+            for(auto &entry:modes) { auto mode=entry.toMap(); mode["custom"]=true; entry=mode; }
+            for(const auto &size:{QSize(1024,768),QSize(1280,720),QSize(1366,768),QSize(1600,900),QSize(1920,1080),QSize(2560,1440),QSize(3840,2160)}) {
+                bool exists=false; for(const auto &entry:modes) if(entry.toMap().value("width")==size.width() && entry.toMap().value("height")==size.height()) exists=true;
+                if(!exists) modes.append(QVariantMap{{"width",size.width()},{"height",size.height()},{"refresh",virtualRefresh},{"custom",true}});
+            }
+            output["modes"]=modes;
+        }
         outputs.append(output);
     }
     m_outputs = outputs; m_available = !m_mock && !outputs.isEmpty();
@@ -133,7 +147,7 @@ void DisplayController::loadOutputs(const QByteArray &json) {
 QStringList DisplayController::arguments(const QVariantMap &output) {
     QString mode = QStringLiteral("%1x%2").arg(output.value("width").toInt()).arg(output.value("height").toInt());
     const double hz = output.value("refresh").toDouble(); if (hz > 0) mode += "@" + QString::number(hz, 'f', 3) + "Hz";
-    return {"--output", output.value("name").toString(), "--mode", mode, "--scale", QString::number(output.value("scale").toDouble(), 'f', 2), "--transform", output.value("transform").toString()};
+    return {"--output", output.value("name").toString(), output.value("custom").toBool()?"--custom-mode":"--mode", mode, "--scale", QString::number(output.value("scale").toDouble(), 'f', 2), "--transform", output.value("transform").toString()};
 }
 void DisplayController::apply(int width, int height, double refreshRate, double scale, const QString &transform) {
     if (!m_available || busy() || m_pending || colorBusy()) return;
@@ -146,8 +160,10 @@ void DisplayController::apply(int width, int height, double refreshRate, double 
     }
     if (!valid || originalMode.isEmpty()) { error(tr("That mode is not advertised by the selected monitor.")); return; }
     m_original = current;
+    m_original["custom"]=current.value("virtual",false);
     for (const auto &key : {"width", "height", "refresh"}) m_original.insert(key, originalMode.value(key));
     m_target = {{"name", m_selected}, {"width", width}, {"height", height}, {"refresh", refreshRate}, {"scale", scale}, {"transform", transform}};
+    m_target["custom"]=current.value("virtual",false);
     error({}); auto args = arguments(m_target); args.prepend("--dryrun"); start("validate", args);
 }
 void DisplayController::start(const QString &phase, const QStringList &args) {

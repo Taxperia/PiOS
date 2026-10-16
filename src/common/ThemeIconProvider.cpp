@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ThemeIconProvider.h"
+#include "IconLookup.h"
 
 #include <QIcon>
 #include <QPainter>
@@ -12,6 +13,10 @@ ThemeIconProvider::ThemeIconProvider()
     : QQuickImageProvider(QQuickImageProvider::Pixmap)
 {
     auto paths = QIcon::themeSearchPaths();
+    for (const auto &directory : QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)) {
+        const QString path = directory + QStringLiteral("/icons");
+        if (!paths.contains(path)) paths.append(path);
+    }
     if (!paths.contains(QStringLiteral("/usr/share/icons"))) paths.append(QStringLiteral("/usr/share/icons"));
     QIcon::setThemeSearchPaths(paths);
     QIcon::setThemeName(QStringLiteral("Papirus-Dark"));
@@ -49,16 +54,9 @@ QPixmap ThemeIconProvider::requestPixmap(const QString &id, QSize *size, const Q
         if (size) *size = target;
         return folder;
     }
-    QIcon icon = QIcon::fromTheme(iconName);
-    if (icon.isNull()) {
-        for (const QString &directory : {QStringLiteral("48x48/apps"), QStringLiteral("32x32/apps"),
-             QStringLiteral("32x32/places"), QStringLiteral("24x24/actions"), QStringLiteral("24x24/categories"),
-             QStringLiteral("24x24/devices"), QStringLiteral("24x24/status")}) {
-            const QString path = QStringLiteral("/usr/share/icons/Papirus/") + directory + QLatin1Char('/') + iconName + QStringLiteral(".svg");
-            if (QFileInfo::exists(path)) { icon = QIcon(path); break; }
-        }
-    }
-    if (icon.isNull()) icon = QIcon::fromTheme(QStringLiteral("application-x-executable"));
+    QIcon icon = lookupDesktopIcon(id.section(QLatin1Char('?'), 0, 0));
+    if (icon.isNull()) icon = lookupDesktopIcon(iconName);
+    if (icon.isNull()) icon = lookupDesktopIcon(QStringLiteral("application-x-executable"));
     const QSize target = requestedSize.isValid() ? requestedSize : QSize(64, 64);
     QPixmap pixmap = icon.pixmap(target);
     if (pixmap.isNull()) {

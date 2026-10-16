@@ -45,12 +45,13 @@ private slots:
         qputenv("XDG_CONFIG_HOME", sandbox.filePath("config").toUtf8());
         qputenv("PATH", sandbox.path().toUtf8() + ":" + oldPath);
         // A deterministic compositor fixture. Every command is recorded; no real output is changed.
-        const QByteArray script = "#!/usr/bin/python3\nimport sys,json,pathlib\np=pathlib.Path(__file__).parent\na=sys.argv[1:]\nwith (p/'commands').open('a') as f: f.write(json.dumps(a)+'\\n')\nif '--json' in a:\n print(json.dumps([{'name':'HDMI-A-1','description':'Test monitor','enabled':True,'scale':1,'transform':'normal','modes':[{'width':1920,'height':1080,'refresh':60,'current':True,'preferred':True},{'width':1280,'height':720,'refresh':60}]}]))\nelif '--dryrun' in a and (p/'reject').exists():\n print('Rejected fixture mode',file=sys.stderr);sys.exit(1)\n";
+        const QByteArray script = "#!/usr/bin/python3\nimport sys,json,pathlib\np=pathlib.Path(__file__).parent\na=sys.argv[1:]\nwith (p/'commands').open('a') as f: f.write(json.dumps(a)+'\\n')\nif '--json' in a:\n refresh=0 if (p/'virtual').exists() else 60\n print(json.dumps([{'name':'WL-1' if (p/'virtual').exists() else 'HDMI-A-1','description':'Test monitor','enabled':True,'scale':1,'transform':'normal','modes':[{'width':1920,'height':1080,'refresh':refresh,'current':True,'preferred':True},{'width':1280,'height':720,'refresh':refresh}]}]))\nelif '--dryrun' in a and (p/'reject').exists():\n print('Rejected fixture mode',file=sys.stderr);sys.exit(1)\n";
         write(sandbox.filePath("wlr-randr"), script);
         QVERIFY(QFile::setPermissions(sandbox.filePath("wlr-randr"), QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
     }
     void cleanup() {
         QFile::remove(sandbox.filePath("commands")); QFile::remove(sandbox.filePath("reject"));
+        QFile::remove(sandbox.filePath("virtual"));
         QFile::remove(sandbox.filePath("config/fidan/displays.json"));
     }
     void photosNavigateRotateAndCopy() {
@@ -130,6 +131,16 @@ private slots:
         controller->apply(1280, 720, 60, 1, "normal"); QTRY_VERIFY(controller->confirmationPending());
         QTRY_VERIFY_WITH_TIMEOUT(!controller->confirmationPending(), 17000); QTRY_VERIFY(!controller->busy());
         QVERIFY(commands().contains("1920x1080@60.000Hz"));
+    }
+    void virtualDisplayOffersCustomModesAndReverts() {
+        write(sandbox.filePath("virtual"),"1");
+        auto controller=display();QTRY_VERIFY(controller->available());QCOMPARE(controller->selectedName(),QString("WL-1"));
+        const auto modes=controller->currentOutput().value("modes").toList();
+        QVERIFY(modes.size()>=7);
+        controller->apply(2560,1440,0,1,"normal");QTRY_VERIFY(controller->confirmationPending());
+        QVERIFY(commands().contains("--custom-mode"));QVERIFY(commands().contains("2560x1440"));QVERIFY(!commands().contains("@0"));
+        controller->revert();QTRY_VERIFY(!controller->busy());QVERIFY(commands().contains("1920x1080"));
+        controller->apply(9999,9999,60,1,"normal");QVERIFY(!controller->confirmationPending());QVERIFY(!controller->errorText().isEmpty());
     }
     void displayClosingRestoresUnconfirmedMode() {
         auto controller = display(); QTRY_VERIFY(controller->available());

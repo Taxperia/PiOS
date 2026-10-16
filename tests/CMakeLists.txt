@@ -72,7 +72,31 @@ add_test(NAME fidan-photos-display-tests COMMAND fidan-photos-display-tests)
 set_tests_properties(fidan-photos-display-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
 find_program(FIDAN_PYTHON python3 REQUIRED)
+qt_add_executable(fidan-icon-tests tst_icons.cpp
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.cpp
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.h
+    ${PROJECT_SOURCE_DIR}/src/shell/DesktopModel.cpp
+    ${PROJECT_SOURCE_DIR}/src/shell/DesktopModel.h
+    ${PROJECT_SOURCE_DIR}/src/files/FilesModel.cpp
+    ${PROJECT_SOURCE_DIR}/src/files/FilesModel.h)
+target_include_directories(fidan-icon-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/common ${PROJECT_SOURCE_DIR}/src/shell ${PROJECT_SOURCE_DIR}/src/files)
+target_compile_definitions(fidan-icon-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-icon-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Concurrent Qt6::Qml Qt6::Quick Qt6::Test)
+add_test(NAME fidan-icon-tests COMMAND fidan-icon-tests)
+set_tests_properties(fidan-icon-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+qt_add_executable(fidan-utilities-tests tst_utilities.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/UtilityModels.cpp
+    ${PROJECT_SOURCE_DIR}/src/apps/UtilityModels.h
+    ${PROJECT_SOURCE_DIR}/src/common/AppStyle.h
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.cpp
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.h)
+target_include_directories(fidan-utilities-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/apps ${PROJECT_SOURCE_DIR}/src/common)
+target_compile_definitions(fidan-utilities-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-utilities-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Pdf Qt6::Test)
+add_test(NAME fidan-utilities-tests COMMAND fidan-utilities-tests)
+set_tests_properties(fidan-utilities-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 add_test(NAME fidan-display-restore-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_display_restore.py)
+add_test(NAME fidan-input-preferences-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_input_preferences.py)
 
 qt_add_executable(fidan-settings-tests
     tst_settings.cpp
@@ -96,6 +120,7 @@ target_link_libraries(fidan-settings-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Q
 add_test(NAME fidan-settings-tests COMMAND fidan-settings-tests)
 set_tests_properties(fidan-settings-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 add_test(NAME fidan-lock-preferences-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_lock_preferences.py)
+add_test(NAME fidan-night-light-security-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_night_light_security.py)
 add_test(NAME fidan-updater-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_updater.py)
 
 qt_add_executable(fidan-store-ui-tests
@@ -139,3 +164,6 @@ target_compile_definitions(fidan-desktop-ui-tests PRIVATE FIDAN_SOURCE_DIR="${PR
 target_link_libraries(fidan-desktop-ui-tests PRIVATE Qt6::Concurrent Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
 add_test(NAME fidan-desktop-ui-tests COMMAND fidan-desktop-ui-tests)
 set_tests_properties(fidan-desktop-ui-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+target_sources(fidan-settings-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/settings/DesktopSettings.cpp ${PROJECT_SOURCE_DIR}/src/settings/DesktopSettings.h)
+target_link_libraries(fidan-settings-tests PRIVATE Qt6::Concurrent Qt6::Network)

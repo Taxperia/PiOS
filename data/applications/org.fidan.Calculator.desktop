@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PiOS Hesap Makinesi
+Name[tr]=PiOS Hesap Makinesi
+Exec=fidan-apps --calculator
+Icon=org.fidan.Calculator
+Terminal=false
+Categories=Utility;Calculator;
+StartupNotify=true
+Keywords=PiOS;Fidan;calculator;
+StartupWMClass=fidan-calculator

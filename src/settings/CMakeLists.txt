@@ -58,3 +58,21 @@ target_link_libraries(fidan-settings PRIVATE
 )
 
 install(TARGETS fidan-settings RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/NetworkSettings.qml PROPERTIES QT_RESOURCE_ALIAS qml/NetworkSettings.qml)
+
+set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/DeviceSettings.qml PROPERTIES QT_RESOURCE_ALIAS qml/DeviceSettings.qml)
+
+set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/ApplicationsSettings.qml PROPERTIES QT_RESOURCE_ALIAS qml/ApplicationsSettings.qml)
+
+set_source_files_properties(${PROJECT_SOURCE_DIR}/src/common/qml/PrivacySettings.qml PROPERTIES QT_RESOURCE_ALIAS qml/PrivacySettings.qml)
+
+qt_target_qml_sources(fidan-settings QML_FILES
+    ${PROJECT_SOURCE_DIR}/src/common/qml/NetworkSettings.qml
+    ${PROJECT_SOURCE_DIR}/src/common/qml/DeviceSettings.qml
+    ${PROJECT_SOURCE_DIR}/src/common/qml/ApplicationsSettings.qml
+    ${PROJECT_SOURCE_DIR}/src/common/qml/PrivacySettings.qml
+)
+
+target_sources(fidan-settings PRIVATE ${PROJECT_SOURCE_DIR}/src/settings/DesktopSettings.cpp ${PROJECT_SOURCE_DIR}/src/settings/DesktopSettings.h)
+target_link_libraries(fidan-settings PRIVATE Qt6::Concurrent Qt6::Network)

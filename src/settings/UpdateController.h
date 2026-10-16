@@ -18,6 +18,7 @@ class UpdateController final : public QObject
 
 public:
     explicit UpdateController(QObject *parent = nullptr);
+    ~UpdateController() override;
 
     bool busy() const { return m_process.state() != QProcess::NotRunning; }
     bool updateAvailable() const { return m_updateAvailable; }

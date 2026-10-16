@@ -1,3 +1,4 @@
+#include "../common/IconLookup.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "PhotoModel.h"
 #include "../common/AppStyle.h"
@@ -10,7 +11,7 @@
 #include <QFileInfo>
 int main(int argc, char **argv) {
     qputenv("QT_WAYLAND_SHELL_INTEGRATION", "xdg-shell");
-    QGuiApplication app(argc, argv);
+    QGuiApplication app(argc, argv); setPiOSApplicationIdentity(app,QStringLiteral("org.fidan.Photos"));
     app.setApplicationName("fidan-photos"); app.setApplicationDisplayName("Fidan Photos");
     QQuickStyle::setStyle("Basic");
     PhotoModel photos; AppStyle style;
@@ -26,3 +27,4 @@ int main(int argc, char **argv) {
     engine.loadFromModule("Fidan.Photos", "Photos");
     scheduleUiCapture(app); return app.exec();
 }
+

@@ -19,9 +19,11 @@ try:
         transform = profile.get('transform', 'normal')
         width, height, refresh = int(profile.get('width', 0)), int(profile.get('height', 0)), float(profile.get('refresh', 0))
         if not math.isfinite(scale) or not .75 <= scale <= 2 or transform not in ('normal','90','180','270'): continue
-        if not any(m['width']==width and m['height']==height and abs(m['refresh']-refresh)<.01 for m in output.get('modes', [])): continue
+        custom = profile.get('custom', False) and output['name'].startswith(('WL-', 'HEADLESS-'))
+        if custom and (width < 640 or width > 3840 or height < 480 or height > 2160 or not math.isfinite(refresh) or not 0 <= refresh <= 240): continue
+        if not custom and not any(m['width']==width and m['height']==height and abs(m['refresh']-refresh)<.01 for m in output.get('modes', [])): continue
         mode = f'{width}x{height}' + (f'@{refresh:.3f}Hz' if refresh > 0 else '')
-        args = ['--output', output['name'], '--mode', mode, '--scale', str(scale), '--transform', transform]
+        args = ['--output', output['name'], '--custom-mode' if custom else '--mode', mode, '--scale', str(scale), '--transform', transform]
         if subprocess.run(['wlr-randr', '--dryrun', *args], timeout=4).returncode == 0:
             subprocess.run(['wlr-randr', *args], timeout=4, check=True)
 except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:

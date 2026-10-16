@@ -4,16 +4,16 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Item {
-    id: root; property string category: "System"; property string sheet: ""
+    id: root; property string category: "System"; readonly property string sheet: category.includes("/") ? category.split("/")[1] : ""
     signal navigate(string page)
-    implicitHeight: layout.implicitHeight
+    implicitHeight: sheet.length ? detailBody.implicitHeight : layout.implicitHeight
     onVisibleChanged: if (visible) SettingsData.refreshSystem()
     Component.onCompleted: SettingsData.refreshSystem()
     onCategoryChanged: if (visible) SettingsData.refreshSystem()
     Timer { interval: 30000; repeat: true; running: root.visible; onTriggered: SettingsData.refreshSystem() }
-    function showSheet(name) { sheet = name; SettingsData.refreshSystem(); details.open() }
+    function showSheet(name) { SettingsData.refreshSystem(); root.navigate("System/"+name) }
     ColumnLayout {
-        id: layout; width: root.width; spacing: 14
+        id: layout; width: root.width; spacing: 14; visible: !root.sheet.length
         SettingsControls.Caption { text: root.category === "System" ? qsTr("Cihazının temel ayarlarını yönet.") : root.category === "Storage" ? qsTr("Disk kullanımını ve depolama ayarlarını yönet.") : qsTr("Cihazın ve işletim sistemin hakkında bilgiler.") }
         GridLayout {
             visible: root.category === "System"; Layout.fillWidth: true; columns: root.width>=760 ? 2 : 1; columnSpacing: 16; rowSpacing: 14
@@ -62,7 +62,7 @@ Item {
                 SettingsControls.Title { text: Product.name; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 22 }
                 SettingsControls.Caption { text: Product.version+" · "+Product.channel; horizontalAlignment: Text.AlignHCenter }
                 SettingsControls.Caption { text: qsTr("Özgür yazılım, açık kaynak."); horizontalAlignment: Text.AlignHCenter }
-                SettingsControls.Button { Layout.fillWidth: true; text: qsTr("Lisanslar"); onClicked: licenses.open() }
+                SettingsControls.Button { Layout.fillWidth: true; text: qsTr("Lisanslar"); onClicked: root.navigate("System/licenses") }
                 SettingsControls.Button { Layout.fillWidth: true; text: qsTr("Sistem güncellemeleri"); onClicked: root.navigate("System") }
                 SettingsControls.Button { Layout.fillWidth: true; text: qsTr("Yardım ve kısayollar"); onClicked: SettingsData.openHelp() }
                 SettingsControls.Caption { text: qsTr("Debian ve açık kaynak topluluğuyla geliştirildi."); horizontalAlignment: Text.AlignHCenter }
@@ -70,22 +70,17 @@ Item {
         }
         SettingsControls.Caption { visible: SettingsData.actionError.length>0; text: SettingsData.actionError; color: Controller.darkTheme ? "#FFB3A3" : "#A43138" }
     }
-    Dialog {
-        id: details; parent: Overlay.overlay; anchors.centerIn: parent; width: Math.min(520,root.width-20); modal: true; header: null
-        background: Rectangle { radius: 12; color: Controller.darkTheme ? "#132A27" : "#F5FAF7"; border.width: 1; border.color: "#456157" }
-        contentItem: ColumnLayout {
-            spacing: 13
-            SettingsControls.Title { text: ({date:qsTr("Tarih ve saat"),region:qsTr("Dil ve bölge"),users:qsTr("Kullanıcılar"),backup:qsTr("Yedekleme"),advanced:qsTr("Gelişmiş ayarlar"),storageTools:qsTr("Depolama araçları")})[root.sheet] || "" }
+    SettingsControls.Card {
+            id:detailBody; width:root.width; visible:root.sheet.length>0
+            contentSpacing: 13
             ColumnLayout { visible: root.sheet === "date"; Layout.fillWidth: true; SettingsControls.InfoRow { label:qsTr("Yerel saat"); value: SettingsData.info.time } SettingsControls.InfoRow { label:qsTr("Saat dilimi"); value:SettingsData.info.timezone } SettingsControls.Toggle { label:qsTr("Otomatik saat eşitleme"); hint: SettingsData.info.ntpAvailable ? qsTr("Sistem yetkilendirmesi gerekebilir") : qsTr("Bu ortamda saat eşitleme hizmeti kullanılamıyor"); checked: SettingsData.info.ntpEnabled; enabled: SettingsData.info.ntpAvailable && !SettingsData.actionBusy; onToggled: value => SettingsData.setNtp(value) } }
             ColumnLayout { visible: root.sheet === "region"; Layout.fillWidth: true; SettingsControls.InfoRow { label:qsTr("Sistem dili"); value:SettingsData.info.locale } SettingsControls.Label { text:qsTr("Klavye düzeni") } SettingsControls.Combo { property var layouts:["us","tr","de","gb"]; model:["English (US)","Türkçe","Deutsch","English (UK)"]; currentIndex:Math.max(0,layouts.indexOf(Controller.keyboardLayout)); onActivated:Controller.keyboardLayout=layouts[currentIndex] } SettingsControls.Caption { text:qsTr("Klavye düzeni sonraki masaüstü oturumunda uygulanır. Sistem dili Debian dil paketleriyle yönetilir.") } }
             ColumnLayout { visible: root.sheet === "users"; Layout.fillWidth: true; SettingsControls.InfoRow { label:qsTr("Kullanıcı"); value:SettingsData.info.user } SettingsControls.InfoRow { label:qsTr("Ev klasörü"); value:SettingsData.info.home } SettingsControls.Caption { text: SettingsData.toolAvailable("users") ? qsTr("Hesap değişiklikleri yönetici yetkisi isteyebilir.") : qsTr("Bu sistemde grafik hesap yöneticisi kurulu değil.") } SettingsControls.Button { text:qsTr("Hesapları yönet"); enabled:SettingsData.toolAvailable("users"); onClicked:SettingsData.openTool("users") } }
             SettingsControls.Caption { visible: root.sheet === "backup" || root.sheet === "storageTools"; text: root.sheet === "backup" ? qsTr("Dosya yedeklerini yönetmek için Déjà Dup gibi bir yedekleme uygulaması kullanabilirsin. Burada otomatik yedekleme etkinleştirilmiş değildir.") : qsTr("Diskleri yönetmek için GNOME Disks, klasör boyutlarını incelemek için Disk Usage Analyzer kullanabilirsin. Bu araçlar ayrıca kurulur.") }
             SettingsControls.Button { visible:root.sheet === "backup" && SettingsData.toolAvailable("backup"); text:qsTr("Yedekleme uygulamasını aç"); onClicked:SettingsData.openTool("backup") }
             SettingsControls.Button { visible:root.sheet === "storageTools" || (root.sheet === "backup" && !SettingsData.toolAvailable("backup")); text:qsTr("Uygulama mağazasını aç"); onClicked:Controller.openSoftwareCenter() }
-            ColumnLayout { visible:root.sheet === "advanced"; Layout.fillWidth:true; SettingsControls.Button { text:qsTr("Depolama"); onClicked:{ details.close(); root.navigate("Storage") } } SettingsControls.Button { text:qsTr("Klavye ve fare"); onClicked:{ details.close(); root.navigate("Keyboard & Mouse") } } SettingsControls.Button { text:qsTr("Gizlilik"); onClicked:{ details.close(); root.navigate("Privacy") } } SettingsControls.Button { text:qsTr("Görev yöneticisi"); onClicked:Controller.openTaskManager() } }
+            ColumnLayout { visible:root.sheet === "advanced"; Layout.fillWidth:true; SettingsControls.Button { text:qsTr("Depolama"); onClicked:{ root.navigate("Storage") } } SettingsControls.Button { text:qsTr("Klavye ve fare"); onClicked:{ root.navigate("Keyboard & Mouse") } } SettingsControls.Button { text:qsTr("Gizlilik"); onClicked:{ root.navigate("Privacy") } } SettingsControls.Button { text:qsTr("Görev yöneticisi"); onClicked:Controller.openTaskManager() } }
             SettingsControls.Caption { visible:SettingsData.actionError.length>0; text:SettingsData.actionError; color:"#EAA495" }
-            SettingsControls.Button { Layout.alignment:Qt.AlignRight; text:qsTr("Kapat"); onClicked:details.close() }
+            SettingsControls.Card { visible:root.sheet === "licenses"; SettingsControls.Title { text:"GNU GPL v3 · Project Fidan" } TextArea { Layout.fillWidth:true; implicitHeight:500; text:SettingsData.licenseText; readOnly:true; wrapMode:TextEdit.Wrap; selectByMouse:true; color:Controller.darkTheme ? "#F2F7F4" : "#18261F"; background:Item {} } }
         }
-    }
-    Dialog { id:licenses; parent:Overlay.overlay; anchors.centerIn:parent; width:Math.min(620,root.width-20); modal:true; title:qsTr("GNU GPL v3 · Project Fidan"); standardButtons:Dialog.Close; ScrollView { implicitWidth:560; implicitHeight:320; TextArea { text:SettingsData.licenseText; readOnly:true; wrapMode:TextEdit.Wrap; selectByMouse:true } } }
 }

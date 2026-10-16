@@ -1,4 +1,5 @@
 usr/bin/fidan-session
+usr/bin/fidan-input
 usr/bin/fidan-shellctl
 usr/bin/fidan-screenshot
 usr/bin/fidan-display-restore

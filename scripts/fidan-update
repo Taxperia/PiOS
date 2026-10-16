@@ -4,6 +4,7 @@
 import argparse
 import fcntl
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -66,7 +67,9 @@ def product_manifest():
 def request_json(url):
     request = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'PiOS-Updater/2'})
     with urllib.request.urlopen(request, timeout=30) as response:
-        return json.load(response)
+        buffer = io.BytesIO()
+        copy_bounded(response, buffer, METADATA_LIMIT)
+        return json.loads(buffer.getvalue())
 
 
 def download(url, target):

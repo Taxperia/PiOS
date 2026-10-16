@@ -1,3 +1,4 @@
+#include "../common/IconLookup.h"
 #include "../common/AppStyle.h"
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ProcessModel.h"
@@ -11,7 +12,7 @@
 
 int main(int argc, char *argv[])
 {
-    qputenv("QT_WAYLAND_SHELL_INTEGRATION", "xdg-shell"); QGuiApplication app(argc, argv);
+    qputenv("QT_WAYLAND_SHELL_INTEGRATION", "xdg-shell"); QGuiApplication app(argc, argv); setPiOSApplicationIdentity(app,QStringLiteral("org.fidan.TaskManager"));
     QGuiApplication::setApplicationName(QStringLiteral("fidan-task-manager"));
     QGuiApplication::setApplicationDisplayName(QStringLiteral("PiOS Görev Yöneticisi"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
@@ -26,3 +27,4 @@ int main(int argc, char *argv[])
     engine.loadFromModule(QStringLiteral("Fidan.TaskManager"), QStringLiteral("TaskManager"));
     scheduleUiCapture(app); return app.exec();
 }
+

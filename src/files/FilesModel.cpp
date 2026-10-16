@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "FilesModel.h"
+#include "../common/FileIcon.h"
 
 #include <QDesktopServices>
 #include <QDir>
@@ -66,11 +67,7 @@ QVariant FilesModel::data(const QModelIndex &index, int role) const
             if (name == QStringLiteral("videos")) return QStringLiteral("folder-videos");
             return QStringLiteral("folder");
         }
-        if (entry.suffix().compare(QStringLiteral("png"), Qt::CaseInsensitive) == 0
-            || entry.suffix().compare(QStringLiteral("jpg"), Qt::CaseInsensitive) == 0
-            || entry.suffix().compare(QStringLiteral("jpeg"), Qt::CaseInsensitive) == 0)
-            return QStringLiteral("image-x-generic");
-        return QStringLiteral("text-x-generic");
+        return fileIconName(entry);
     default: return {};
     }
 }

@@ -119,3 +119,11 @@ This lets the PolicyKit authentication agent register with the session.
 The original WSLg mount is
 unchanged. On normal Debian/Pi systems the usual writable X11 socket directory
 does not require this WSL-specific setup.
+## Application and file icons
+
+PiOS applications use their own embedded artwork in launchers and window identities.
+The desktop and Files share file-type icons for text, PDF, images, audio, video,
+archives, source code and office documents. Application shortcuts inside folders
+keep the icon from their `.desktop` entry. Icons with absolute paths and Flatpak
+exported icons are supported; newly installed icons are read when the view refreshes.
+

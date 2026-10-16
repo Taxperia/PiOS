@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 [Default Applications]
+application/pdf=org.fidan.Pdf.desktop;
 text/plain=featherpad.desktop;
 text/markdown=featherpad.desktop;
 application/json=featherpad.desktop;

@@ -83,7 +83,8 @@ QString ShellController::defaultApplication(const QString &mime) const
     if (!supportedDefault(mime)) return {};
     QProcess query;
     query.start(QStringLiteral("xdg-mime"), {QStringLiteral("query"), QStringLiteral("default"), mime});
-    if (!query.waitForFinished(1000) || query.exitCode() != 0) return {};
+    if (!query.waitForFinished(1000)) { query.kill(); query.waitForFinished(1000); return {}; }
+    if (query.exitCode() != 0) return {};
     return QString::fromUtf8(query.readAllStandardOutput()).trimmed();
 }
 
@@ -98,6 +99,7 @@ bool ShellController::setDefaultApplication(const QString &mime, const QString &
     for (const auto &type : types) {
         update.start(QStringLiteral("xdg-mime"), {QStringLiteral("default"), desktopId, type});
         if (!update.waitForFinished(1500) || update.exitCode() != 0) {
+            if (update.state() != QProcess::NotRunning) { update.kill(); update.waitForFinished(1000); }
             emit actionFailed(tr("The default application could not be changed.")); return false;
         }
     }

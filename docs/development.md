@@ -41,6 +41,14 @@ PTY and tab support, and the file manager performs real filesystem operations.
 Host hardware controls are enabled only when their system service and device are
 available.
 
+The WSL nested launcher disables wlroots direct scan-out so fullscreen surfaces
+pass through Labwc's compositor before reaching WSLg. This is a compatibility
+workaround when old fullscreen frames reappear after the Windows session becomes
+idle. It does not change the clock or timezone. Native desktop sessions keep the
+compositor's normal scan-out behavior. A repeating old/new clock image still
+requires checking the Windows presentation path; Linux screenshots alone cannot
+confirm that the host-side issue is resolved.
+
 ## Install real applications
 
 `setup-debian-dev` installs APT/PolicyKit, Flatpak and the GTK desktop portal,

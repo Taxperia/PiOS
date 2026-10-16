@@ -53,6 +53,9 @@ authorization agent and desktop portal, and configures Flathub. Newly installed
 apps appear when the launcher is reopened. See
 [application installation](docs/development.md#install-real-applications).
 See [daily desktop usage](docs/daily-desktop.md) for shortcuts and file management.
+PiOS includes a native PDF viewer, calculator, clock and local event calendar.
+See [built-in applications](docs/builtin-apps.md) and the
+[VirtualBox fresh-install guide (Turkish)](docs/virtualbox.md).
 Fidan Photos provides local image viewing, zoom, rotation and folder navigation.
 See [photos and display settings](docs/photos-display.md) for shortcuts, monitor
 configuration and hardware-dependent controls.
@@ -102,13 +105,14 @@ RPI_IMAGE_GEN_VERSION=v2.8.0 ./scripts/build-image
 See [development setup](docs/development.md), [architecture](docs/architecture.md),
 [headless management](docs/headless-management.md),
 [store catalog management](docs/store-catalog.md),
+[expanded settings and wallpaper setup](docs/settings-expanded.md),
 [release process](docs/release.md), and the
 [Pi 5 acceptance checklist](docs/hardware-test-checklist.md) before building an
 image.
 
 ## Status
 
-Version `0.1.0-alpha.2` is an engineering alpha. The core source and build
+Version `0.1.0-alpha.3` is an engineering alpha. The core source and build
 pipeline are implemented. The browser gateway and image-writing provisioning
 helper described in the headless specification are still implementation work,
 and a release image must pass the physical Pi 5 checklist before it is

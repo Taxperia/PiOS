@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "FirstBootClient.h"
+#include "../common/IconLookup.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -11,6 +12,7 @@
 int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
+    setPiOSApplicationIdentity(app,QStringLiteral("org.fidan.FirstBoot"));
     QTranslator translator;
     if (QLocale::system().language() == QLocale::Turkish
         && translator.load(QStringLiteral(":/i18n/fidan-firstboot_tr.qm"))) {

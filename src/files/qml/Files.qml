@@ -324,7 +324,7 @@ ApplicationWindow {
                     }
                     Column {
                         anchors.centerIn: parent; width: parent.width - 10; spacing: 7
-                        Image { anchors.horizontalCenter: parent.horizontalCenter; width: 48; height: 48; source: "image://theme/" + encodeURIComponent(fileItem.iconName) + (UiStyle.dark ? "?theme=dark" : "?theme=light"); sourceSize: Qt.size(56, 56); fillMode: Image.PreserveAspectFit }
+                        Image { anchors.horizontalCenter: parent.horizontalCenter; width: 48; height: 48; source: "image://theme/" + encodeURIComponent(fileItem.iconName) + (UiStyle.dark ? "?theme=dark" : "?theme=light"); sourceSize: Qt.size(56, 56); fillMode: Image.PreserveAspectFit; cache: false }
                         Text { width: parent.width; text: fileItem.name; color: root.foreground; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; font.family: "Inter"; font.pixelSize: 12; font.weight: Font.DemiBold }
                         Text { visible: fileItem.sizeLabel.length > 0; width: parent.width; text: fileItem.sizeLabel; color: root.secondary; horizontalAlignment: Text.AlignHCenter; font.family: "Inter"; font.pixelSize: 10 }
                     }

@@ -4,9 +4,11 @@
 #include <QVariantList>
 #include <QProcess>
 #include <QTimer>
+#include "DesktopSettings.h"
 
 class SettingsData final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QObject* desktop READ desktop CONSTANT)
     Q_PROPERTY(QVariantMap info READ info NOTIFY systemChanged)
     Q_PROPERTY(QVariantList volumes READ volumes NOTIFY systemChanged)
     Q_PROPERTY(QVariantList wallpapers READ wallpapers CONSTANT)
@@ -20,6 +22,7 @@ class SettingsData final : public QObject {
     Q_PROPERTY(QString actionError READ actionError NOTIFY actionChanged)
 public:
     explicit SettingsData(bool mock = false, QObject *parent = nullptr);
+    QObject *desktop() const { return m_desktop; }
     ~SettingsData() override;
     QVariantMap info() const { return m_info; }
     QVariantList volumes() const { return m_volumes; }
@@ -50,6 +53,7 @@ private:
     void networkFinished(int code, QProcess::ExitStatus status);
     void queryConnection();
     bool m_mock = false, m_rescan = false;
+    DesktopSettings *m_desktop=nullptr;
     QVariantMap m_info, m_connection;
     QVariantList m_volumes, m_networks;
     QString m_wifiDevice, m_connectionDevice, m_phase, m_networkError, m_actionError;

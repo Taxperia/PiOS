@@ -155,9 +155,10 @@ QList<AppModel::Entry> AppModel::discoverApplications() const
             Entry entry;
             entry.name = desktop.value(QStringLiteral("Name")).toString();
             entry.comment = desktop.value(QStringLiteral("Comment")).toString();
-            entry.icon = desktop.value(QStringLiteral("Icon"), QStringLiteral("application-x-executable")).toString();
+            entry.icon = desktop.value(QStringLiteral("Icon")).toString();
             entry.exec = desktop.value(QStringLiteral("Exec")).toString();
             entry.desktopId = file.fileName();
+            if (entry.icon.trimmed().isEmpty()) entry.icon = file.completeBaseName();
             entry.sourcePath = file.absoluteFilePath();
             desktop.endGroup();
 

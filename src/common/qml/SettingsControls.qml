@@ -17,16 +17,19 @@ Item {
         ColumnLayout { id: body; x: 14; y: 14; width: parent.width - 28; spacing: card.contentSpacing }
     }
     component Label: Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true; wrapMode: Text.Wrap
         color: Controller.darkTheme ? "#F2F7F4" : "#18261F"
         font.family: "Inter"; font.pixelSize: 12
     }
     component Caption: Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true; wrapMode: Text.Wrap
         color: Controller.darkTheme ? "#9FB6B3" : "#586B60"
         font.family: "Inter"; font.pixelSize: 11
     }
     component Title: Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true; wrapMode: Text.Wrap
         color: Controller.darkTheme ? "#F2F7F4" : "#18261F"
         font.family: "Inter"; font.pixelSize: 15; font.weight: Font.DemiBold
