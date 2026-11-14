@@ -34,6 +34,7 @@ class ShellController final : public QObject
     Q_PROPERTY(bool statusCardVisible READ statusCardVisible NOTIFY statusCardVisibleChanged)
     Q_PROPERTY(bool lockScreenVisible READ lockScreenVisible NOTIFY lockScreenVisibleChanged)
     Q_PROPERTY(bool firstBootVisible READ firstBootVisible NOTIFY firstBootVisibleChanged)
+    Q_PROPERTY(bool setupSession READ setupSession CONSTANT)
     Q_PROPERTY(bool wifiAvailable READ wifiAvailable NOTIFY connectivityChanged)
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled NOTIFY connectivityChanged)
     Q_PROPERTY(bool bluetoothAvailable READ bluetoothAvailable NOTIFY connectivityChanged)
@@ -41,6 +42,8 @@ class ShellController final : public QObject
     Q_PROPERTY(bool audioAvailable READ audioAvailable NOTIFY audioAvailabilityChanged)
     Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
     Q_PROPERTY(bool volumeMuted READ volumeMuted NOTIFY volumeMutedChanged)
+    Q_PROPERTY(bool volumeOsdVisible READ volumeOsdVisible NOTIFY volumeOsdVisibleChanged)
+    Q_PROPERTY(QString osdKind READ osdKind NOTIFY osdKindChanged)
     Q_PROPERTY(bool brightnessAvailable READ brightnessAvailable NOTIFY brightnessAvailabilityChanged)
     Q_PROPERTY(int brightness READ brightness WRITE setBrightness NOTIFY brightnessChanged)
     Q_PROPERTY(int activeWorkspace READ activeWorkspace NOTIFY activeWorkspaceChanged)
@@ -52,6 +55,11 @@ class ShellController final : public QObject
     Q_PROPERTY(QStringList runningApps READ runningApps NOTIFY runningAppsChanged)
     Q_PROPERTY(QString clockText READ clockText NOTIFY clockChanged)
     Q_PROPERTY(QString dateText READ dateText NOTIFY clockChanged)
+    Q_PROPERTY(int welcomeStep READ welcomeStep WRITE setWelcomeStep NOTIFY preferencesChanged)
+    Q_PROPERTY(QString dateFormat READ dateFormat WRITE setDateFormat NOTIFY preferencesChanged)
+    Q_PROPERTY(QString sessionLanguage READ sessionLanguage WRITE setSessionLanguage NOTIFY preferencesChanged)
+    Q_PROPERTY(QString panelPosition READ panelPosition WRITE setPanelPosition NOTIFY preferencesChanged)
+    Q_PROPERTY(QString panelStyle READ panelStyle WRITE setPanelStyle NOTIFY preferencesChanged)
 
 public:
     explicit ShellController(bool previewMode, bool mockMode, QObject *parent = nullptr);
@@ -94,6 +102,7 @@ public:
     bool statusCardVisible() const { return m_statusCardVisible; }
     bool lockScreenVisible() const { return m_lockScreenVisible; }
     bool firstBootVisible() const { return m_firstBootVisible; }
+    bool setupSession() const { return qEnvironmentVariable("FIDAN_SETUP_SESSION")=="1" && qEnvironmentVariable("FIDAN_LEGACY_FIRSTBOOT_UI")!="1"; }
     bool wifiAvailable() const { return m_wifiAvailable; }
     bool wifiEnabled() const { return m_wifiEnabled; }
     bool bluetoothAvailable() const { return m_bluetoothAvailable; }
@@ -102,6 +111,9 @@ public:
     int volume() const { return m_volume; }
     void setVolume(int volume);
     bool volumeMuted() const { return m_volumeMuted; }
+    bool volumeOsdVisible() const { return m_volumeOsdVisible; }
+    QString osdKind() const { return m_osdKind; }
+    void showIndicator(const QString &kind);
     bool brightnessAvailable() const { return m_brightnessAvailable; }
     int brightness() const { return m_brightness; }
     void setBrightness(int brightness);
@@ -114,6 +126,18 @@ public:
     QStringList runningApps() const { return m_runningApps; }
     QString clockText() const;
     QString dateText() const;
+    int welcomeStep() const { return m_welcomeStep; }
+    void setWelcomeStep(int value);
+    QString dateFormat() const { return m_dateFormat; }
+    void setDateFormat(const QString &value);
+    QString sessionLanguage() const { return m_sessionLanguage; }
+    void setSessionLanguage(const QString &value);
+    QString panelPosition() const { return m_panelPosition; }
+    void setPanelPosition(const QString &value);
+    QString panelStyle() const { return m_panelStyle; }
+    void setPanelStyle(const QString &value);
+    Q_INVOKABLE bool finishWelcome();
+    Q_INVOKABLE void dismissWelcome() { if (m_firstBootVisible) { m_firstBootVisible = false; emit firstBootVisibleChanged(); } }
 
     Q_INVOKABLE void toggleQuickSettings();
     Q_INVOKABLE void toggleLauncher();
@@ -125,6 +149,10 @@ public:
     Q_INVOKABLE void openTerminal();
     Q_INVOKABLE void openTaskManager();
     Q_INVOKABLE void toggleVolumeMute();
+    Q_INVOKABLE void increaseVolume();
+    Q_INVOKABLE void decreaseVolume();
+    Q_INVOKABLE void increaseBrightness();
+    Q_INVOKABLE void decreaseBrightness();
     Q_INVOKABLE QString createDesktopFolder();
     Q_INVOKABLE QString createDesktopFile();
     Q_INVOKABLE bool openDesktopTerminal();
@@ -145,7 +173,17 @@ public:
     Q_INVOKABLE bool setDefaultApplication(const QString &mime, const QString &desktopId);
 
 public slots:
+    void IncreaseBrightness() { increaseBrightness(); }
+    void DecreaseBrightness() { decreaseBrightness(); }
+    void ToggleMicrophoneMute() { emit microphoneMuteRequested(); }
+    void MediaAction(const QString &action) { emit mediaActionRequested(action); }
+    void ShowScreenshotToolbar() { emit screenshotToolbarRequested(); }
+    void CaptureScreenshot(const QString &mode) { emit screenshotCaptureRequested(mode); }
+    void IncreaseVolume() { increaseVolume(); }
+    void DecreaseVolume() { decreaseVolume(); }
+    void ToggleVolumeMute() { toggleVolumeMute(); }
     void OpenFiles() { openFileManager(); }
+    void ShowWelcome();
     void OpenSettingsPage(const QString &page) { openSettingsPage(page); }
     void OpenSoftwareCenter() { openSoftwareCenter(); }
     void OpenTaskManager() { openTaskManager(); }
@@ -154,6 +192,11 @@ public slots:
     void SetWorkspace(int workspace) { activateWorkspace(workspace); }
 
 signals:
+    void osdKindChanged();
+    void microphoneMuteRequested();
+    void mediaActionRequested(const QString &action);
+    void screenshotToolbarRequested();
+    void screenshotCaptureRequested(const QString &mode);
     void preferencesChanged();
     void darkThemeChanged();
     void reducedMotionChanged();
@@ -170,6 +213,7 @@ signals:
     void brightnessAvailabilityChanged();
     void volumeChanged();
     void volumeMutedChanged();
+    void volumeOsdVisibleChanged();
     void brightnessChanged();
     void activeWorkspaceChanged();
     void powerProfileChanged();
@@ -178,6 +222,12 @@ signals:
     void actionFailed(const QString &message);
 
 private:
+    int m_welcomeStep = 0;
+    QString m_dateFormat = QStringLiteral("locale");
+    QString m_sessionLanguage;
+    QString m_panelPosition = QStringLiteral("top");
+    QString m_panelStyle = QStringLiteral("detailed");
+    void showVolumeOsd();
     void saveSettings();
     void reloadPreferences();
     void refreshConnectivity();
@@ -218,6 +268,8 @@ private:
     bool m_audioAvailable = false;
     int m_volume = 62;
     bool m_volumeMuted = false;
+    bool m_volumeOsdVisible = false;
+    QString m_osdKind = QStringLiteral("volume");
     bool m_brightnessAvailable = false;
     int m_brightness = 58;
     int m_activeWorkspace = 1;
@@ -228,6 +280,7 @@ private:
     QStringList m_pinnedApps;
     QStringList m_runningApps;
     QTimer *m_clockTimer = nullptr;
+    QTimer *m_volumeOsdTimer = nullptr;
     QTimer *m_connectivityTimer = nullptr;
     QTimer *m_windowTimer = nullptr;
     QProcess *m_windowQuery = nullptr;

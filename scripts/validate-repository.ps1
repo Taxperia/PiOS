@@ -49,7 +49,7 @@ try {
 
 $imageLayer = Get-Content -Raw (Join-Path $root 'image/layer/fidan-desktop.yaml')
 if ($imageLayer -notmatch 'X-Env-Layer-Version: 0\.1\.0' -or
-    $imageLayer -notmatch '\$\{@SRCROOT\}/packages/fidan-desktop_') {
+    (Get-Content -Raw (Join-Path $root 'image/packages.list')) -notmatch 'fidan-desktop_') {
     throw 'The rpi-image-gen layer metadata or local package paths are invalid'
 }
 

@@ -1,0 +1,15 @@
+[Unit]
+Description=Prepare unique PiOS local setup credentials and HTTPS certificate
+After=NetworkManager.service local-fs.target
+Before=fidan-gateway.service fidan-remote-broker.service fidan-firstboot-session.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/fidan-remote bootstrap
+RemainAfterExit=yes
+StateDirectory=fidan
+StateDirectoryMode=0755
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

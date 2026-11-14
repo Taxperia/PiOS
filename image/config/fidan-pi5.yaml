@@ -1,15 +1,27 @@
 device:
   layer: rpi5
   hostname: fidan
+  # Upstream requires a build account. It has no password and is removed by
+  # bdebstrap/cleanup-fidan before the image is emitted.
+  user1: fidan-build
+  user1sudo: passwd
 
 image:
   layer: image-rpios
-  name: fidan-0.1.0-alpha.2-pi5-arm64
-  compression: zstd
+  name: fidan-0.1.0-alpha.5-pi5-arm64
   boot_part_size: 200%
-  root_part_size: 400%
+  # Leave install headroom; the first boot grows partition 2 to the card capacity.
+  root_part_size: 160%
+
+fs:
+  # The Pi 5's 16K-page kernel also supports standard 4K ext4 blocks. Large
+  # blocks waste substantial space on the desktop's many small icon files.
+  ext4_mkfs_args: -F -b 4096
 
 layer:
   base: trixie-minbase
   desktop: fidan-desktop
+
+deploy:
+  compression: zstd
 

@@ -11,7 +11,8 @@ Trixie packages, Labwc, Qt 6/QML and `rpi-image-gen`.
 The repository currently contains:
 
 - a Layer Shell desktop with panel, dock, app launcher, quick settings,
-  notifications, an integrated software-center experience and live system
+  notifications, a category-based Start menu with persistent pinned apps and
+  recent files, an integrated software-center experience and live system
   metrics;
 - a single-window preview mode with deterministic mock hardware data;
 - a `greetd` login UI and a themed `gtklock` PAM/session-lock flow;
@@ -53,6 +54,7 @@ authorization agent and desktop portal, and configures Flathub. Newly installed
 apps appear when the launcher is reopened. See
 [application installation](docs/development.md#install-real-applications).
 See [daily desktop usage](docs/daily-desktop.md) for shortcuts and file management.
+See [the Start menu](docs/start-menu.md) for categories, pins and recent files.
 PiOS includes a native PDF viewer, calculator, clock and local event calendar.
 See [built-in applications](docs/builtin-apps.md) and the
 [VirtualBox fresh-install guide (Turkish)](docs/virtualbox.md).
@@ -61,6 +63,13 @@ See [photos and display settings](docs/photos-display.md) for shortcuts, monitor
 configuration and hardware-dependent controls.
 See [settings and personalization](docs/settings-redesign.md) for the shared page
 design, appearance options and system integration.
+
+The first real desktop login opens a resumable welcome wizard for per-user
+language/date/keyboard, appearance, panel layout, privacy/access and updates.
+See the [Pi 5 installation guide (Turkish)](docs/pi5-kurulum.md) for accounts,
+Raspberry Pi Imager, Windows SSH and browser access. An
+[optional RDP maintenance desktop](docs/rdp.md) is available through an SSH
+tunnel; its dependencies are excluded from the standard image.
 
 ## GitHub updates
 
@@ -99,7 +108,10 @@ behavior.
 
 ```sh
 ./scripts/build-debs
-RPI_IMAGE_GEN_VERSION=v2.8.0 ./scripts/build-image
+python3 scripts/build-image          # Read-only plan; lists missing prerequisites
+python3 scripts/build-image --check  # Nonzero exit until ready
+# On an ARM64 build host with at least 20 GiB free:
+python3 scripts/build-image --build
 ```
 
 See [development setup](docs/development.md), [architecture](docs/architecture.md),
@@ -112,10 +124,16 @@ image.
 
 ## Status
 
-Version `0.1.0-alpha.3` is an engineering alpha. The core source and build
-pipeline are implemented. The browser gateway and image-writing provisioning
-helper described in the headless specification are still implementation work,
-and a release image must pass the physical Pi 5 checklist before it is
-presented as hardware-qualified.
+Version `0.1.0-alpha.4` is an engineering alpha. On 2026-11-14, all 13 ARM64/all
+packages and a 4,194,304,000-byte Raspberry Pi 5 image were built under AMD64
+WSL with QEMU. Browser setup streams the real Wayland desktop and its native
+setup window. The image includes the kernel, matching initramfs, graphical
+login and resumable first boot. All 23 native CTest groups, 51 offline image
+checks, FAT/ext4 checks and installed ARM64 application smoke tests passed.
+The compressed image decompresses to the verified raw image's exact checksum.
+The provisioning helper prepares an already mounted boot partition; it does
+not flash disks. Physical acceptance of this new image and release signing
+remain pending. See
+[installation and image readiness](docs/installation-readiness.md).
 
 License: GPL-3.0-or-later.

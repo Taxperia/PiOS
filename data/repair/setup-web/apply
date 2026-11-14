@@ -1,0 +1,113 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""One-shot repair of the 2026-11-11 web setup, without account/state changes."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import tempfile
+
+FILES = {
+    'gateway.py': '/usr/lib/fidan/remote/gateway.py',
+    'index.html': '/usr/share/fidan/remote/index.html',
+    'ui.js': '/usr/share/fidan/remote/ui.js',
+    'style.css': '/usr/share/fidan/remote/style.css',
+}
+REPAIR = 'setup-web-20261112'
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def atomic_write(path, data, mode=0o644):
+    descriptor, temporary = tempfile.mkstemp(prefix='.fidan-repair-', dir=path.parent)
+    try:
+        with os.fdopen(descriptor, 'wb') as stream:
+            os.fchmod(stream.fileno(), mode)
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+def regular(path):
+    if not stat.S_ISREG(path.lstat().st_mode):
+        raise ValueError('Expected an ordinary file: ' + path.name)
+    return path.read_bytes()
+
+
+def apply(root, boot):
+    root, boot = Path(root), Path(boot)
+    if not (root / 'etc/fidan/pi-image').is_file():
+        raise ValueError('This repair is restricted to a PiOS device image')
+    kit = boot / 'fidan-repair'
+    manifest = json.loads(regular(kit / 'manifest.json'))
+    if manifest.get('repair') != REPAIR or set(manifest.get('files', {})) != set(FILES):
+        raise ValueError('Unexpected repair manifest')
+    original = regular(kit / 'cmdline.original')
+    if digest(original) != manifest.get('originalCmdlineSha256'):
+        raise ValueError('The saved boot command line changed')
+    # Restore the regular boot path even if a payload check fails. A failed
+    # repair never becomes a repeated repair boot on the next power cycle.
+    atomic_write(boot / 'cmdline.txt', original)
+    payloads = {}
+    for name, absolute in FILES.items():
+        content = regular(kit / name)
+        expected = manifest['files'][name]
+        if digest(content) != expected['sha256']:
+            raise ValueError('Repair payload checksum failed: ' + name)
+        destination = root / absolute.lstrip('/')
+        installed = regular(destination)
+        if digest(installed) not in (expected['baseSha256'], expected['sha256']):
+            raise ValueError('Installed file differs from the supported image: ' + name)
+        payloads[name] = content
+    compile(payloads['gateway.py'], 'gateway.py', 'exec')
+    backup = root / 'var/lib/fidan/repairs' / REPAIR
+    backup.mkdir(parents=True, exist_ok=True, mode=0o700)
+    backup.chmod(0o700)
+    changed = []
+    try:
+        for name, absolute in FILES.items():
+            target = root / absolute.lstrip('/')
+            saved = backup / name
+            if not saved.exists():
+                shutil.copy2(target, saved)
+            previous = regular(target)
+            changed.append((target, previous))
+            atomic_write(target, payloads[name])
+    except Exception:
+        for target, previous in reversed(changed):
+            atomic_write(target, previous)
+        raise
+    result = {'repair': REPAIR, 'ok': True, 'changedFiles': list(FILES),
+              'accountAndSetupStateUntouched': True}
+    encoded = (json.dumps(result, indent=2) + '\n').encode()
+    atomic_write(backup / 'result.json', encoded, 0o600)
+    atomic_write(kit / 'result.json', encoded)
+    return result
+
+
+if __name__ == '__main__':
+    boot = Path('/boot/firmware')
+    try:
+        if os.geteuid() != 0:
+            raise PermissionError('The boot repair must run as root')
+        result = apply(Path('/'), boot)
+        os.sync()
+        print(json.dumps(result), flush=True)
+    except Exception as error:
+        # File names and exception classes only; no journal, passwords or saved
+        # provisioning data are exported onto the Windows-readable FAT volume.
+        result = {'repair': REPAIR, 'ok': False, 'errorType': type(error).__name__}
+        try:
+            atomic_write(boot / 'fidan-repair/result.json', (json.dumps(result) + '\n').encode())
+            os.sync()
+        except OSError:
+            pass
+        print('PiOS web setup repair failed: ' + type(error).__name__, flush=True)
+        raise SystemExit(1)

@@ -47,24 +47,27 @@ ApplicationWindow {
             }
         }
         Button { visible: !root.signInVisible; width: parent.width; text: qsTr("Sign in"); onClicked: { root.signInVisible = true; username.forceActiveFocus() } }
-        TextField { id: username; visible: root.signInVisible; onAccepted: Greeter.beginLogin(text); width: parent.width; placeholderText: qsTr("Username"); color: "white"; enabled: !password.visible }
+        TextField { id: username; objectName: "greeterUsername"; visible: root.signInVisible; onAccepted: GreeterBackend.beginLogin(text); width: parent.width; placeholderText: qsTr("Username"); color: "white"; enabled: !password.visible && !GreeterBackend.busy }
         TextField {
-            id: password; width: parent.width; placeholderText: Greeter.prompt.length ? Greeter.prompt : qsTr("Password")
-            color: "white"; echoMode: TextInput.Password; visible: Greeter.prompt.length > 0
-            onAccepted: { Greeter.answer(text); text = "" }
+            id: password; objectName: "greeterPassword"; width: parent.width; placeholderText: GreeterBackend.prompt.length ? GreeterBackend.prompt : qsTr("Password")
+            color: "white"; echoMode: GreeterBackend.secretPrompt ? TextInput.Password : TextInput.Normal; visible: GreeterBackend.prompt.length > 0; enabled: !GreeterBackend.busy
+            onAccepted: { GreeterBackend.answer(text); text = "" }
+            onVisibleChanged: if (visible) forceActiveFocus()
+            onEnabledChanged: if (enabled && visible) forceActiveFocus()
         }
         Button {
             width: parent.width
             visible: root.signInVisible
+            enabled: !GreeterBackend.busy
             text: password.visible ? qsTr("Unlock") : qsTr("Continue")
-            onClicked: password.visible ? (Greeter.answer(password.text), password.text = "") : Greeter.beginLogin(username.text)
+            onClicked: { if (password.visible) { GreeterBackend.answer(password.text); password.text = "" } else GreeterBackend.beginLogin(username.text) }
         }
-        Text { width: parent.width; text: Greeter.error; color: "#FF9898"; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter }
+        Text { width: parent.width; text: GreeterBackend.error; color: "#FF9898"; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter }
     }
     Row {
         anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 22; spacing: 12
-        Button { text: qsTr("Shut down"); onClicked: Greeter.powerOff() }
-        Button { text: qsTr("Restart"); onClicked: Greeter.reboot() }
+        Button { text: qsTr("Shut down"); onClicked: GreeterBackend.powerOff() }
+        Button { text: qsTr("Restart"); onClicked: GreeterBackend.reboot() }
     }
 }
 

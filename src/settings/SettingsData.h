@@ -40,6 +40,9 @@ public:
     Q_INVOKABLE void connectNetwork(const QString &ssid, const QString &password);
     Q_INVOKABLE void disconnectNetwork();
     Q_INVOKABLE void setNtp(bool enabled);
+    Q_INVOKABLE void setTimezone(const QString &zone);
+    Q_INVOKABLE void setRemoteEnabled(bool enabled);
+    Q_INVOKABLE void setSshEnabled(bool enabled);
     Q_INVOKABLE bool toolAvailable(const QString &key) const;
     Q_INVOKABLE bool openTool(const QString &key);
     Q_INVOKABLE bool openHelp();

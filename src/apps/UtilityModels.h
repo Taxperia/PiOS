@@ -89,11 +89,12 @@ signals:
     void wallTick();
     void timerFinished();
 private:
+    void updateTickTimer();
+    QTimer m_wallTimer;
     QTimer m_tick;
     QElapsedTimer m_stopwatch, m_countdown;
     qint64 m_accumulated=0, m_remainingMs=0;
     bool m_running=false, m_counting=false;
-    qint64 m_lastWall=0;
     QVariantList m_laps;
 };
 

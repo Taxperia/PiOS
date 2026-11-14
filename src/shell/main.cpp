@@ -7,11 +7,14 @@
 #include "NotificationService.h"
 #include "ProductInfo.h"
 #include "ShellController.h"
+#include "DesktopServices.h"
 #include "SystemMonitor.h"
 #include "ThemeIconProvider.h"
 #include "UpdateController.h"
 #include "DisplayController.h"
 #include "SettingsData.h"
+#include "../firstboot/FirstBootClient.h"
+#include <memory>
 
 #include <QCommandLineParser>
 #include <QDBusConnection>
@@ -75,18 +78,33 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
     UpdateController updates;
-    if (!mockMode)
+    if (!mockMode && qEnvironmentVariable("FIDAN_SETUP_SESSION")!="1")
         updates.startAutomaticChecks();
     DisplayController displays(mockMode);
     SettingsData settingsData(mockMode);
     ProductInfo product;
     SystemMonitor systemMonitor(mockMode);
     ShellController controller(previewMode, mockMode);
+    DesktopServices desktopServices(mockMode);
     LayerShellBridge layerShell(!previewMode);
     AppModel applications;
     DesktopModel desktopItems;
     FilesModel desktopFiles(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
     NotificationService notifications;
+    QObject::connect(&desktopServices, &DesktopServices::actionFailed, &controller, &ShellController::actionFailed);
+    QObject::connect(&desktopServices, &DesktopServices::microphoneOsdRequested, &controller,
+        [&controller] { controller.showIndicator(QStringLiteral("microphone")); });
+    QObject::connect(&controller, &ShellController::microphoneMuteRequested, &desktopServices, &DesktopServices::toggleMicrophoneMute);
+    QObject::connect(&controller, &ShellController::mediaActionRequested, &desktopServices, &DesktopServices::mediaAction);
+    QObject::connect(&controller, &ShellController::screenshotToolbarRequested, &desktopServices, [&] {
+        controller.setQuickSettingsVisible(false);
+        desktopServices.setScreenshotVisible(true);
+    });
+    QObject::connect(&controller, &ShellController::screenshotCaptureRequested, &desktopServices, &DesktopServices::captureScreenshot);
+    QObject::connect(&desktopServices, &DesktopServices::notificationRequested, &notifications,
+        [&](const QString &title, const QString &message) {
+            if (controller.notificationsEnabled()) notifications.Notify(QStringLiteral("PiOS"), 0, {}, title, message, {}, {}, 6000);
+        });
     QObject::connect(&desktopFiles, &FilesModel::busyChanged, &notifications, [&] {
         if (desktopFiles.busy()) return;
         desktopItems.refresh();
@@ -105,7 +123,23 @@ int main(int argc, char *argv[])
                                                   QDBusConnection::ExportAllSlots);
     notifications.registerOnSessionBus();
 
+    std::unique_ptr<FirstBootClient> deviceSetup;
+    QTranslator setupTranslator;
     QQmlApplicationEngine engine;
+    if (controller.setupSession()) {
+        deviceSetup=std::make_unique<FirstBootClient>();
+        if (QLocale::system().language()==QLocale::Turkish && setupTranslator.load(":/i18n/fidan-firstboot_tr.qm"))
+            app.installTranslator(&setupTranslator);
+        QObject::connect(deviceSetup.get(),&FirstBootClient::languageChanged,&engine,[&](const QString &locale) {
+            app.removeTranslator(&translator);app.removeTranslator(&setupTranslator);
+            if (locale.startsWith("tr")) {
+                if (translator.load(":/i18n/fidan-shell_tr.qm")) app.installTranslator(&translator);
+                if (setupTranslator.load(":/i18n/fidan-firstboot_tr.qm")) app.installTranslator(&setupTranslator);
+            }
+            engine.retranslate();
+        });
+    }
+    engine.rootContext()->setContextProperty("DeviceSetup",deviceSetup.get());
     engine.addImageProvider(QStringLiteral("theme"), new ThemeIconProvider);
     engine.rootContext()->setContextProperty(QStringLiteral("SettingsData"), &settingsData);
     engine.rootContext()->setContextProperty(QStringLiteral("Updates"), &updates);
@@ -113,6 +147,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Product"), &product);
     engine.rootContext()->setContextProperty(QStringLiteral("SystemMonitor"), &systemMonitor);
     engine.rootContext()->setContextProperty(QStringLiteral("Controller"), &controller);
+    engine.rootContext()->setContextProperty(QStringLiteral("DesktopServices"), &desktopServices);
     engine.rootContext()->setContextProperty(QStringLiteral("LayerShell"), &layerShell);
     engine.rootContext()->setContextProperty(QStringLiteral("Applications"), &applications);
     engine.rootContext()->setContextProperty(QStringLiteral("DesktopItems"), &desktopItems);

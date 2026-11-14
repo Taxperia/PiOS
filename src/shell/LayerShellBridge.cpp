@@ -82,6 +82,17 @@ void LayerShellBridge::configure(QObject *windowObject, const QString &role)
         surface->setMargins(QMargins(0, 4, 12, 0));
         surface->setExclusiveZone(0);
         surface->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityOnDemand);
+    } else if (role == QStringLiteral("screenshot")) {
+        surface->setLayer(LayerWindow::LayerOverlay);
+        surface->setAnchors(anchors({LayerWindow::AnchorBottom}));
+        surface->setMargins(QMargins(0, 0, 0, 44));
+        surface->setExclusiveZone(0);
+        surface->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityExclusive);
+    } else if (role == QStringLiteral("volume-osd")) {
+        surface->setLayer(LayerWindow::LayerOverlay);
+        surface->setAnchors(anchors({LayerWindow::AnchorBottom}));
+        surface->setMargins(QMargins(0, 0, 0, 44));
+        surface->setExclusiveZone(0);
     } else if (role == QStringLiteral("notification")) {
         surface->setLayer(LayerWindow::LayerOverlay);
         surface->setAnchors(anchors({LayerWindow::AnchorBottom, LayerWindow::AnchorRight}));
@@ -93,7 +104,7 @@ void LayerShellBridge::configure(QObject *windowObject, const QString &role)
         surface->setMargins(QMargins(0, 4, 12, 0));
         surface->setExclusiveZone(0);
         surface->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityOnDemand);
-    } else if (role == QStringLiteral("launcher")) {
+    } else if (role == QStringLiteral("launcher") || role == QStringLiteral("welcome")) {
         surface->setLayer(LayerWindow::LayerOverlay);
         surface->setAnchors(LayerWindow::Anchors{});
         surface->setExclusiveZone(0);
@@ -101,6 +112,20 @@ void LayerShellBridge::configure(QObject *windowObject, const QString &role)
     }
 #else
     Q_UNUSED(role)
+#endif
+}
+
+void LayerShellBridge::positionPanel(QObject *object, const QString &position)
+{
+    auto *window = qobject_cast<QWindow *>(object); if (!window || !available()) return;
+#ifdef FIDAN_HAS_LAYER_SHELL
+    using LayerWindow = LayerShellQt::Window;
+    auto *surface = LayerWindow::get(window);
+    surface->setAnchors(LayerWindow::Anchors(LayerWindow::AnchorLeft) | LayerWindow::AnchorRight
+        | (position == "bottom" ? LayerWindow::AnchorBottom : LayerWindow::AnchorTop));
+    surface->setExclusiveZone(window->height());
+#else
+    Q_UNUSED(position)
 #endif
 }
 

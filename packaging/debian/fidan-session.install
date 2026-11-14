@@ -1,4 +1,8 @@
 usr/bin/fidan-session
+usr/bin/fidan-ssh
+etc/ssh/sshd_config.d/00-fidan.conf
+usr/lib/systemd/system/ssh.service.d/10-fidan-hostkeys.conf
+usr/lib/systemd/system/fidan-ssh-hostkeys.service
 usr/bin/fidan-input
 usr/bin/fidan-shellctl
 usr/bin/fidan-screenshot

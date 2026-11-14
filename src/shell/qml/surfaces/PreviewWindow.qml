@@ -28,6 +28,13 @@ Window {
     title: Product.name + " — Desktop Preview"
 
     Shortcut { sequence: "Ctrl+Alt+T"; onActivated: Controller.openTerminal() }
+    Shortcut { sequences: ["Volume Up", "Ctrl+Alt+Up"]; onActivated: Controller.increaseVolume() }
+    Shortcut { sequences: ["Volume Down", "Ctrl+Alt+Down"]; onActivated: Controller.decreaseVolume() }
+    Shortcut { sequences: ["Volume Mute", "Ctrl+Alt+M"]; onActivated: Controller.toggleVolumeMute() }
+    Shortcut { sequences: ["Brightness Adjust Up", "Ctrl+Alt+PgUp"]; onActivated: Controller.increaseBrightness() }
+    Shortcut { sequences: ["Brightness Adjust Down", "Ctrl+Alt+PgDown"]; onActivated: Controller.decreaseBrightness() }
+    Shortcut { sequence: "Ctrl+Alt+Shift+M"; onActivated: DesktopServices.toggleMicrophoneMute() }
+    Shortcut { sequence: "Print"; onActivated: DesktopServices.screenshotVisible = true }
 
     Item {
         id: stage
@@ -62,7 +69,7 @@ Window {
                 mouse.accepted = true
             }
         }
-        TopBar { anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; height: Theme.panelHeight; z: 10 }
+        TopBar { anchors.left: parent.left; anchors.right: parent.right; y: Controller.panelPosition === "bottom" ? parent.height-height : 0; height: Theme.panelHeight; z: 10 }
         Rectangle {
             anchors.top: parent.top
             anchors.topMargin: Theme.panelHeight + 10
@@ -152,6 +159,7 @@ Window {
         }
         StatusCard { anchors.top: parent.top; anchors.topMargin: 76; anchors.right: parent.right; anchors.rightMargin: 16; visible: Controller.statusCardVisible; z: 15 }
         QuickSettings {
+            maximumHeight: stage.height - 94
             anchors.top: parent.top
             anchors.topMargin: 76
             anchors.right: parent.right
@@ -159,7 +167,10 @@ Window {
             visible: Controller.quickSettingsVisible
             z: 15
         }
-        AppLauncher { anchors.centerIn: parent; visible: Controller.launcherVisible; z: 20 }
+        AppLauncher {
+            anchors.centerIn: parent; visible: Controller.launcherVisible; z: 20
+            scale: Math.min(1, (stage.width - 40) / implicitWidth, (stage.height - 100) / implicitHeight)
+        }
         MouseArea {
             anchors.fill: parent
             visible: root.contextMenuVisible
@@ -215,11 +226,30 @@ Window {
             visible: Controller.lockScreenVisible && !Controller.firstBootVisible
             z: 100
         }
-        FirstBootPreview {
-            anchors.fill: parent
+        VolumeOsd {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Controller.dockPosition === "bottom" ? 100 : 44
+            visible: Controller.volumeOsdVisible
+            z: 115
+        }
+        ScreenshotToolbar {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 40
+            visible: DesktopServices.screenshotVisible
+            activeShortcuts: root.visible && visible
+            z: 116
+        }
+        Loader {
+            anchors.centerIn: parent
+            width: Math.min(920,parent.width-32);height: Math.min(700,parent.height-48)
             visible: Controller.firstBootVisible
+            active: visible
+            sourceComponent: Controller.setupSession ? deviceWelcome : personalWelcome
             z: 110
         }
+        Component { id: deviceWelcome; DeviceWelcomeWizard {} }
+        Component { id: personalWelcome; WelcomeWizard {} }
     }
 
 }

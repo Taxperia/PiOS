@@ -1,0 +1,25 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Prepare a mounted PiOS boot partition for password-protected headless setup."""
+import argparse
+import getpass
+from pathlib import Path
+import sys
+sys.path.insert(0, '/usr/lib/fidan/remote' if Path('/usr/lib/fidan/remote/provision.py').is_file() else str(Path(__file__).resolve().parents[1]/'src/remote'))
+from provision import prepare
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--boot', type=Path, required=True, help='Mounted FAT boot partition; never a raw disk')
+    parser.add_argument('--hostname', default='fidan')
+    args = parser.parse_args()
+    password = getpass.getpass('One-time setup password (12–63 UTF-8 bytes): ')
+    if password != getpass.getpass('Repeat setup password: '): raise ValueError('Passwords do not match')
+    result = prepare(args.boot, password, args.hostname)
+    print('Prepared https://'+result['hostname']+'; Ethernet is preferred.')
+    print('Without Ethernet, join '+result['ssid']+' using the same one-time password, then open https://192.168.50.1.')
+    print('Use your new local account after setup; the one-time password will be removed.')
+
+if __name__ == '__main__':
+    try: main()
+    except (OSError, ValueError) as error: print(str(error), file=sys.stderr); sys.exit(1)

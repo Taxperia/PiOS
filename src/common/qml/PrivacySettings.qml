@@ -16,6 +16,23 @@ Item {
         id: body; width: root.width; spacing: 12
         ColumnLayout {
             visible: root.page === "Privacy"; Layout.fillWidth: true; spacing: 12
+            SettingsControls.Card {
+                SettingsControls.Toggle {
+                    label: qsTr("SSH erişimi")
+                    hint: qsTr("Yerel kullanıcı hesabıyla bağlan. Değişiklik yönetici doğrulaması gerektirir.")
+                    checked: Boolean(SettingsData.info.sshEnabled)
+                    enabled: Boolean(SettingsData.info.sshAvailable) && !SettingsData.actionBusy && !Controller.mockMode
+                    onToggled: value => SettingsData.setSshEnabled(value)
+                }
+                SettingsControls.Toggle {
+                    label: qsTr("Tarayıcıdan masaüstü erişimi")
+                    hint: qsTr("Yerel ağda https://fidan.local üzerinden hesap parolasıyla bağlan. Değişiklik yönetici doğrulaması gerektirir.")
+                    checked: Boolean(SettingsData.info.remoteEnabled)
+                    enabled: Boolean(SettingsData.info.remoteAvailable) && !SettingsData.actionBusy && !Controller.mockMode
+                    onToggled: value => SettingsData.setRemoteEnabled(value)
+                }
+                SettingsControls.Caption { visible: SettingsData.actionError.length > 0; text: SettingsData.actionError }
+            }
             SettingsControls.Card { SettingsControls.Title { text: qsTr("Güvenlik ve kişisel veriler") } SettingsControls.Caption { text: qsTr("Gerçek sistem durumu ve uygulanabilen izinler burada gösterilir. Debian uygulamalarının tümüne uygulanabilen ortak bir sensör/hesap izni anahtarı yoktur.") } }
             SettingsControls.Link { label: qsTr("Cihaz şifrelemesi"); hint: qsTr("Sistem diskinin LUKS durumunu ve dosya koruma seçeneklerini incele"); iconName: "drive-harddisk-symbolic"; onTriggered: root.navigate("Privacy/Encryption") }
             SettingsControls.Link { objectName: "privacyPermissions"; label: qsTr("Uygulama izinleri ve kamera"); hint: qsTr("Flatpak ağ, dosya, aygıt, ses ve kamera portalı erişimleri"); iconName: "camera-web-symbolic"; onTriggered: root.navigate("Privacy/Permissions") }

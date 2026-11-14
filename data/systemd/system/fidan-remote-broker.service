@@ -1,0 +1,23 @@
+[Unit]
+Description=PiOS local PAM and desktop descriptor broker
+After=fidan-remote-bootstrap.service systemd-logind.service
+
+[Service]
+Type=simple
+ExecCondition=/usr/bin/fidan-remote should-serve
+ExecStart=/usr/bin/fidan-remote broker
+User=root
+Group=fidan-gateway
+RuntimeDirectory=fidan-remote
+RuntimeDirectoryMode=0750
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+TasksMax=24
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

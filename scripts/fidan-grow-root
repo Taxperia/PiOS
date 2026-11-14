@@ -1,0 +1,37 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Expand only the last root partition on a provisioned PiOS image, once."""
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+
+def expand(device, current, filesystem, sysdev, run=subprocess.run):
+    if device != current or filesystem != 'ext4': raise RuntimeError('Unexpected PiOS root filesystem')
+    number = int((sysdev/'partition').read_text().strip())
+    if number != 2: raise RuntimeError('Expected the PiOS second partition')
+    if any(int((child/'partition').read_text()) > number for child in sysdev.parent.iterdir() if (child/'partition').is_file()):
+        raise RuntimeError('Refusing expansion past another partition')
+    parent = Path('/dev')/sysdev.parent.name
+    result = run(['growpart', str(parent), str(number)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+    if result.returncode != 0 and not (result.returncode == 1 and 'NOCHANGE:' in result.stdout):
+        raise RuntimeError('Partition expansion failed: ' + result.stdout[-1000:])
+    run(['resize2fs', str(device)], check=True)
+
+
+def main():
+    if os.geteuid() != 0 or not Path('/etc/fidan/pi-image').is_file():
+        raise RuntimeError('Root expansion is restricted to a PiOS device image')
+    device = Path('/dev/disk/by-slot/system').resolve(strict=True)
+    current = Path(subprocess.check_output(['findmnt', '-n', '-o', 'SOURCE', '/'], text=True).strip()).resolve(strict=True)
+    filesystem = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '/'], text=True).strip()
+    expand(device, current, filesystem, (Path('/sys/class/block')/device.name).resolve(strict=True))
+    marker = Path('/var/lib/fidan/root-expanded'); marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text('complete\n')
+
+
+if __name__ == '__main__':
+    try: main()
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        print('fidan-grow-root: '+str(error), file=sys.stderr); sys.exit(1)

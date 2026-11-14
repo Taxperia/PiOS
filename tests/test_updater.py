@@ -35,6 +35,8 @@ class UpdaterTests(unittest.TestCase):
         cls.keys.cleanup()
 
     def setUp(self):
+        self.recovery_patch = patch.object(update, 'prepare_recovery', return_value=None)
+        self.recovery_patch.start(); self.addCleanup(self.recovery_patch.stop)
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.product = {'githubRepo': 'Taxperia/PiOS', 'version': '0.1.0-alpha.1', 'channel': 'alpha', 'updateKeyring': str(self.keyring)}
@@ -193,6 +195,38 @@ class UpdaterTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'not writable'): update.private_directory(directory)
         directory.chmod(0o700); link = self.root/'cache-link'; link.symlink_to(directory,target_is_directory=True)
         with self.assertRaises(OSError): update.private_directory(link)
+
+    def test_failed_checkpoint_prevents_apt_install(self):
+        with patch.object(update, 'prepare_recovery', side_effect=RuntimeError('checkpoint failed')), patch.object(update.os, 'geteuid', return_value=0), patch.object(update, 'architecture', return_value='amd64'), patch.object(update, 'installed_version', return_value='0.1.0~alpha1-1'):
+            with self.assertRaisesRegex(RuntimeError, 'checkpoint failed'): update.install_verified(self.product, self.root)
+
+    def test_local_recovery_verifies_archives_and_never_removes_packages(self):
+        self.recovery_patch.stop()
+        recovery = self.root / 'recovery'
+        calls = []
+        repacks = []
+        def execute(args, **kwargs):
+            if args[0] == 'dpkg-repack': repacks.append(args); shutil.copyfile(self.root/self.name, Path(kwargs['cwd'])/self.name); return subprocess.CompletedProcess(args, 0)
+            if args[0] == 'apt-get': calls.append(args); return subprocess.CompletedProcess(args, 0)
+            return RUN(args, **kwargs)
+        with patch.object(update, 'recovery_root', return_value=recovery), patch.object(update.shutil, 'which', return_value='/usr/bin/dpkg-repack'), patch.object(update, 'architecture', return_value='amd64'), patch.object(update, 'installed_version', return_value='0.1.0~alpha2-1'), patch.object(update.subprocess, 'run', side_effect=execute):
+            checkpoint = update.prepare_recovery(self.product, ['fidan-shell'])
+            self.assertTrue((checkpoint/'checkpoint.json').is_file())
+            # An interrupted install may already have changed installed versions;
+            # retry must preserve the first complete baseline, without repacking.
+            with patch.object(update, 'installed_version', return_value='0.1.0~alpha3-1'):
+                self.assertEqual(update.prepare_recovery(self.product, ['fidan-shell']), checkpoint)
+            self.assertEqual(len(repacks), 1)
+            self.assertEqual(update.recovery_packages(), 0)
+            self.assertIn('--allow-downgrades', calls[-1]); self.assertIn('--no-remove', calls[-1])
+            for _ in range(3):
+                retained = update.prepare_recovery(self.product, ['fidan-shell'])
+                update.atomic_json(recovery/'latest.json', {'directory':retained.name,'pending':False})
+            self.assertEqual(len(list(recovery.glob('checkpoint-*'))), 2)
+            checkpoint = retained
+            calls.clear(); (checkpoint/self.name).write_bytes(b'corrupted')
+            with self.assertRaisesRegex(RuntimeError, 'damaged'): update.recovery_packages()
+            self.assertFalse(calls)
 
 
 if __name__ == '__main__': unittest.main()

@@ -2,8 +2,22 @@
 #pragma once
 #include <QRegularExpression>
 #include <QString>
+#include <QVariantMap>
 
 namespace FirstBootValidation {
+inline bool desktopPreferences(const QVariantMap &values)
+{
+    const QMap<QString,QStringList> choices{
+        {"themeMode",{"light","dark","auto"}}, {"dockPosition",{"left","bottom","right"}},
+        {"panelPosition",{"top","bottom"}}, {"panelStyle",{"detailed","compact"}},
+        {"dateFormat",{"locale","iso","day-first"}}, {"language",{"tr_TR.UTF-8","en_US.UTF-8"}},
+        {"keyboardLayout",{"tr","us","de","gb"}}};
+    if (values.size()!=9 || values.value("reducedMotion").metaType().id()!=QMetaType::Bool) return false;
+    for (auto it=choices.cbegin();it!=choices.cend();++it)
+        if (values.value(it.key()).metaType().id()!=QMetaType::QString || !it.value().contains(values.value(it.key()).toString())) return false;
+    return values.value("accentColor").metaType().id()==QMetaType::QString
+        && QRegularExpression("\\A#[0-9a-fA-F]{6}\\z").match(values.value("accentColor").toString()).hasMatch();
+}
 inline bool singleLine(const QString &value)
 {
     return !value.contains(QLatin1Char('\n')) && !value.contains(QLatin1Char('\r'))

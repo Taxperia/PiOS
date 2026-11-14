@@ -43,5 +43,8 @@ elif name=='mktemp':
             self.assertIn(['chmod','1777',fresh],calls)
             self.assertIn(['mount','--bind',fresh,'/tmp/.X11-unix'],calls)
             self.assertFalse(any('/run/user/1000/' in arg for call in calls for arg in call))
+            runuser=next(call for call in calls if call[0]=='runuser')
+            whitelist=next(arg for arg in runuser if arg.startswith('--whitelist-environment='))
+            self.assertIn('PULSE_SERVER',whitelist.split('=',1)[1].split(','))
 
 if __name__=='__main__': unittest.main()

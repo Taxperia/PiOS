@@ -5,9 +5,9 @@ import Fidan.Shell
 Window {
     id: window
     readonly property real popupScale: Math.min(Controller.interfaceScale,
-        (Screen.height - 120) / 540, (Screen.width - 120) / 760)
-    width: Math.round(760 * popupScale)
-    height: Math.round(540 * popupScale)
+        (Screen.height - 100) / 736, (Screen.width - 48) / 816)
+    width: Math.round(816 * popupScale)
+    height: Math.round(736 * popupScale)
     color: "transparent"
     flags: Qt.FramelessWindowHint
 
@@ -22,7 +22,7 @@ Window {
         }
     }
     Item {
-        width: 760; height: 540
+        width: 816; height: 736
         anchors.centerIn: parent; scale: window.popupScale
         AppLauncher { anchors.fill: parent; anchors.margins: 8 }
     }

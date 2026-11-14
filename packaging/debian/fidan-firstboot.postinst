@@ -1,11 +1,19 @@
 #!/bin/sh
 set -e
+install -d -m 0755 -o root -g root /var/lib/fidan
 
 if ! getent passwd fidan-setup >/dev/null; then
     adduser --system --group --home /var/lib/fidan-setup --no-create-home fidan-setup
 fi
 
+install -d -m 0700 -o fidan-setup -g fidan-setup /var/lib/fidan-setup
+
 if [ "$1" = configure ]; then
+    # Refresh only the temporary device-setup profile, with its own permissions.
+    cached=/var/lib/fidan-setup/.config/fidan/labwc/autostart
+    if [ -f "$cached" ] && [ ! -L "$cached" ] && [ -f /usr/share/fidan/labwc/autostart ]; then
+        runuser -u fidan-setup -- install -m 0755 /usr/share/fidan/labwc/autostart "$cached"
+    fi
     systemctl daemon-reload >/dev/null 2>&1 || true
 fi
 

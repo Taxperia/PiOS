@@ -41,6 +41,19 @@ QString settingsPath()
         + QStringLiteral("/fidan/shell.conf");
 }
 
+QString defaultKeyboardLayout()
+{
+    const QStringList supported{"us", "tr", "de", "gb"};
+    const QString environment = qEnvironmentVariable("XKB_DEFAULT_LAYOUT");
+    if (supported.contains(environment)) return environment;
+    QFile keyboard("/etc/default/keyboard");
+    if (keyboard.open(QIODevice::ReadOnly)) {
+        const auto match = QRegularExpression(QStringLiteral("(?:^|\\n)XKBLAYOUT=\"?([a-z]+)\"?(?:\\n|$)")).match(QString::fromUtf8(keyboard.readAll()));
+        if (match.hasMatch() && supported.contains(match.captured(1))) return match.captured(1);
+    }
+    return QStringLiteral("us");
+}
+
 }
 
 QVariantList ShellController::applicationChoices(const QString &mime) const
@@ -113,6 +126,7 @@ ShellController::ShellController(bool previewMode, bool mockMode, QObject *paren
     , m_pinnedApps({QStringLiteral("pcmanfm-qt.desktop"), QStringLiteral("qterminal.desktop"),
                     QStringLiteral("chromium.desktop"), QStringLiteral("featherpad.desktop")})
     , m_clockTimer(new QTimer(this))
+    , m_volumeOsdTimer(new QTimer(this))
     , m_connectivityTimer(new QTimer(this))
     , m_windowTimer(new QTimer(this))
     , m_windowQuery(new QProcess(this))
@@ -153,6 +167,9 @@ ShellController::ShellController(bool previewMode, bool mockMode, QObject *paren
     m_firstBootVisible = m_previewMode
         && !settings.value(QStringLiteral("preview/firstBootSeen"), false).toBool()
         && !qEnvironmentVariableIsSet("FIDAN_SKIP_FIRSTBOOT");
+    if (!m_previewMode && !m_mockMode && !qEnvironmentVariableIsSet("FIDAN_SKIP_FIRSTBOOT"))
+        m_firstBootVisible = !settings.value("welcome/completed", false).toBool();
+    if (setupSession()) m_firstBootVisible=true;
     m_quickSettingsVisible = m_previewMode && qEnvironmentVariableIsSet("FIDAN_PREVIEW_QUICK_SETTINGS");
     m_settingsVisible = m_previewMode && qEnvironmentVariableIsSet("FIDAN_PREVIEW_SETTINGS");
     m_softwareCenterVisible = m_previewMode && qEnvironmentVariableIsSet("FIDAN_PREVIEW_SOFTWARE");
@@ -162,6 +179,12 @@ ShellController::ShellController(bool previewMode, bool mockMode, QObject *paren
     }
 
     reloadPreferences();
+    m_volumeOsdTimer->setSingleShot(true);
+    m_volumeOsdTimer->setInterval(2000);
+    connect(m_volumeOsdTimer, &QTimer::timeout, this, [this] {
+        m_volumeOsdVisible = false;
+        emit volumeOsdVisibleChanged();
+    });
     m_clockTimer->setInterval(1000);
     connect(m_clockTimer, &QTimer::timeout, this, &ShellController::clockChanged);
     m_clockTimer->start();
@@ -293,11 +316,7 @@ void ShellController::setVolume(int volume)
         return;
     }
     const int bounded = std::clamp(volume, 0, 100);
-    if (m_volume == bounded) {
-        return;
-    }
-    m_volume = bounded;
-    if (m_volumeMuted && m_volume > 0) {
+    if (m_volumeMuted && bounded > 0) {
         m_volumeMuted = false;
         emit volumeMutedChanged();
         if (!m_mockMode) {
@@ -306,6 +325,11 @@ void ShellController::setVolume(int volume)
                                      QStringLiteral("@DEFAULT_SINK@"), QStringLiteral("0")});
         }
     }
+    showVolumeOsd();
+    if (m_volume == bounded) {
+        return;
+    }
+    m_volume = bounded;
     saveSettings();
     emit volumeChanged();
     if (!m_mockMode) {
@@ -323,6 +347,7 @@ void ShellController::toggleVolumeMute()
     }
     m_volumeMuted = !m_volumeMuted;
     emit volumeMutedChanged();
+    showVolumeOsd();
     if (!m_mockMode) {
         startDesktopProcess(QStringLiteral("pactl"),
                                 {QStringLiteral("set-sink-mute"),
@@ -331,12 +356,41 @@ void ShellController::toggleVolumeMute()
     }
 }
 
+void ShellController::increaseVolume()
+{
+    setVolume(m_volume + 5);
+}
+
+void ShellController::decreaseVolume()
+{
+    setVolume(m_volume - 5);
+}
+
+void ShellController::showVolumeOsd()
+{
+    showIndicator(QStringLiteral("volume"));
+}
+
+void ShellController::showIndicator(const QString &kind)
+{
+    if (!QStringList{"volume", "brightness", "microphone"}.contains(kind)) return;
+    if (m_osdKind != kind) { m_osdKind = kind; emit osdKindChanged(); }
+    if (!m_volumeOsdVisible) {
+        m_volumeOsdVisible = true;
+        emit volumeOsdVisibleChanged();
+    }
+    m_volumeOsdTimer->start();
+}
+
 void ShellController::setBrightness(int brightness)
 {
     const int bounded = std::clamp(brightness, 1, 100);
-    if (!m_brightnessAvailable || m_brightness == bounded) {
+    if (!m_brightnessAvailable) {
+        emit actionFailed(tr("Display brightness is unavailable."));
         return;
     }
+    showIndicator(QStringLiteral("brightness"));
+    if (m_brightness == bounded) return;
     m_brightness = bounded;
     saveSettings();
     emit brightnessChanged();
@@ -346,6 +400,9 @@ void ShellController::setBrightness(int brightness)
     }
 }
 
+void ShellController::increaseBrightness() { setBrightness(m_brightness + 5); }
+void ShellController::decreaseBrightness() { setBrightness(m_brightness - 5); }
+
 QString ShellController::clockText() const
 {
     return QLocale().toString(QDateTime::currentDateTime().time(), QStringLiteral("HH:mm"));
@@ -353,7 +410,50 @@ QString ShellController::clockText() const
 
 QString ShellController::dateText() const
 {
+    if (m_dateFormat == "iso") return QDate::currentDate().toString("yyyy-MM-dd");
+    if (m_dateFormat == "day-first") return QDate::currentDate().toString("dd.MM.yyyy");
     return QLocale().toString(QDate::currentDate(), QStringLiteral("ddd d MMM"));
+}
+
+void ShellController::setWelcomeStep(int value)
+{
+    if (value < 0 || value > 5) return;
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    settings.setValue("welcome/step", value); settings.sync(); reloadPreferences();
+}
+void ShellController::setDateFormat(const QString &value)
+{
+    if (!QStringList{"locale", "iso", "day-first"}.contains(value)) return;
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    settings.setValue("region/dateFormat", value); settings.sync(); reloadPreferences();
+}
+void ShellController::setSessionLanguage(const QString &value)
+{
+    if (!QStringList{"tr_TR.UTF-8", "en_US.UTF-8"}.contains(value)) return;
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    settings.setValue("region/language", value); settings.sync(); reloadPreferences();
+}
+void ShellController::setPanelPosition(const QString &value)
+{
+    if (!QStringList{"top", "bottom"}.contains(value)) return;
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    settings.setValue("panel/position", value); settings.sync(); reloadPreferences();
+}
+void ShellController::setPanelStyle(const QString &value)
+{
+    if (!QStringList{"detailed", "compact"}.contains(value)) return;
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    settings.setValue("panel/style", value); settings.sync(); reloadPreferences();
+}
+bool ShellController::finishWelcome()
+{
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    settings.setValue("welcome/completed", true); settings.sync();
+    if (settings.status() != QSettings::NoError) {
+        emit actionFailed(tr("The welcome preferences could not be saved.")); return false;
+    }
+    m_firstBootVisible = false; emit firstBootVisibleChanged();
+    return true;
 }
 
 void ShellController::toggleQuickSettings()
@@ -525,11 +625,23 @@ void ShellController::toggleStatusCard()
 
 void ShellController::showFirstBoot()
 {
+    if (!m_previewMode) {
+        QDBusInterface shell("org.fidan.Shell", "/Shell", "org.fidan.Shell1", QDBusConnection::sessionBus());
+        shell.asyncCall("ShowWelcome"); return;
+    }
     if (!m_firstBootVisible) {
         m_firstBootVisible = true;
         setLauncherVisible(false);
         emit firstBootVisibleChanged();
     }
+}
+
+void ShellController::ShowWelcome()
+{
+    if (m_firstBootVisible) return;
+    QSettings settings(settingsPath(), QSettings::IniFormat);
+    if (settings.value("welcome/completed", false).toBool()) setWelcomeStep(0);
+    m_firstBootVisible = true; setLauncherVisible(false); emit firstBootVisibleChanged();
 }
 
 void ShellController::completeFirstBootPreview()
@@ -878,7 +990,7 @@ void ShellController::refreshBrightness()
         m_brightnessAvailable = true;
         emit brightnessAvailabilityChanged();
     }
-    QString percentage = fields.last().trimmed();
+    QString percentage = fields.at(3).trimmed();
     percentage.remove(QLatin1Char('%'));
     const int currentBrightness = std::clamp(percentage.toInt(), 1, 100);
     if (m_brightness != currentBrightness) {
@@ -906,6 +1018,19 @@ bool ShellController::setDbusProperty(const QString &service, const QString &pat
 void ShellController::reloadPreferences()
 {
     QSettings settings(settingsPath(), QSettings::IniFormat);
+    const int welcome = std::clamp(settings.value("welcome/step", 0).toInt(), 0, 5);
+    QString date = settings.value("region/dateFormat", "locale").toString();
+    if (!QStringList{"locale", "iso", "day-first"}.contains(date)) date = "locale";
+    QString language = settings.value("region/language").toString();
+    if (!QStringList{"tr_TR.UTF-8", "en_US.UTF-8"}.contains(language)) language = QLocale::system().language() == QLocale::Turkish ? "tr_TR.UTF-8" : "en_US.UTF-8";
+    QString panel = settings.value("panel/position", "top").toString();
+    if (!QStringList{"top", "bottom"}.contains(panel)) panel = "top";
+    QString style = settings.value("panel/style", "detailed").toString();
+    if (!QStringList{"detailed", "compact"}.contains(style)) style = "detailed";
+    if (m_welcomeStep != welcome || m_dateFormat != date || m_sessionLanguage != language || m_panelPosition != panel || m_panelStyle != style) {
+        m_welcomeStep = welcome; m_dateFormat = date; m_sessionLanguage = language; m_panelPosition = panel; m_panelStyle = style;
+        emit preferencesChanged(); emit clockChanged();
+    }
     QString mode = settings.value("appearance/themeMode", settings.value("appearance/darkTheme", true).toBool() ? "dark" : "light").toString();
     if (!QStringList{"light", "dark", "auto"}.contains(mode)) mode = "dark";
     const bool dark = mode == "dark" || (mode == "auto" && (QTime::currentTime().hour() < 8 || QTime::currentTime().hour() >= 19));
@@ -928,7 +1053,7 @@ void ShellController::reloadPreferences()
     const QString wallpaper = settings.value(QStringLiteral("appearance/wallpaper")).toString();
     const bool icons = settings.value(QStringLiteral("desktop/showIcons"), true).toBool();
     const bool notifications = settings.value(QStringLiteral("privacy/notifications"), true).toBool();
-    const QString keyboard = settings.value(QStringLiteral("input/keyboardLayout"), QStringLiteral("us")).toString();
+    const QString keyboard = settings.value(QStringLiteral("input/keyboardLayout"), defaultKeyboardLayout()).toString();
     if (m_wallpaperUrl != wallpaper || m_desktopIconsVisible != icons || m_notificationsEnabled != notifications || m_keyboardLayout != keyboard) {
         m_wallpaperUrl = wallpaper; m_desktopIconsVisible = icons;
         m_notificationsEnabled = notifications; m_keyboardLayout = keyboard;

@@ -21,6 +21,11 @@ int main(int argc, char **argv)
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     FirstBootClient setup;
     QQmlApplicationEngine engine;
+    QObject::connect(&setup, &FirstBootClient::languageChanged, &engine, [&](const QString &locale) {
+        app.removeTranslator(&translator);
+        if (locale.startsWith(QStringLiteral("tr")) && translator.load(QStringLiteral(":/i18n/fidan-firstboot_tr.qm"))) app.installTranslator(&translator);
+        engine.retranslate();
+    });
     engine.rootContext()->setContextProperty(QStringLiteral("Setup"), &setup);
     engine.loadFromModule(QStringLiteral("Fidan.FirstBoot"), QStringLiteral("FirstBoot"));
     return engine.rootObjects().isEmpty() ? EXIT_FAILURE : app.exec();

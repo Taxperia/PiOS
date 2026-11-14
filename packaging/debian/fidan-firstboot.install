@@ -1,7 +1,11 @@
 usr/bin/fidan-firstboot
 usr/bin/fidan-firstbootd
+usr/bin/fidan-setup-preferences
+usr/bin/fidan-grow-root
+usr/lib/systemd/system/fidan-grow-root.service
 etc/dbus-1/system.d/org.fidan.FirstBoot1.conf
 usr/lib/systemd/system/fidan-firstbootd.service
 usr/lib/systemd/system/fidan-firstboot-session.service
+usr/lib/systemd/system/greetd.service.d/10-fidan-firstboot.conf
 usr/share/applications/org.fidan.FirstBoot.desktop
 

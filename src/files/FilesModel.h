@@ -8,6 +8,8 @@
 #include <QFileSystemWatcher>
 #include <QUrl>
 #include <functional>
+#include <atomic>
+#include <memory>
 
 class FilesModel final : public QAbstractListModel
 {
@@ -23,6 +25,8 @@ class FilesModel final : public QAbstractListModel
     Q_PROPERTY(bool showHidden READ showHidden WRITE setShowHidden NOTIFY optionsChanged)
     Q_PROPERTY(QString sortBy READ sortBy WRITE setSortBy NOTIFY optionsChanged)
     Q_PROPERTY(QString operationStatus READ operationStatus NOTIFY busyChanged)
+    Q_PROPERTY(bool canCancel READ canCancel NOTIFY busyChanged)
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY undoChanged)
 
 public:
     enum Role { NameRole = Qt::UserRole + 1, PathRole, DirectoryRole, SizeRole, IconRole };
@@ -44,6 +48,10 @@ public:
     bool showHidden() const { return m_showHidden; }
     QString sortBy() const { return m_sortBy; }
     QString operationStatus() const { return m_operationStatus; }
+    bool canCancel() const { return m_busy && bool(m_cancel); }
+    bool canUndo() const { return !m_busy && !m_undo.isEmpty(); }
+    Q_INVOKABLE void cancelOperation();
+    Q_INVOKABLE void undo();
     void setShowHidden(bool value);
     void setSortBy(const QString &value);
     Q_INVOKABLE void copyEntries(const QVariantList &rows, bool cut = false);
@@ -81,14 +89,19 @@ signals:
     void clipboardChanged();
     void busyChanged();
     void optionsChanged();
+    void undoChanged();
 
 private:
     bool validName(const QString &name) const;
     bool validRow(int row) const;
     bool load(const QString &path, bool record);
+    void rebuildVisible();
     void setError(const QString &message);
     void transfer(const QStringList &sources, const QString &destination, bool move, bool clipboard);
-    void runOperation(const std::function<QString()> &operation, const QString &status, bool clearClipboard = false);
+    struct UndoEntry { QString current, original, identity; bool toTrash = false; bool trashMetadata = false; };
+    void remember(const QList<UndoEntry> &entries);
+    void runOperation(const std::function<QString()> &operation, const QString &status, bool clearClipboard = false,
+        std::shared_ptr<QList<UndoEntry>> undo = {}, std::shared_ptr<std::atomic_bool> cancel = {});
 
     QList<QFileInfo> m_all;
     QList<QFileInfo> m_visible;
@@ -107,4 +120,6 @@ private:
     QList<QUrl> m_clipboardUrls;
     bool m_clipboardCut = false;
     bool m_externalClipboard = false;
+    QList<QList<UndoEntry>> m_undo;
+    std::shared_ptr<std::atomic_bool> m_cancel;
 };

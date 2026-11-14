@@ -15,6 +15,7 @@ class UpdateController final : public QObject
     Q_PROPERTY(QString statusText READ statusText NOTIFY stateChanged)
     Q_PROPERTY(bool automaticEnabled READ automaticEnabled NOTIFY stateChanged)
     Q_PROPERTY(bool installable READ installable NOTIFY stateChanged)
+    Q_PROPERTY(bool recoveryAvailable READ recoveryAvailable NOTIFY stateChanged)
 
 public:
     explicit UpdateController(QObject *parent = nullptr);
@@ -27,18 +28,21 @@ public:
     QString statusText() const { return m_statusText; }
     bool automaticEnabled() const { return m_automaticEnabled; }
     bool installable() const { return m_installable; }
+    bool recoveryAvailable() const { return m_recoveryAvailable; }
     void startAutomaticChecks();
 
     Q_INVOKABLE void check();
     Q_INVOKABLE void download();
     Q_INVOKABLE void install();
+    Q_INVOKABLE void rollback();
+    Q_INVOKABLE void repair();
     Q_INVOKABLE void setAutomaticEnabled(bool enabled);
 
 signals:
     void stateChanged();
 
 private:
-    enum class Operation { None, Check, Download, Install, Configure };
+    enum class Operation { None, Check, Download, Install, Configure, Rollback, Repair };
     bool m_requestedAutomatic = false;
     void start(Operation operation, const QString &argument);
     void finish(int exitCode, QProcess::ExitStatus exitStatus);
@@ -50,6 +54,7 @@ private:
     bool m_downloaded = false;
     bool m_automaticEnabled = false;
     bool m_installable = false;
+    bool m_recoveryAvailable = false;
     QTimer m_refreshTimer;
     QString m_latestVersion;
     QString m_statusText;

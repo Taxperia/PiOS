@@ -12,7 +12,7 @@ GlassPanel {
         anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 8
         IconButton { iconName: "menu"; compact: true; accessibleName: qsTr("Applications"); onClicked: Controller.toggleLauncher() }
         Row {
-            spacing: 3; visible: root.width > 560
+            spacing: 3; visible: root.width > 560 && Controller.panelStyle === "detailed"
             Repeater {
                 model: 3
                 IconButton { required property int index; compact: true; label: String(index + 1); active: Controller.activeWorkspace === index + 1; onClicked: Controller.activateWorkspace(index + 1) }
@@ -42,7 +42,7 @@ GlassPanel {
             }
         }
         Text {
-            visible: root.width > 1060
+            visible: root.width > 1060 && Controller.panelStyle === "detailed"
             text: "CPU " + Math.round(SystemMonitor.cpuUsage) + "%  ·  RAM " + Math.round(SystemMonitor.memoryUsage) + "%"
             color: Theme.muted(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10
             TapHandler { onTapped: Controller.toggleStatusCard() }
@@ -50,6 +50,13 @@ GlassPanel {
         IconButton { visible: root.width > 700; compact: true; iconName: "wifi"; iconColor: Controller.wifiEnabled ? Theme.accent : Theme.muted(Controller.darkTheme); accessibleName: qsTr("Network"); onClicked: Controller.toggleQuickSettings() }
         IconButton { visible: root.width > 850; compact: true; iconName: "bluetooth"; iconColor: Controller.bluetoothEnabled ? Theme.accent : Theme.muted(Controller.darkTheme); accessibleName: qsTr("Bluetooth"); onClicked: Controller.toggleQuickSettings() }
         IconButton { compact: true; iconName: "bell"; active: Notifications.historyVisible; accessibleName: qsTr("Notifications"); onClicked: Notifications.toggleHistory() }
+        Row {
+            visible: DesktopServices.batteryAvailable; spacing: 4
+            Layout.alignment: Qt.AlignVCenter
+            SystemIcon { width: 17; height: 17; name: DesktopServices.pluggedIn ? "bolt" : "battery"; color: DesktopServices.batteryPercent <= 20 && !DesktopServices.pluggedIn ? "#EBA165" : Theme.accent }
+            Text { text: DesktopServices.batteryPercent + "%"; color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10 }
+            TapHandler { onTapped: Controller.toggleQuickSettings() }
+        }
         Column {
             Layout.alignment: Qt.AlignVCenter; spacing: 1
             Text { anchors.horizontalCenter: parent.horizontalCenter; text: Controller.clockText; color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 12; font.weight: Font.DemiBold }

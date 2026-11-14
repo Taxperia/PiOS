@@ -68,8 +68,14 @@ void SettingsData::refreshSystem() {
         {"architecture", QSysInfo::currentCpuArchitecture()}, {"os", QSysInfo::prettyProductName()}, {"kernel", QSysInfo::kernelVersion()},
         {"session", QGuiApplication::platformName() == "wayland" ? "Wayland" : QGuiApplication::platformName()},
         {"user", qEnvironmentVariable("USER")}, {"home", QDir::homePath()}, {"locale", QLocale::system().language()==QLocale::C ? QStringLiteral("C.UTF-8") : QLocale::system().nativeLanguageName() + " · " + QLocale::system().name()},
-        {"time", QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm")}, {"timezone", QString::fromUtf8(QTimeZone::systemTimeZoneId())}, {"ntpAvailable", false}, {"ntpEnabled", false}};
+        {"time", QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm")}, {"timezone", QString::fromUtf8(QTimeZone::systemTimeZoneId())}, {"ntpAvailable", false}, {"ntpEnabled", false},
+        {"remoteAvailable", !QStandardPaths::findExecutable("fidan-remote").isEmpty()}, {"remoteEnabled", QFileInfo::exists("/etc/fidan/remote-enabled")},
+        {"sshAvailable", QFileInfo::exists("/usr/bin/fidan-ssh")}, {"sshEnabled", false}};
     if (!m_mock) {
+        QDBusInterface manager("org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager", QDBusConnection::systemBus());
+        const auto reply = manager.call("GetUnitFileState", "ssh.service");
+        if (reply.type() != QDBusMessage::ErrorMessage && !reply.arguments().isEmpty())
+            m_info["sshEnabled"] = QStringList{"enabled", "enabled-runtime"}.contains(reply.arguments().first().toString());
         QDBusInterface clock("org.freedesktop.timedate1", "/org/freedesktop/timedate1", "org.freedesktop.timedate1", QDBusConnection::systemBus());
         if (clock.isValid()) { m_info["ntpAvailable"] = clock.property("CanNTP"); m_info["ntpEnabled"] = clock.property("NTP"); }
     }
@@ -115,6 +121,28 @@ bool SettingsData::openHelp() {
 void SettingsData::setNtp(bool enabled) {
     if (m_mock || actionBusy() || !m_info.value("ntpAvailable").toBool()) return;
     m_actionError.clear(); m_action.start("timedatectl", {"set-ntp", enabled ? "true" : "false"}); m_actionTimeout.start(); emit actionChanged();
+}
+void SettingsData::setTimezone(const QString &zone) {
+    if (m_mock || actionBusy()) return;
+    const QString base = QFileInfo("/usr/share/zoneinfo").canonicalFilePath();
+    const QFileInfo file("/usr/share/zoneinfo/" + zone);
+    if (!QRegularExpression("\\A[A-Za-z0-9_+/-]{1,100}\\z").match(zone).hasMatch()
+        || zone.startsWith('-') || base.isEmpty() || !file.isFile() || !file.canonicalFilePath().startsWith(base + '/')) {
+        m_actionError = tr("Choose an installed time zone, for example Europe/Istanbul."); emit actionChanged(); return;
+    }
+    m_actionError.clear(); m_action.start("timedatectl", {"set-timezone", zone}); m_actionTimeout.start(); emit actionChanged();
+}
+void SettingsData::setRemoteEnabled(bool enabled) {
+    if (m_mock || actionBusy() || !m_info.value("remoteAvailable").toBool()) return;
+    m_actionError.clear();
+    m_action.start("pkexec", {"/usr/bin/fidan-remote", "configure", enabled ? "on" : "off"});
+    m_actionTimeout.start(); emit actionChanged();
+}
+void SettingsData::setSshEnabled(bool enabled) {
+    if (m_mock || actionBusy() || !m_info.value("sshAvailable").toBool()) return;
+    m_actionError.clear();
+    m_action.start("pkexec", {"/usr/bin/fidan-ssh", enabled ? "on" : "off"});
+    m_actionTimeout.start(); emit actionChanged();
 }
 QStringList SettingsData::splitFields(const QString &line) {
     QStringList result; QString field; bool escaped = false;

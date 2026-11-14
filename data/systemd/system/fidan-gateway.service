@@ -1,0 +1,27 @@
+[Unit]
+Description=PiOS local HTTPS setup and browser desktop
+Requires=fidan-remote-bootstrap.service
+Wants=fidan-remote-broker.service
+After=fidan-remote-bootstrap.service fidan-remote-broker.service network.target
+
+[Service]
+Type=simple
+User=fidan-gateway
+Group=fidan-gateway
+ExecCondition=/usr/bin/fidan-remote should-serve
+ExecStart=/usr/bin/fidan-remote gateway
+Restart=on-failure
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+UMask=0077
+TasksMax=32
+MemoryMax=256M
+LimitNOFILE=256
+
+[Install]
+WantedBy=multi-user.target

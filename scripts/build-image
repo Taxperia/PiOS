@@ -1,18 +1,142 @@
-#!/bin/sh
+#!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-set -eu
+"""Validate the Pi image plan. Only --build downloads/runs the image generator."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import re
+import shutil
+import subprocess
+import sys
 
-repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-image_gen_dir=${RPI_IMAGE_GEN_DIR:-"$repo_dir/.cache/rpi-image-gen"}
-image_gen_version=${RPI_IMAGE_GEN_VERSION:-v2.8.0}
+ROOT = Path(__file__).resolve().parents[1]
+GENERATOR_COMMIT = '262d4df5a9f9d4133370465399a7958a7c22cdc7'  # upstream v2.8.0
+MIN_FREE = 20 * 1024**3
 
-if [ ! -x "$image_gen_dir/rpi-image-gen" ]; then
-    git clone --depth 1 --branch "$image_gen_version" https://github.com/raspberrypi/rpi-image-gen.git "$image_gen_dir"
-fi
 
-mkdir -p "$repo_dir/image/packages"
-cp "$repo_dir"/dist/*.deb "$repo_dir/image/packages/"
+def existing_parent(path):
+    while not path.exists(): path = path.parent
+    return path
 
-cd "$image_gen_dir"
-exec ./rpi-image-gen build -S "$repo_dir/image" -c fidan-pi5.yaml
 
+def sha256(path):
+    digest=hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda:stream.read(1024*1024),b''):digest.update(block)
+    return digest.hexdigest()
+
+
+def expected_packages(root=ROOT):
+    product=json.loads((root/'config/product.json').read_text())
+    version=re.sub(r'-(alpha|beta|rc)\.',r'~\1',product['version'])+'-1'
+    packages=[line.strip() for line in (root/'image/packages.list').read_text().splitlines() if line.strip() and not line.lstrip().startswith('#')]
+    if not packages or len(packages)!=len(set(packages)):raise ValueError('Missing or duplicate image packages')
+    for filename in packages:
+        if not re.fullmatch(r'fidan-[a-z0-9-]+_[A-Za-z0-9.~+-]+_(arm64|all)\.deb',filename):raise ValueError('Invalid image package filename: '+filename)
+        if not filename.endswith(('_'+version+'_arm64.deb','_'+version+'_all.deb')):raise ValueError('Image/package version mismatch: '+filename)
+    config=(root/'image/config/fidan-pi5.yaml').read_text()
+    if 'name: fidan-'+product['version']+'-pi5-arm64' not in config:raise ValueError('Image name does not match product version')
+    return packages,version
+
+
+def plan(packages_dir,work_dir,generator,root=ROOT,allow_emulation=False,output_dir=None,cache_packages=False):
+    filenames,version=expected_packages(root);issues=[];packages=[]
+    for filename in filenames:
+        source=packages_dir/filename
+        if not source.is_file() or source.is_symlink():issues.append('Missing package: '+filename);continue
+        try:
+            fields=subprocess.check_output(['dpkg-deb','-f',str(source),'Package','Version','Architecture'],text=True)
+            actual=dict(line.split(': ',1) for line in fields.splitlines())
+            if f"{actual['Package']}_{actual['Version']}_{actual['Architecture']}.deb"!=filename or actual['Version']!=version:
+                raise ValueError('Package identity mismatch: '+filename)
+            packages.append({'name':filename,'sha256':sha256(source)})
+        except (OSError,subprocess.SubprocessError,ValueError,KeyError) as error:issues.append(str(error))
+    destinations=[work_dir,generator,root/'image/packages']
+    if output_dir is not None: destinations.append(output_dir)
+    locations={str(existing_parent(path.resolve())) for path in destinations}
+    free={path:shutil.disk_usage(path).free for path in sorted(locations)}
+    for path,available in free.items():
+        if available<MIN_FREE:issues.append(f'At least 20 GiB free required at {path}; available {available/1024**3:.1f} GiB')
+    emulated = platform.system()=='Linux' and platform.machine() in ('x86_64','amd64') and allow_emulation
+    if emulated:
+        registration = Path('/proc/sys/fs/binfmt_misc/qemu-aarch64')
+        registration_text = registration.read_text() if registration.is_file() else ''
+        if not registration_text.startswith('enabled\n') or not re.search(r'^flags:.*F',registration_text,re.M):
+            issues.append('Enable the qemu-aarch64 binfmt handler before an emulated build')
+    elif platform.system()!='Linux' or platform.machine() not in ('aarch64','arm64'):
+        issues.append('Use a native Debian/Raspberry Pi OS ARM64 build host; this host is for source checks only')
+    # The pinned generator builds its own checksum-pinned bdebstrap host tool.
+    required_tools=['git','dpkg-deb','podman','mmdebstrap','zip']
+    if emulated: required_tools.append('arch-test')
+    for tool in required_tools:
+        if not shutil.which(tool):issues.append('Missing build tool: '+tool)
+    if generator.exists():
+        try:
+            git=['git','-c','safe.directory='+str(generator),'-C',str(generator)]
+            revision=subprocess.check_output([*git,'rev-parse','HEAD'],text=True).strip()
+            dirty=subprocess.check_output([*git,'status','--porcelain','--untracked-files=no'],text=True).strip()
+            if revision!=GENERATOR_COMMIT or dirty:issues.append('Generator must be a clean checkout of '+GENERATOR_COMMIT)
+        except (OSError,subprocess.SubprocessError):issues.append('Invalid generator checkout')
+    command=[str(generator/'rpi-image-gen'),'build','-S',str(root/'image'),'-c',str(root/'image/config/fidan-pi5.yaml'),'-B',str(work_dir)]
+    overrides=[]
+    if emulated: overrides.append('ARCH=arm64')
+    if output_dir is not None:
+        overrides += ['IGconf_image_outputdir='+str(output_dir), 'IGconf_deploy_dir='+str(output_dir/'release')]
+    if cache_packages: overrides.append('IGconf_sys_apt_cachedir='+str(work_dir/'apt-cache'))
+    if overrides: command += ['--', *overrides]
+    return {'schema':1,'generatorCommit':GENERATOR_COMMIT,'debianVersion':version,'emulated':emulated,'packages':packages,
+            'freeBytes':free,'command':command,'ready':not issues,'issues':issues}
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    mode=parser.add_mutually_exclusive_group()
+    mode.add_argument('--build',action='store_true',help='Build after all checks pass (large download/disk use)')
+    mode.add_argument('--check',action='store_true',help='Return nonzero when prerequisites are missing')
+    mode.add_argument('--images-only',action='store_true',help='Resume image assembly from an existing filesystem with the same verified package inputs')
+    parser.add_argument('--packages-dir',type=Path,default=ROOT/'dist')
+    parser.add_argument('--work-dir',type=Path,default=ROOT/'image/work')
+    parser.add_argument('--generator-dir',type=Path,default=Path(os.environ.get('RPI_IMAGE_GEN_DIR',str(ROOT/'.cache/rpi-image-gen'))))
+    parser.add_argument('--allow-emulation',action='store_true',help='Explicitly permit an AMD64 Linux host with an enabled ARM64 QEMU handler')
+    parser.add_argument('--output-dir',type=Path,help='Directory for large image files, which may be on a separate disk')
+    parser.add_argument('--cache-packages',action='store_true',help='Cache downloaded target packages inside the work directory across retries')
+    args=parser.parse_args()
+    result=plan(args.packages_dir.resolve(),args.work_dir.resolve(),args.generator_dir.resolve(),allow_emulation=args.allow_emulation,
+                output_dir=args.output_dir.resolve() if args.output_dir else None,cache_packages=args.cache_packages)
+    print(json.dumps(result,indent=2))
+    if not args.build and not args.images_only:return int(args.check and not result['ready'])
+    if not result['ready']:return 1
+    if args.images_only:
+        previous=json.loads((args.work_dir/'fidan-build-inputs.json').read_text())
+        if previous.get('packages')!=result['packages'] or previous.get('generatorCommit')!=GENERATOR_COMMIT:
+            raise ValueError('Filesystem inputs differ; perform a full build before image-only assembly')
+        result['command'].insert(2,'-i')
+    generator=args.generator_dir.resolve()
+    if not generator.exists():
+        generator.parent.mkdir(parents=True,exist_ok=True)
+        subprocess.run(['git','clone','--depth','1','--branch','v2.8.0','https://github.com/raspberrypi/rpi-image-gen.git',str(generator)],check=True)
+        revision=subprocess.check_output(['git','-C',str(generator),'rev-parse','HEAD'],text=True).strip()
+        if revision!=GENERATOR_COMMIT:raise ValueError('Upstream generator revision changed')
+    destination=ROOT/'image/packages';destination.mkdir(parents=True,exist_ok=True)
+    # Git checkouts on Windows may lose executable modes; these two trusted
+    # hooks must run or the image would retain upstream defaults.
+    for hook in ('customize','cleanup-fidan'):(ROOT/'image/bdebstrap'/hook).chmod(0o755)
+    for item in result['packages']:
+        source=args.packages_dir/item['name']
+        if sha256(source)!=item['sha256']:raise ValueError('Package changed after validation')
+        target=destination/item['name']
+        if target.is_symlink():raise ValueError('Refusing package symlink')
+        if source.resolve()!=target.resolve():shutil.copyfile(source,target)
+    args.work_dir.mkdir(parents=True,exist_ok=True)
+    if args.cache_packages: (args.work_dir/'apt-cache').mkdir(exist_ok=True)
+    record='fidan-image-inputs.json' if args.images_only else 'fidan-build-inputs.json'
+    (args.work_dir/record).write_text(json.dumps(result,indent=2)+'\n')
+    return subprocess.run(result['command'],cwd=generator,check=False).returncode
+
+
+if __name__=='__main__':
+    try:sys.exit(main())
+    except (OSError,ValueError,subprocess.SubprocessError) as error:print('build-image: '+str(error),file=sys.stderr);sys.exit(1)

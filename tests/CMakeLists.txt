@@ -122,6 +122,12 @@ set_tests_properties(fidan-settings-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFOR
 add_test(NAME fidan-lock-preferences-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_lock_preferences.py)
 add_test(NAME fidan-night-light-security-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_night_light_security.py)
 add_test(NAME fidan-updater-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_updater.py)
+add_test(NAME fidan-remote-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_remote.py)
+add_test(NAME fidan-connection-repair-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_connection_repair.py)
+add_test(NAME fidan-setup-session-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_setup_session.py)
+add_test(NAME fidan-setup-preferences-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_setup_preferences.py)
+add_test(NAME fidan-image-tools-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_image_tools.py)
+add_test(NAME fidan-setup-repair-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_setup_repair.py)
 
 qt_add_executable(fidan-store-ui-tests
     tst_store_ui.cpp
@@ -165,5 +171,44 @@ target_link_libraries(fidan-desktop-ui-tests PRIVATE Qt6::Concurrent Qt6::Core Q
 add_test(NAME fidan-desktop-ui-tests COMMAND fidan-desktop-ui-tests)
 set_tests_properties(fidan-desktop-ui-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
+qt_add_executable(fidan-launcher-ui-tests tst_launcher_ui.cpp
+    ${PROJECT_SOURCE_DIR}/src/shell/AppModel.cpp ${PROJECT_SOURCE_DIR}/src/shell/AppModel.h
+    ${PROJECT_SOURCE_DIR}/src/shell/ShellController.cpp ${PROJECT_SOURCE_DIR}/src/shell/ShellController.h
+    ${PROJECT_SOURCE_DIR}/src/shell/NotificationService.cpp ${PROJECT_SOURCE_DIR}/src/shell/NotificationService.h
+    ${PROJECT_SOURCE_DIR}/src/shell/DesktopModel.cpp ${PROJECT_SOURCE_DIR}/src/shell/DesktopModel.h
+    ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.cpp ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.h)
+target_include_directories(fidan-launcher-ui-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/shell ${PROJECT_SOURCE_DIR}/src/common)
+target_compile_definitions(fidan-launcher-ui-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-launcher-ui-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::DBus Qt6::Test)
+add_test(NAME fidan-launcher-ui-tests COMMAND fidan-launcher-ui-tests)
+set_tests_properties(fidan-launcher-ui-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
 target_sources(fidan-settings-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/settings/DesktopSettings.cpp ${PROJECT_SOURCE_DIR}/src/settings/DesktopSettings.h)
+
+qt_add_executable(fidan-firstboot-tests tst_firstboot.cpp
+    ${PROJECT_SOURCE_DIR}/src/firstboot/FirstBootService.cpp ${PROJECT_SOURCE_DIR}/src/firstboot/FirstBootService.h
+    ${PROJECT_SOURCE_DIR}/src/firstboot/FirstBootClient.cpp ${PROJECT_SOURCE_DIR}/src/firstboot/FirstBootClient.h)
+target_include_directories(fidan-firstboot-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/firstboot)
+target_compile_definitions(fidan-firstboot-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-firstboot-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::DBus Qt6::Test)
+add_test(NAME fidan-firstboot-tests COMMAND dbus-run-session -- $<TARGET_FILE:fidan-firstboot-tests>)
+set_tests_properties(fidan-firstboot-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+qt_add_executable(fidan-greeter-tests tst_greeter.cpp
+    ${PROJECT_SOURCE_DIR}/src/greeter/GreeterController.cpp ${PROJECT_SOURCE_DIR}/src/greeter/GreeterController.h)
+target_compile_definitions(fidan-greeter-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-greeter-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Test)
+add_test(NAME fidan-greeter-tests COMMAND fidan-greeter-tests)
+set_tests_properties(fidan-greeter-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 target_link_libraries(fidan-settings-tests PRIVATE Qt6::Concurrent Qt6::Network)
+
+qt_add_executable(fidan-desktop-services-tests tst_desktop_services.cpp
+    ${PROJECT_SOURCE_DIR}/src/shell/DesktopServices.cpp ${PROJECT_SOURCE_DIR}/src/shell/DesktopServices.h
+    ${PROJECT_SOURCE_DIR}/src/shell/ShellController.cpp ${PROJECT_SOURCE_DIR}/src/shell/ShellController.h
+    ${PROJECT_SOURCE_DIR}/src/shell/NotificationService.cpp ${PROJECT_SOURCE_DIR}/src/shell/NotificationService.h)
+target_include_directories(fidan-desktop-services-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/shell)
+target_compile_definitions(fidan-desktop-services-tests PRIVATE FIDAN_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(fidan-desktop-services-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::DBus Qt6::Test)
+add_test(NAME fidan-desktop-services-tests COMMAND dbus-run-session -- $<TARGET_FILE:fidan-desktop-services-tests>)
+set_tests_properties(fidan-desktop-services-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+add_test(NAME fidan-screenshot-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_screenshot.py)

@@ -1,6 +1,10 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 set -eu
+case "${1:-}" in
+    ""|--screen|--region|--window) ;;
+    *) echo 'usage: fidan-screenshot [--screen|--region|--window]' >&2; exit 2 ;;
+esac
 if ! command -v grim >/dev/null 2>&1; then
     notify-send 'Screenshot unavailable' 'Install grim to take screenshots.' || true
     exit 1
@@ -11,11 +15,16 @@ directory="$pictures/Screenshots"
 mkdir -p "$directory"
 image=$(mktemp "$directory/Screenshot-$(date +%Y%m%d-%H%M%S)-XXXXXX.png")
 trap 'rm -f -- "$image"' HUP INT TERM
-if [ "${1:-}" = "--region" ]; then
+if [ "${1:-}" = "--region" ] || [ "${1:-}" = "--window" ]; then
     if ! command -v slurp >/dev/null 2>&1; then
         rm -f -- "$image"
         notify-send 'Screenshot unavailable' 'Install slurp to select a region.' || true
         exit 1
+    fi
+    if [ "${1:-}" = "--window" ]; then
+        # Labwc 0.9 / grim on Debian 13 do not expose per-window capture.
+        # Let the user outline the window; never capture a different target.
+        printf '%s\n' 'Drag around the window to capture. Escape cancels.' >&2
     fi
     geometry=$(slurp) || { rm -f -- "$image"; exit 0; }
     grim -g "$geometry" "$image" || { rm -f -- "$image"; exit 1; }

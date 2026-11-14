@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Read-only checks of generated Pi boot/root filesystems, including native setup."""
+import argparse
+import json
+from pathlib import Path
+import re
+import struct
+import subprocess
+
+
+def audit(directory):
+    root = directory/'root.ext4'; boot = directory/'boot.vfat'
+    if not root.is_file() or not boot.is_file(): raise ValueError('Expected root.ext4 and boot.vfat')
+    def command(operation):
+        return subprocess.run(['debugfs', '-R', operation, str(root)], capture_output=True, check=False).stdout
+    def read(path): return command('cat '+path)
+    def exists(path): return b'Inode:' in command('stat '+path)
+    passwd = [line.split(':') for line in read('/etc/passwd').decode().splitlines()]
+    humans = [row[0] for row in passwd if 1000 <= int(row[2]) < 65534]
+    setup = next((row for row in passwd if row[0]=='fidan-setup'), None)
+    shadow = [line.split(':')[1] for line in read('/etc/shadow').decode().splitlines() if line.startswith('root:')]
+    home = command('stat /var/lib/fidan-setup').decode()
+    home_uid = re.search(r'User:\s+(\d+)', home)
+    home_mode = re.search(r'Mode:\s+(0[0-7]+)', home)
+    unit = read('/usr/lib/systemd/system/fidan-firstboot-session.service')
+    broker_unit = read('/usr/lib/systemd/system/fidan-remote-broker.service')
+    checks = {
+        'piImageMarker': bool(read('/etc/fidan/pi-image')),
+        'noFactoryHumanAccount': not humans,
+        'rootPasswordLocked': len(shadow)==1 and shadow[0].startswith(('!', '*')),
+        'noClonedSshHostKeys': b'/ssh_host_' not in command('ls -p /etc/ssh'),
+        'machineIdUninitialized': not read('/etc/machine-id').strip(),
+        'firstBootPending': not exists('/var/lib/fidan/firstboot-complete'),
+        'noSavedProvisioningCredential': not exists('/var/lib/fidan/provision.json'),
+        'noEmbeddedTlsKey': not exists('/var/lib/fidan/tls/key.pem'),
+        'sshRootLoginDenied': b'PermitRootLogin no' in read('/etc/ssh/sshd_config.d/00-fidan.conf'),
+        'sshDisabled': not exists('/etc/systemd/system/multi-user.target.wants/ssh.service'),
+        'browserDesktopOptIn': not exists('/etc/fidan/remote-enabled'),
+        'rootExpansionPending': not exists('/var/lib/fidan/root-expanded'),
+        'rootExpansionEnabled': exists('/etc/systemd/system/multi-user.target.wants/fidan-grow-root.service'),
+        'firstBootDaemonEnabled': exists('/etc/systemd/system/multi-user.target.wants/fidan-firstbootd.service'),
+        'firstBootSessionEnabled': exists('/etc/systemd/system/graphical.target.wants/fidan-firstboot-session.service'),
+        'nativeSetupSession': b'/usr/bin/fidan-session --setup' in unit and b'/usr/bin/cage' not in unit,
+        'nativeSetupAutostart': b'FIDAN_SETUP_SESSION' in read('/usr/share/fidan/labwc/autostart') and b'fidan-firstboot &' in read('/usr/share/fidan/labwc/autostart'),
+        'realDesktopSessionDefault': b'export QT_QPA_PLATFORM=wayland' in read('/usr/bin/fidan-session') and b'--preview' not in read('/usr/share/fidan/labwc/autostart') and b'--mock' not in read('/usr/share/fidan/labwc/autostart'),
+        'setupWallpaperAvailable': exists('/usr/share/backgrounds/fidan/collection/fidan-midnight.svg'),
+        'noBuildSmokeState': not exists('/tmp/pios-alpha4-smoke'),
+        'setupHomeOwnedAndPrivate': bool(setup and home_uid and home_mode and int(home_uid[1])==int(setup[2]) and int(home_mode[1],8)==0o700),
+        'setupBrokerAvailableBeforeCompletion': b'ExecCondition=/usr/bin/fidan-remote should-serve' in broker_unit and b'ConditionPathExists=/var/lib/fidan/firstboot-complete' not in broker_unit,
+        'nativeBrowserFlow': b'await connectDesktop()' in read('/usr/share/fidan/remote/ui.js') and b'id="wizard"' not in read('/usr/share/fidan/remote/index.html'),
+        'noWebSetupMutationApi': b'Not allowed' in read('/usr/lib/fidan/remote/gateway.py') and b'def setup_call(' not in read('/usr/lib/fidan/remote/gateway.py'),
+        'privateRfbBridge': b'--unix-listen=' in read('/usr/bin/fidan-remote-session') and b'--unix-target=' in read('/usr/bin/fidan-remote-session'),
+        'wifiSupplicantInstalled': exists('/usr/sbin/wpa_supplicant'),
+        'setupAccessPointDnsInstalled': exists('/usr/sbin/dnsmasq'),
+        'privateSocketBridgeInstalled': exists('/usr/bin/websockify'),
+        'networkManagerEnabled': exists('/etc/systemd/system/multi-user.target.wants/NetworkManager.service'),
+        'competingIwdDisabled': not exists('/etc/systemd/system/multi-user.target.wants/iwd.service'),
+        'turkishLocaleEnabled': b'\ntr_TR.UTF-8 UTF-8\n' in b'\n'+read('/etc/locale.gen'),
+        'englishLocaleEnabled': b'\nen_US.UTF-8 UTF-8\n' in b'\n'+read('/etc/locale.gen'),
+        'loginConfigured': b'fidan-greeter' in read('/etc/greetd/config.toml'),
+        'initramfsStorageBinderPresent': bool(read('/etc/initramfs-tools/hooks/rpi-bootdev-install')),
+        'tty1ReservedForGraphicalSetup': b'"/dev/null"' in command('stat /etc/systemd/system/getty@tty1.service'),
+    }
+    for name in ('fidan-shell','fidan-firstboot','fidan-firstbootd','fidan-greeter','fidan-files','fidan-settings','fidan-store','fidan-photos','fidan-apps','fidan-task-manager'):
+        header=read('/usr/bin/'+name)[:20]
+        checks[name+'IsArm64']=len(header)==20 and header[:6]==b'\x7fELF\x02\x01' and struct.unpack_from('<H',header,18)[0]==183
+    for name in ('config.txt','cmdline.txt','kernel_2712.img','initramfs_2712','bcm2712-rpi-5-b.dtb'):
+        checks['boot:'+name]=subprocess.run(['mdir','-i',str(boot),'::/'+name],capture_output=True,check=False).returncode==0
+    product=json.loads(read('/usr/share/fidan/product.json'))
+    expected_version=re.sub(r'-(alpha|beta|rc)\.', r'~\1', product['version'])+'-1'
+    packages={}
+    for paragraph in read('/var/lib/dpkg/status').decode().split('\n\n'):
+        fields=dict(line.split(': ',1) for line in paragraph.splitlines() if ': ' in line and not line.startswith(' '))
+        name=fields.get('Package','')
+        if name.startswith('fidan-'): packages[name]={key:fields.get(key) for key in ('Version','Architecture','Status')}
+    expected={'fidan-artwork','fidan-shell','fidan-session','fidan-greeter','fidan-lock','fidan-firstboot','fidan-store','fidan-photos','fidan-apps','fidan-task-manager','fidan-updater','fidan-remote','fidan-desktop'}
+    checks['matchingInstalledPiOSPackages']=set(packages)==expected and all(item['Version']==expected_version and item['Architecture'] in ('arm64','all') and item['Status']=='install ok installed' for item in packages.values())
+    return {'checks':checks,'passed':all(checks.values()),'productVersion':product['version'],'installedPiOSPackages':packages,'humanAccounts':humans,'hardwareBootVerified':False}
+
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('directory',type=Path); args=parser.parse_args()
+    report=audit(args.directory); print(json.dumps(report,indent=2)); raise SystemExit(0 if report['passed'] else 1)

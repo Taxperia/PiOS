@@ -1,0 +1,16 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Fixed, administrator-authorized SSH toggle. Never accept unit names or commands.
+set -eu
+[ "$(id -u)" -eq 0 ] || { echo 'Administrator authorization is required' >&2; exit 1; }
+[ -f /var/lib/fidan/firstboot-complete ] || { echo 'Complete device setup first' >&2; exit 1; }
+case "${1:-}" in
+    # Debian's service prepares /run/sshd before its ExecStartPre validates the
+    # configuration. A standalone `sshd -t` before first start can fail on a
+    # missing runtime directory even when the configuration is valid.
+    on) ssh-keygen -A; systemctl enable --now ssh.service ;;
+    off)
+        if systemctl cat ssh.socket >/dev/null 2>&1; then systemctl disable --now ssh.socket; fi
+        systemctl disable --now ssh.service ;;
+    *) echo 'Usage: fidan-ssh on|off' >&2; exit 2 ;;
+esac

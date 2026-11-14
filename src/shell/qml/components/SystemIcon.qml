@@ -43,7 +43,25 @@ Item {
             ctx.lineCap = "round"
             ctx.lineJoin = "round"
 
-            if (root.name === "home") {
+            if (root.name === "user") {
+                ctx.beginPath(); ctx.arc(12,8,4,0,Math.PI*2); ctx.fill()
+                ctx.beginPath(); ctx.moveTo(4,22); ctx.bezierCurveTo(4,12,20,12,20,22); ctx.quadraticCurveTo(12,25,4,22); ctx.closePath(); ctx.fill()
+            } else if (root.name === "code") {
+                line(ctx,[[8,6],[3,12],[8,18]]); line(ctx,[[16,6],[21,12],[16,18]]); line(ctx,[[14,4],[10,20]])
+            } else if (root.name === "education") {
+                line(ctx,[[2,9],[12,4],[22,9],[12,14],[2,9]]); line(ctx,[[6,12],[6,18],[12,21],[18,18],[18,12]]); line(ctx,[[22,9],[22,17]])
+            } else if (root.name === "palette") {
+                ctx.beginPath(); ctx.moveTo(13,21); ctx.bezierCurveTo(1,23,0,8,7,4); ctx.bezierCurveTo(16,-1,25,8,20,14); ctx.bezierCurveTo(18,16,13,12,12,16); ctx.bezierCurveTo(11,18,16,19,13,21); ctx.stroke()
+                for (const p of [[6,10],[10,6],[15,6],[19,10]]) { ctx.beginPath(); ctx.arc(p[0],p[1],1,0,Math.PI*2); ctx.fill() }
+            } else if (root.name === "media") {
+                roundedRect(ctx,4,4,16,16,3,false); line(ctx,[[10,8],[16,12],[10,16],[10,8]])
+            } else if (root.name === "preferences") {
+                for (const p of [[6,8],[12,16],[18,10]]) { line(ctx,[[3,p[0]],[21,p[0]]]); ctx.clearRect(p[1]-3,p[0]-3,6,6); ctx.beginPath(); ctx.arc(p[1],p[0],2,0,Math.PI*2); ctx.stroke() }
+            } else if (root.name === "pin") {
+                line(ctx,[[8,3],[17,3],[16,10],[20,14],[5,14],[9,10],[8,3]]); line(ctx,[[12,14],[12,22]])
+            } else if (root.name === "recent") {
+                ctx.beginPath(); ctx.arc(12,12,8,Math.PI*1.2,Math.PI*2.95); ctx.stroke(); line(ctx,[[3,3],[3,9],[9,9]]); line(ctx,[[12,7],[12,12],[16,14]])
+            } else if (root.name === "home") {
                 line(ctx, [[4,11],[12,4],[20,11]])
                 ctx.beginPath(); ctx.moveTo(6.5,10); ctx.lineTo(6.5,20); ctx.lineTo(17.5,20); ctx.lineTo(17.5,10); ctx.stroke()
                 roundedRect(ctx, 10,14,4,6,1,false)
@@ -83,7 +101,7 @@ Item {
             } else if (root.name === "picture") {
                 roundedRect(ctx,3,4,18,16,2,false); ctx.beginPath(); ctx.arc(8,9,2,0,Math.PI*2); ctx.stroke()
                 line(ctx,[[5,18],[10,13],[13,16],[16,12],[20,17]])
-            } else if (root.name === "display") {
+            } else if (root.name === "display" || root.name === "monitor") {
                 roundedRect(ctx,3,4,18,13,2,false); line(ctx,[[12,17],[12,21]]); line(ctx,[[8,21],[16,21]])
             } else if (root.name === "sort") {
                 ctx.beginPath(); ctx.arc(5,6,1.5,0,Math.PI*2); ctx.fill(); line(ctx,[[9,6],[20,6]])
@@ -112,9 +130,37 @@ Item {
                 ctx.beginPath(); ctx.arc(12,13,7,Math.PI*0.15,Math.PI*1.85); ctx.stroke(); line(ctx,[[5,7],[5,13],[10,10]])
             } else if (root.name === "power") {
                 line(ctx,[[12,3],[12,12]]); ctx.beginPath(); ctx.arc(12,13,8,Math.PI*1.7,Math.PI*1.3); ctx.stroke()
-            } else if (root.name === "volume") {
+            } else if (root.name === "volume" || root.name === "volume-muted") {
                 ctx.beginPath(); ctx.moveTo(4,10); ctx.lineTo(8,10); ctx.lineTo(13,6); ctx.lineTo(13,18); ctx.lineTo(8,14); ctx.lineTo(4,14); ctx.closePath(); ctx.fill()
-                ctx.beginPath(); ctx.arc(12,12,6,-0.7,0.7); ctx.stroke(); ctx.beginPath(); ctx.arc(12,12,9,-0.7,0.7); ctx.stroke()
+                if (root.name === "volume-muted") {
+                    line(ctx, [[17,9],[22,15]]); line(ctx, [[22,9],[17,15]])
+                } else {
+                    ctx.beginPath(); ctx.arc(12,12,6,-0.7,0.7); ctx.stroke(); ctx.beginPath(); ctx.arc(12,12,9,-0.7,0.7); ctx.stroke()
+                }
+            } else if (root.name === "microphone" || root.name === "microphone-muted") {
+                roundedRect(ctx,9,3,6,11,3,false)
+                ctx.beginPath(); ctx.arc(12,12,6,0,Math.PI); ctx.stroke()
+                line(ctx,[[6,12],[6,10]]); line(ctx,[[18,12],[18,10]]); line(ctx,[[12,18],[12,22]]); line(ctx,[[9,22],[15,22]])
+                if (root.name === "microphone-muted") line(ctx,[[3,3],[21,21]])
+            } else if (root.name === "battery") {
+                roundedRect(ctx,3,6,17,12,2,false); roundedRect(ctx,20,9,2,6,1,true); roundedRect(ctx,6,9,9,6,1,true)
+            } else if (root.name === "music") {
+                line(ctx,[[9,17],[9,5],[19,3],[19,15]]); line(ctx,[[9,8],[19,6]])
+                ctx.beginPath(); ctx.ellipse(6,18,3,2,0,0,Math.PI*2); ctx.fill()
+                ctx.beginPath(); ctx.ellipse(16,16,3,2,0,0,Math.PI*2); ctx.fill()
+            } else if (root.name === "media-play") {
+                ctx.beginPath(); ctx.moveTo(7,4); ctx.lineTo(20,12); ctx.lineTo(7,20); ctx.closePath(); ctx.fill()
+            } else if (root.name === "pause") {
+                roundedRect(ctx,6,5,4,14,1,true); roundedRect(ctx,14,5,4,14,1,true)
+            } else if (root.name === "previous" || root.name === "next") {
+                if (root.name === "previous") { ctx.translate(24,0); ctx.scale(-1,1) }
+                ctx.beginPath(); ctx.moveTo(5,5); ctx.lineTo(16,12); ctx.lineTo(5,19); ctx.closePath(); ctx.fill()
+                roundedRect(ctx,17,5,3,14,1,true)
+            } else if (root.name === "window") {
+                roundedRect(ctx,3,4,18,16,2,false); line(ctx,[[3,9],[21,9]]); line(ctx,[[6,6],[8,6]])
+            } else if (root.name === "select") {
+                line(ctx,[[3,9],[3,3],[9,3]]); line(ctx,[[15,3],[21,3],[21,9]])
+                line(ctx,[[21,15],[21,21],[15,21]]); line(ctx,[[9,21],[3,21],[3,15]])
             } else if (root.name === "sun") {
                 ctx.beginPath(); ctx.arc(12,12,3.5,0,Math.PI*2); ctx.stroke()
                 for (let i=0;i<8;i++) { const a=i*Math.PI/4; line(ctx,[[12+6*Math.cos(a),12+6*Math.sin(a)],[12+9*Math.cos(a),12+9*Math.sin(a)]]) }

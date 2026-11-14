@@ -5,6 +5,7 @@
 #include <QDesktopServices>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QDir>
 #include <QSaveFile>
 #include <QLockFile>
@@ -95,8 +96,12 @@ bool CalendarModel::write() {
 }
 QVariantList CalendarModel::month(int year,int monthNumber) const {
     const QDate first(year,monthNumber,1); QVariantList cells; if(!first.isValid()) return cells;
+    QHash<QString,int> counts;
+    for (const auto &event : m_events) ++counts[event.toMap().value("date").toString()];
+    const QDate today = QDate::currentDate();
+    cells.reserve(42);
     QDate date=first.addDays(1-first.dayOfWeek());
-    for(int i=0;i<42;++i,date=date.addDays(1)) { const QString iso=date.toString(Qt::ISODate); cells.append(QVariantMap{{"date",iso},{"day",date.day()},{"current",date.month()==monthNumber},{"today",date==QDate::currentDate()},{"count",events(iso).size()}}); }
+    for(int i=0;i<42;++i,date=date.addDays(1)) { const QString iso=date.toString(Qt::ISODate); cells.append(QVariantMap{{"date",iso},{"day",date.day()},{"current",date.month()==monthNumber},{"today",date==today},{"count",counts.value(iso)}}); }
     return cells;
 }
 QVariantList CalendarModel::events(const QString &date) const {
@@ -125,12 +130,18 @@ bool CalendarModel::removeEvent(const QString &id) {
 QString CalendarModel::dateLabel(const QString &date) const { return QLocale("tr_TR").toString(QDate::fromString(date,Qt::ISODate),"d MMMM yyyy, dddd"); }
 
 ClockModel::ClockModel(QObject *parent):QObject(parent) {
+    connect(&m_wallTimer,&QTimer::timeout,this,&ClockModel::wallTick);
+    m_wallTimer.start(1000);
     m_tick.setInterval(50); connect(&m_tick,&QTimer::timeout,this,[this]{
-        const auto wall=QDateTime::currentSecsSinceEpoch();
-        if(wall!=m_lastWall) { m_lastWall=wall; emit wallTick(); }
-        if(m_counting && m_countdown.elapsed()>=m_remainingMs) { m_counting=false; m_remainingMs=0; emit timerFinished(); emit tick(); }
-        if(m_running || m_counting) emit tick();
-    }); m_tick.start();
+        if(m_counting && m_countdown.elapsed()>=m_remainingMs) {
+            m_counting=false; m_remainingMs=0; updateTickTimer(); emit timerFinished(); emit tick();
+        } else if(m_running || m_counting) emit tick();
+    });
+}
+void ClockModel::updateTickTimer() {
+    // High-frequency updates are only needed while measuring elapsed time.
+    if(m_running || m_counting) { if(!m_tick.isActive()) m_tick.start(); }
+    else m_tick.stop();
 }
 QString ClockModel::time() const { return QTime::currentTime().toString("HH:mm:ss"); }
 QString ClockModel::date() const { return QLocale("tr_TR").toString(QDate::currentDate(),"d MMMM yyyy, dddd"); }
@@ -139,14 +150,14 @@ QVariantList ClockModel::cities() const {
     const auto now=QDateTime::currentDateTimeUtc(); for(const auto &zone:zones) { const auto local=now.toTimeZone(QTimeZone(zone.second)); result.append(QVariantMap{{"name",zone.first},{"time",local.toString("HH:mm")},{"date",QLocale("tr_TR").toString(local.date(),"d MMM ddd")},{"zone",local.timeZoneAbbreviation()}}); } return result;
 }
 qint64 ClockModel::elapsed() const { return m_accumulated+(m_running?m_stopwatch.elapsed():0); }
-void ClockModel::toggleStopwatch() { if(m_running) m_accumulated+=m_stopwatch.elapsed(); else m_stopwatch.start(); m_running=!m_running; emit tick(); }
-void ClockModel::resetStopwatch() { m_accumulated=0; m_running=false; m_laps.clear(); emit tick(); }
+void ClockModel::toggleStopwatch() { if(m_running) m_accumulated+=m_stopwatch.elapsed(); else m_stopwatch.start(); m_running=!m_running; updateTickTimer(); emit tick(); }
+void ClockModel::resetStopwatch() { m_accumulated=0; m_running=false; m_laps.clear(); updateTickTimer(); emit tick(); }
 void ClockModel::lap() { if(m_running && m_laps.size()<100) { m_laps.prepend(elapsed()); emit tick(); } }
 int ClockModel::remaining() const { return int(std::max<qint64>(0,m_remainingMs-(m_counting?m_countdown.elapsed():0)+999)/1000); }
-void ClockModel::startTimer(int seconds) { if(seconds<1 || seconds>24*60*60) return; m_remainingMs=qint64(seconds)*1000; m_countdown.start(); m_counting=true; emit tick(); }
-void ClockModel::pauseTimer() { if(m_counting) { m_remainingMs=std::max<qint64>(0,m_remainingMs-m_countdown.elapsed()); m_counting=false; emit tick(); } }
-void ClockModel::resumeTimer() { if(!m_counting && m_remainingMs>0) { m_countdown.start(); m_counting=true; emit tick(); } }
-void ClockModel::cancelTimer() { m_counting=false; m_remainingMs=0; emit tick(); }
+void ClockModel::startTimer(int seconds) { if(seconds<1 || seconds>24*60*60) return; m_remainingMs=qint64(seconds)*1000; m_countdown.start(); m_counting=true; updateTickTimer(); emit tick(); }
+void ClockModel::pauseTimer() { if(m_counting) { m_remainingMs=std::max<qint64>(0,m_remainingMs-m_countdown.elapsed()); m_counting=false; updateTickTimer(); emit tick(); } }
+void ClockModel::resumeTimer() { if(!m_counting && m_remainingMs>0) { m_countdown.start(); m_counting=true; updateTickTimer(); emit tick(); } }
+void ClockModel::cancelTimer() { m_counting=false; m_remainingMs=0; updateTickTimer(); emit tick(); }
 
 bool DocumentFiles::open(const QUrl &url) {
     m_error.clear(); const QFileInfo file(url.toLocalFile());

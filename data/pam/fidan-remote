@@ -1,0 +1,4 @@
+# PAM authentication and logind sessions for the local browser desktop.
+@include common-auth
+@include common-account
+@include common-session

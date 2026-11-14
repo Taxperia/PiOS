@@ -2,7 +2,6 @@
 Description=Project Fidan graphical first-boot session
 ConditionPathExists=!/var/lib/fidan/firstboot-complete
 After=systemd-user-sessions.service fidan-firstbootd.service
-Conflicts=greetd.service
 
 [Service]
 Type=simple
@@ -11,8 +10,7 @@ PAMName=login
 TTYPath=/dev/tty1
 StandardInput=tty
 StandardOutput=journal
-Environment=XDG_RUNTIME_DIR=/run/user/%U
-ExecStart=/usr/bin/dbus-run-session /usr/bin/cage -- /usr/bin/fidan-firstboot
+ExecStart=/usr/bin/dbus-run-session /usr/bin/fidan-session --setup
 Restart=on-failure
 
 [Install]

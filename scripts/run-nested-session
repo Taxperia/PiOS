@@ -31,7 +31,7 @@ if [ "$(id -u)" = "0" ]; then
         # Login mode opens runuser-l's PAM/systemd session. A plain uid switch
         # leaves PolicyKit without a session and its authentication agent fails.
         exec runuser --login --shell /bin/sh \
-            --whitelist-environment=WAYLAND_DISPLAY,DISPLAY,WSL_DISTRO_NAME,WSL_INTEROP,FIDAN_PRIVATE_MOUNT,FIDAN_SESSION_SCRIPT,FIDAN_DESKTOP_USER,FIDAN_SHELL_BINARY,FIDAN_SESSION_TEST_APPS,XDG_SESSION_TYPE,XDG_SESSION_CLASS,LANG,LC_ALL,LANGUAGE \
+            --whitelist-environment=WAYLAND_DISPLAY,DISPLAY,PULSE_SERVER,WSL_DISTRO_NAME,WSL_INTEROP,FIDAN_PRIVATE_MOUNT,FIDAN_SESSION_SCRIPT,FIDAN_DESKTOP_USER,FIDAN_SHELL_BINARY,FIDAN_SESSION_TEST_APPS,XDG_SESSION_TYPE,XDG_SESSION_CLASS,LANG,LC_ALL,LANGUAGE \
             --command 'export XDG_RUNTIME_DIR="/run/user/$(id -u)"; cd "$(dirname "$FIDAN_SESSION_SCRIPT")/.." && exec "$FIDAN_SESSION_SCRIPT"' \
             "$session_user"
     fi
@@ -125,6 +125,7 @@ cp "$project_dir/data/labwc/themerc-override" "$session_dir/themerc-override"
 cat >"$session_dir/autostart" <<EOF
 #!/bin/sh
 dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS XDG_CONFIG_HOME
+if [ -n "\${PULSE_SERVER:-}" ]; then dbus-update-activation-environment --systemd PULSE_SERVER; fi
 lxqt-policykit-agent &
 fidan-display-restore
 fidan-night-light restore &

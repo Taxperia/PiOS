@@ -20,8 +20,9 @@ int main(int argc, char **argv)
     }
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     GreeterController greeter;
+    QObject::connect(&greeter, &GreeterController::authenticated, &app, &QCoreApplication::quit);
     QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty(QStringLiteral("Greeter"), &greeter);
+    engine.rootContext()->setContextProperty(QStringLiteral("GreeterBackend"), &greeter);
     engine.loadFromModule(QStringLiteral("Fidan.Greeter"), QStringLiteral("Greeter"));
     return engine.rootObjects().isEmpty() ? EXIT_FAILURE : app.exec();
 }

@@ -1,0 +1,15 @@
+[Unit]
+Description=Expand the PiOS root partition to the card capacity
+After=local-fs.target
+Before=fidan-firstbootd.service fidan-firstboot-session.service fidan-remote-bootstrap.service
+ConditionPathExists=/etc/fidan/pi-image
+ConditionPathExists=!/var/lib/fidan/root-expanded
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/fidan-grow-root
+StateDirectory=fidan
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

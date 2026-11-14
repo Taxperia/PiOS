@@ -91,6 +91,8 @@ Item {
             }
             SettingsControls.Card {
                 SettingsControls.Title { text: qsTr("Görev çubuğu") }
+                SettingsControls.Combo { model: [qsTr("Üst panel"), qsTr("Alt panel")]; currentIndex: Controller.panelPosition === "top" ? 0 : 1; onActivated: Controller.panelPosition = currentIndex === 0 ? "top" : "bottom" }
+                SettingsControls.Combo { model: [qsTr("Ayrıntılı panel"), qsTr("Kompakt panel")]; currentIndex: Controller.panelStyle === "detailed" ? 0 : 1; onActivated: Controller.panelStyle = currentIndex === 0 ? "detailed" : "compact" }
                 SettingsControls.Caption { text: qsTr("Ekrandaki konumunu seç") }
                 RowLayout { Layout.fillWidth: true; spacing: 6; Repeater { model: [{id:"left",name:qsTr("Sol")},{id:"bottom",name:qsTr("Alt")},{id:"right",name:qsTr("Sağ")}]; SettingsControls.Option { required property var modelData; text: modelData.name; dockSide: modelData.id; selected: Controller.dockPosition === modelData.id; onClicked: Controller.dockPosition = modelData.id } } }
             }

@@ -1,0 +1,12 @@
+usr/bin/fidan-remote
+usr/bin/fidan-rdp
+usr/bin/fidan-rdp-session
+usr/bin/fidan-remote-session
+usr/bin/fidan-provision
+usr/lib/fidan/remote/*.py
+usr/share/fidan/remote/*
+etc/pam.d/fidan-remote
+etc/fidan/wayvnc.conf
+usr/lib/systemd/system/fidan-remote-bootstrap.service
+usr/lib/systemd/system/fidan-gateway.service
+usr/lib/systemd/system/fidan-remote-broker.service

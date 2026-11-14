@@ -6,7 +6,9 @@ import Fidan.Shell
 GlassPanel {
     id: root
     implicitWidth: 320
-    implicitHeight: Controller.brightnessAvailable ? 386 : 342
+    implicitHeight: Math.min(maximumHeight, settingsColumn.implicitHeight + 28)
+    property real maximumHeight: 620
+    property bool mixerExpanded: false
     raised: true
     radius: 17
     clip: true
@@ -108,9 +110,16 @@ GlassPanel {
         }
     }
 
-    Column {
+    Flickable {
         anchors.fill: parent
-        anchors.margins: 14
+        contentHeight: settingsColumn.implicitHeight + 28
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+    Column {
+        id: settingsColumn
+        x: 14; y: 14
+        width: parent.width - 28
         spacing: 10
 
         Row {
@@ -136,6 +145,8 @@ GlassPanel {
             }
         }
 
+        MediaCard { width: parent.width }
+
         Rectangle { width: parent.width; height: 1; color: Theme.border(Controller.darkTheme); opacity: 0.7 }
 
         SettingSlider {
@@ -151,6 +162,43 @@ GlassPanel {
             settingValue: Controller.volumeMuted ? 0 : Controller.volume
             onMoved: value => Controller.volume = Math.round(value)
             onIconClicked: Controller.toggleVolumeMute()
+        }
+
+        Row {
+            width: parent.width; height: 32
+            visible: DesktopServices.microphoneAvailable
+            spacing: 8
+            IconButton {
+                objectName: "microphoneToggle"
+                compact: true; iconName: DesktopServices.microphoneMuted ? "microphone-muted" : "microphone"
+                active: !DesktopServices.microphoneMuted
+                accessibleName: qsTr("Toggle microphone mute")
+                onClicked: DesktopServices.toggleMicrophoneMute()
+            }
+            Text { anchors.verticalCenter: parent.verticalCenter; text: DesktopServices.microphoneMuted ? qsTr("Microphone off") : qsTr("Microphone on"); color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 11 }
+        }
+        Button {
+            objectName: "audioMixerToggle"
+            width: parent.width; height: 32
+            visible: Controller.audioAvailable
+            text: root.mixerExpanded ? qsTr("Hide audio mixer") : qsTr("Outputs and application volume")
+            palette.button: Theme.raised(Controller.darkTheme); palette.buttonText: Theme.text(Controller.darkTheme)
+            font.family: Theme.fontFamily; font.pixelSize: 10
+            onClicked: { root.mixerExpanded = !root.mixerExpanded; if (root.mixerExpanded) DesktopServices.refreshAudio() }
+        }
+        AudioMixer { width: parent.width; visible: root.mixerExpanded }
+
+        Row {
+            width: parent.width; height: 30; spacing: 7
+            visible: DesktopServices.batteryAvailable
+            SystemIcon { anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; name: DesktopServices.pluggedIn ? "bolt" : "battery"; color: DesktopServices.batteryPercent <= 20 && !DesktopServices.pluggedIn ? "#EBA165" : Theme.accent }
+            Text { anchors.verticalCenter: parent.verticalCenter; text: DesktopServices.batteryPercent + "% · " + (DesktopServices.charging ? qsTr("Charging") : DesktopServices.pluggedIn ? qsTr("External power") : qsTr("On battery")); color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 11 }
+        }
+        Button {
+            width: parent.width; height: 32; text: qsTr("Take a screenshot")
+            palette.button: Theme.raised(Controller.darkTheme); palette.buttonText: Theme.text(Controller.darkTheme)
+            font.family: Theme.fontFamily; font.pixelSize: 10
+            onClicked: { Controller.quickSettingsVisible = false; DesktopServices.screenshotVisible = true }
         }
 
         Rectangle { width: parent.width; height: 1; color: Theme.border(Controller.darkTheme); opacity: 0.7 }
@@ -199,6 +247,8 @@ GlassPanel {
                 }
             }
         }
+    }
+
     }
 
     Rectangle {

@@ -1,0 +1,76 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Keep a 1080p headless output available only when no physical output is active."""
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+import signal
+import stat
+import time
+
+
+def capture():
+    """WayVNC uses a raw Unix socket; websockify frames it on another private Unix socket.
+
+    WayVNC 0.9 rejects -w together with -u. Neither child opens a TCP listener.
+    """
+    if os.geteuid() == 0: raise PermissionError('Run this helper as the desktop user')
+    runtime = Path(os.environ['XDG_RUNTIME_DIR'])
+    info = runtime.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
+        raise PermissionError('Untrusted runtime directory')
+    os.umask(0o077)
+    raw = runtime/'fidan-remote-rfb.sock'; websocket = runtime/'fidan-remote-ws.sock'
+    def remove(path):
+        try: info = path.lstat()
+        except FileNotFoundError: return
+        if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid(): raise PermissionError('Untrusted capture socket')
+        path.unlink()
+    remove(raw); remove(websocket)
+    children = []; stopping = False
+    def stop(*_):
+        nonlocal stopping
+        stopping = True
+    signal.signal(signal.SIGTERM, stop); signal.signal(signal.SIGINT, stop)
+    try:
+        children.append(subprocess.Popen(['/usr/bin/wayvnc', '-C', '/etc/fidan/wayvnc.conf', '-f', '30', '-u',
+            '-S', str(runtime/'fidan-remote-ctl'), str(raw)]))
+        for attempt in range(100):
+            if stopping or children[0].poll() is not None: return 1
+            if raw.is_socket(): break
+            time.sleep(.1)
+        else: raise RuntimeError('WayVNC did not create its private socket')
+        children.append(subprocess.Popen(['/usr/bin/websockify', '--unix-listen='+str(websocket),
+            '--unix-listen-mode=0600', '--unix-target='+str(raw)]))
+        while not stopping:
+            if any(child.poll() is not None for child in children): return 1
+            time.sleep(.2)
+        return 0
+    finally:
+        for child in children:
+            if child.poll() is None: child.terminate()
+        for child in children:
+            try: child.wait(timeout=5)
+            except subprocess.TimeoutExpired: child.kill(); child.wait()
+        remove(raw); remove(websocket)
+
+def prepare():
+    if os.geteuid() == 0: raise PermissionError('Run this helper as the desktop user')
+    result = subprocess.run(['wlr-randr','--json'], capture_output=True, text=True, check=True, timeout=10)
+    outputs = json.loads(result.stdout)
+    virtual = next((o for o in outputs if o['name'].startswith(('HEADLESS-','NOOP-'))), None)
+    if not virtual: return
+    physical = any(o.get('enabled') and not o['name'].startswith(('HEADLESS-','NOOP-')) for o in outputs)
+    args = ['wlr-randr','--output',virtual['name']]
+    args += ['--off'] if physical else ['--on','--custom-mode','1920x1080@60']
+    subprocess.run(args, check=True, timeout=10)
+
+if __name__ == '__main__':
+    try:
+        if sys.argv[1:] == ['prepare-output']: prepare()
+        elif sys.argv[1:] == ['capture']: sys.exit(capture())
+        else: raise ValueError('usage: fidan-remote-session {prepare-output|capture}')
+    except (OSError,ValueError,PermissionError,subprocess.SubprocessError) as error:
+        print('Remote output: '+str(error),file=sys.stderr); sys.exit(1)

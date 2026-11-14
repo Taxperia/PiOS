@@ -74,3 +74,26 @@ Package releases are not bootable images. Building and publishing a Pi 5 image
 still requires `scripts/build-image`, the pinned image generator and the
 physical hardware acceptance checklist. Do not describe package-only alpha
 releases as hardware-qualified OS images.
+
+Run `python3 scripts/build-image` to inspect the plan without downloading or
+building. `--check` requires all prerequisites; only `--build` starts the large
+build. See [image instructions](../image/README.md) and
+[installation readiness](installation-readiness.md).
+
+## PiOS package recovery
+
+Before installing a signed release, the updater uses `dpkg-repack` to preserve
+the exact installed PiOS packages in root-owned `/var/lib/fidan/recovery`.
+An incomplete checkpoint blocks installation. A rollback explicitly permits
+downgrades only from that validated local checkpoint; routine signed updates
+continue to reject downgrades. Personal files and Debian dependency versions
+are outside this checkpoint.
+
+```sh
+fidan-update recovery-status
+fidan-update rollback       # Prompts for administrator authorization
+fidan-update repair         # dpkg --configure -a, then apt --fix-broken if needed
+```
+
+Keep power connected during package operations. If the desktop cannot start,
+use a trusted console/SSH session (if previously enabled) to run the same tools.

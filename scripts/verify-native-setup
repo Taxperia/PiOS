@@ -1,0 +1,78 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Real Labwc, shell, native QML installer and WayVNC; isolated setup backend.
+set -eu
+project=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "$(id -u)" = 0 ]; then
+    if [ -n "${WSL_DISTRO_NAME:-}" ] && [ -d /tmp/.X11-unix ] && [ "$(stat -c %a /tmp/.X11-unix)" != 1777 ]; then
+        if [ "${FIDAN_REVIEW_PRIVATE_MOUNT:-0}" != 1 ]; then
+            export FIDAN_REVIEW_PRIVATE_MOUNT=1
+            exec unshare --mount --propagation private -- sh "$0" "$@"
+        fi
+        review_x11=$(mktemp -d /run/fidan-review-x11.XXXXXX)
+        chmod 1777 "$review_x11"
+        mount --bind "$review_x11" /tmp/.X11-unix
+        trap 'umount /tmp/.X11-unix; rmdir "$review_x11"' EXIT HUP INT TERM
+        runuser -u fidan -- sh "$0" "$@"
+        exit $?
+    fi
+    exec runuser -u fidan -- sh "$0" "$@"
+fi
+output=${1:-"$project/artifacts/native-setup"}
+mkdir -p "$output"
+output=$(CDPATH= cd -- "$output" && pwd)
+review_runtime=$(mktemp -d /tmp/fidan-native-setup.XXXXXX)
+cleanup() {
+    if [ -f "$review_runtime/pids" ]; then
+        while read -r process; do kill "$process" 2>/dev/null || true; done < "$review_runtime/pids"
+    fi
+    rm -rf -- "$review_runtime"
+}
+trap cleanup EXIT HUP INT TERM
+export HOME="$review_runtime/home" XDG_RUNTIME_DIR="$review_runtime/run"
+export XDG_CONFIG_HOME="$HOME/.config" XDG_DATA_HOME="$HOME/.local/share"
+mkdir -p "$HOME" "$XDG_RUNTIME_DIR" "$XDG_CONFIG_HOME/fidan" "$review_runtime/profile"
+chmod 700 "$XDG_RUNTIME_DIR"
+cat > "$XDG_CONFIG_HOME/fidan/shell.conf" <<EOF
+[appearance]
+darkTheme=true
+interfaceScale=1
+accentColor=#a8b8ff
+wallpaper=file://$project/artwork/wallpapers/collection/fidan-midnight.svg
+EOF
+cp "$project/data/labwc/rc.xml" "$project/data/labwc/themerc-override" "$review_runtime/profile/"
+export FIDAN_REVIEW_PROJECT="$project" FIDAN_REVIEW_OUTPUT="$output" FIDAN_REVIEW_RUNTIME="$review_runtime"
+cat > "$review_runtime/profile/autostart" <<'EOF'
+#!/bin/sh
+set -eu
+project=$FIDAN_REVIEW_PROJECT
+output=$FIDAN_REVIEW_OUTPUT
+runtime=$FIDAN_REVIEW_RUNTIME
+python3 "$project/scripts/fidan-remote-session" prepare-output
+"$project/build/dev/src/shell/fidan-shell" > "$output/shell.log" 2>&1 &
+echo $! >> "$runtime/pids"
+FIDAN_NATIVE_SETUP_REVIEW=1 FIDAN_TEST_TRANSLATOR="$project/build/dev/src/firstboot/fidan-firstboot_tr.qm" \
+    "$project/build/dev/tests/fidan-firstboot-tests" nativeDesktopReview > "$output/installer.log" 2>&1 &
+echo $! >> "$runtime/pids"
+python3 "$project/scripts/fidan-remote-session" capture > "$output/wayvnc.log" 2>&1 &
+echo $! >> "$runtime/pids"
+python3 "$project/tests/serve_remote_ui.py" --native-socket "$XDG_RUNTIME_DIR/fidan-remote-ws.sock" --port 8766 > "$output/browser.log" 2>&1 &
+echo $! >> "$runtime/pids"
+sleep 5
+grim "$output/native-desktop.png"
+EOF
+chmod 755 "$review_runtime/profile/autostart"
+export FIDAN_SKIP_FIRSTBOOT=1 FIDAN_SETUP_SESSION=1
+export XDG_CURRENT_DESKTOP=Fidan XDG_SESSION_TYPE=wayland
+export QT_QPA_PLATFORM=wayland QT_QUICK_BACKEND=software QT_WAYLAND_SHELL_INTEGRATION=xdg-shell
+export WLR_BACKENDS=headless WLR_HEADLESS_OUTPUTS=1 WLR_RENDERER=pixman
+export QT_LOGGING_RULES='*.debug=false'
+if [ -x "$project/build/dev-runtime/prefix/bin/labwc" ]; then
+    export PATH="$project/build/dev-runtime/prefix/bin:$PATH"
+    export LD_LIBRARY_PATH="$project/build/dev-runtime/prefix/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+printf 'Native desktop review: http://localhost:8766/ (fixture-password; no real accounts are changed)\n'
+dbus-run-session -- labwc -C "$review_runtime/profile" > "$output/compositor.log" 2>&1 &
+review_compositor=$!
+echo "$review_compositor" >> "$review_runtime/pids"
+wait "$review_compositor"

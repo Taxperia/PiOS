@@ -3,6 +3,8 @@
 import importlib.machinery
 import importlib.util
 import os
+import json
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -16,6 +18,23 @@ module=importlib.util.module_from_spec(spec)
 loader.exec_module(module)
 
 class InputTest(unittest.TestCase):
+    def test_session_uses_allowlisted_language_without_evaluating_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); tools = root/'tools'; tools.mkdir(); config = root/'config/fidan'; config.mkdir(parents=True)
+            helper = tools/'fidan-input'; helper.write_text('#!/bin/sh\nprintf "%s" "$FIDAN_TEST_PROFILE"\n'); helper.chmod(0o755)
+            compositor = tools/'labwc'
+            compositor.write_text('#!/usr/bin/python3\nimport json, os\nfrom pathlib import Path\nPath(os.environ["FIDAN_TEST_OUTPUT"]).write_text(json.dumps({key:os.environ.get(key) for key in ("LANG","LC_TIME","XKB_DEFAULT_LAYOUT")}))\n')
+            compositor.chmod(0o755); output = root/'environment.json'
+            env = dict(os.environ, PATH=str(tools)+':'+os.environ['PATH'], XDG_CONFIG_HOME=str(root/'config'),
+                       LANG='C.UTF-8', LC_TIME='C.UTF-8', XKB_DEFAULT_LAYOUT='us', WLR_BACKENDS='headless',
+                       FIDAN_TEST_OUTPUT=str(output), FIDAN_TEST_PROFILE=str(root/'profile'))
+            preferences = config/'shell.conf'; preferences.write_text('[region]\nlanguage=tr_TR.UTF-8\n[input]\nkeyboardLayout=tr\n')
+            subprocess.run(['sh', str(SCRIPT.with_name('fidan-session'))], env=env, check=True)
+            self.assertEqual(json.loads(output.read_text()), {'LANG':'tr_TR.UTF-8','LC_TIME':'tr_TR.UTF-8','XKB_DEFAULT_LAYOUT':'tr'})
+            marker = root/'must-not-exist'
+            preferences.write_text('[region]\nlanguage=$(touch '+str(marker)+')\n[input]\nkeyboardLayout=us\n')
+            subprocess.run(['sh', str(SCRIPT.with_name('fidan-session'))], env=env, check=True)
+            self.assertFalse(marker.exists()); self.assertEqual(json.loads(output.read_text())['LANG'], 'C.UTF-8')
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

@@ -1,0 +1,13 @@
+[Unit]
+Description=Generate unique SSH host keys on each PiOS device
+Before=ssh.service
+ConditionPathExists=/usr/bin/ssh-keygen
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -A
+RemainAfterExit=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

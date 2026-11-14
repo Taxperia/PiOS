@@ -19,6 +19,9 @@
 #include <QQmlExpression>
 #include <QSignalSpy>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QDir>
 #include <QScopeGuard>
 #include <QDesktopServices>
@@ -85,6 +88,64 @@ private slots:
         const QString path=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/fidan/calendar/events.json";
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); file.write("broken calendar"); file.close();
         QVERIFY(!restored.saveEvent("","2028-03-01","10:00","Preserve existing")); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(),QByteArray("broken calendar")); file.close(); QVERIFY(file.remove());
+    }
+    void calendarCountsLargeMonthIncludingAdjacentDays() {
+        const QString path=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/fidan/calendar/events.json";
+        QVERIFY(QDir().mkpath(QFileInfo(path).absolutePath()));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        const auto cleanup=qScopeGuard([&] { QFile::remove(path); });
+        QJsonArray events;
+        for(int i=0;i<4997;++i)
+            events.append(QJsonObject{{"date","2028-02-29"},{"time",i%2?"14:30":""},{"title","Event"}});
+        for(const auto &date:{"2028-01-31","2028-03-12","2028-03-13"})
+            events.append(QJsonObject{{"date",date},{"time","09:00"},{"title","Adjacent day"}});
+        const auto bytes=QJsonDocument(events).toJson();
+        QCOMPARE(file.write(bytes),qint64(bytes.size()));
+        file.close();
+        CalendarModel model;
+        const auto cells=model.month(2028,2);
+        QCOMPARE(cells.size(),42);
+        QCOMPARE(cells.first().toMap().value("count").toInt(),1);
+        QCOMPARE(cells.last().toMap().value("count").toInt(),1);
+        int total=0;
+        for(const auto &value:cells) {
+            const auto cell=value.toMap();
+            QCOMPARE(cell.value("count").toInt(),int(model.events(cell.value("date").toString()).size()));
+            total+=cell.value("count").toInt();
+        }
+        QCOMPARE(total,4999);
+        QVERIFY(model.month(2028,13).isEmpty());
+    }
+    void clockUpdatesOnlyActiveMeasurements() {
+        ClockModel clock;
+        QSignalSpy ticks(&clock,&ClockModel::tick), wall(&clock,&ClockModel::wallTick);
+        QSignalSpy finished(&clock,&ClockModel::timerFinished);
+        QTest::qWait(120);
+        QCOMPARE(ticks.count(),0);
+        clock.toggleStopwatch();
+        clock.startTimer(1);
+        clock.resetStopwatch(); // The countdown must keep the update timer alive.
+        ticks.clear();
+        QTRY_VERIFY_WITH_TIMEOUT(ticks.count()>0,500);
+        clock.toggleStopwatch();
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(),1,1800);
+        ticks.clear();
+        QTRY_VERIFY_WITH_TIMEOUT(ticks.count()>0,500); // Stopwatch survives completion.
+        clock.startTimer(5);
+        clock.cancelTimer();
+        ticks.clear();
+        QTRY_VERIFY_WITH_TIMEOUT(ticks.count()>0,500); // Stopwatch survives cancellation.
+        clock.toggleStopwatch();
+        ticks.clear(); wall.clear();
+        QTRY_VERIFY_WITH_TIMEOUT(wall.count()>0,1500);
+        QCOMPARE(ticks.count(),0);
+        clock.startTimer(5); clock.pauseTimer(); ticks.clear();
+        QTest::qWait(120); QCOMPARE(ticks.count(),0);
+        clock.resumeTimer(); ticks.clear();
+        QTRY_VERIFY_WITH_TIMEOUT(ticks.count()>0,500);
+        clock.cancelTimer(); ticks.clear();
+        QTest::qWait(120); QCOMPARE(ticks.count(),0);
     }
     void stopwatchAndCountdown() {
         ClockModel clock; QSignalSpy finished(&clock,&ClockModel::timerFinished);

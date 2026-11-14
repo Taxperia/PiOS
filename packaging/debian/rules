@@ -4,12 +4,24 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CXXFLAGS_MAINT_APPEND = -Wformat -Werror=format-security
 export QT_QPA_PLATFORM = offscreen
 export QT_QUICK_BACKEND = software
+include /usr/share/dpkg/architecture.mk
+
+FIDAN_TESTING = $(if $(filter nocheck,$(DEB_BUILD_OPTIONS)),OFF,ON)
+FIDAN_BUILD_TYPE = RelWithDebInfo
+ifneq ($(DEB_BUILD_ARCH),$(DEB_HOST_ARCH))
+ifeq ($(DEB_HOST_ARCH),arm64)
+FIDAN_BUILD_TYPE = Release
+FIDAN_CROSS_OPTIONS = -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+ -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DQT_HOST_PATH=/usr \
+ -DQt6LinguistTools_DIR=/usr/lib/$(DEB_BUILD_MULTIARCH)/cmake/Qt6LinguistTools
+endif
+endif
 
 %:
 	dh $@ --buildsystem=cmake+ninja
 
 override_dh_auto_configure:
-	dh_auto_configure -- -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=ON
+	dh_auto_configure -- -DCMAKE_BUILD_TYPE=$(FIDAN_BUILD_TYPE) -DBUILD_TESTING=$(FIDAN_TESTING) $(FIDAN_CROSS_OPTIONS)
 
 override_dh_installsystemd:
 	dh_installsystemd --no-stop-on-upgrade --no-restart-after-upgrade

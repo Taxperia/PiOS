@@ -5,7 +5,27 @@ set -eu
 # bdebstrap passes the target root as $1 for customize hooks.
 root=${1:?target root is required}
 
-chroot "$root" /usr/sbin/locale-gen tr_TR.UTF-8 en_US.UTF-8
+# Install only the package set whose metadata and hashes the image wrapper checked.
+source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+install -d -m 0755 "$root/tmp/fidan-packages"
+while IFS= read -r package || [ -n "$package" ]; do
+    # Source snapshots may originate on Windows. Keep CRLF list entries from
+    # becoming filenames with a literal carriage return inside the chroot.
+    package=$(printf '%s' "$package" | tr -d '\r')
+    case "$package" in ''|'#'*) continue ;; esac
+    case "$package" in *'/'*|*'..'*|*-dbgsym_*) echo 'Invalid image package path' >&2; exit 1 ;; esac
+    install -m 0644 "$source_dir/packages/$package" "$root/tmp/fidan-packages/$package"
+done < "$source_dir/packages.list"
+chroot "$root" /bin/sh -c 'DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends /tmp/fidan-packages/*.deb'
+rm -f "$root/tmp/fidan-packages/"*.deb
+rmdir "$root/tmp/fidan-packages"
+
+# Debian locale-gen reads /etc/locale.gen; locale names passed as arguments do
+# not enable entries. Generate both languages offered by the first-boot UI.
+for locale in tr_TR.UTF-8 en_US.UTF-8; do
+    if ! grep -q "^$locale UTF-8$" "$root/etc/locale.gen"; then printf '%s UTF-8\n' "$locale" >> "$root/etc/locale.gen"; fi
+done
+chroot "$root" /usr/sbin/locale-gen
 
 if ! chroot "$root" getent passwd fidan-setup >/dev/null; then
     chroot "$root" adduser --system --group --home /var/lib/fidan-setup --no-create-home fidan-setup
@@ -35,4 +55,5 @@ chroot "$root" systemctl enable NetworkManager.service
 chroot "$root" systemctl enable bluetooth.service
 chroot "$root" systemctl enable fidan-firstbootd.service
 chroot "$root" systemctl enable fidan-firstboot-session.service
+chroot "$root" systemctl enable fidan-remote-bootstrap.service fidan-gateway.service fidan-remote-broker.service
 chroot "$root" systemctl set-default graphical.target

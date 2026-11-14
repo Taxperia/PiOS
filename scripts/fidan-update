@@ -14,6 +14,8 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
+import uuid
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
@@ -205,7 +207,7 @@ def command_check(product, show_notification=False):
     ready = bool(available and (cache_root() / tag / 'ready.json').is_file())
     print(json.dumps({'installed': product['version'], 'latest': tag.removeprefix('v'), 'updateAvailable': available,
                       'installable': installable, 'downloaded': ready, 'automaticEnabled': automatic_enabled(),
-                      'url': release.get('html_url', '') if release else ''}, ensure_ascii=False))
+                      'url': release.get('html_url', '') if release else '', 'recoveryAvailable': recovery_status()['available']}, ensure_ascii=False))
     if show_notification and available:
         notify('PiOS güncellemesi', f'{tag} kullanılabilir. Ayarlar → Sistem bölümünü açın.')
     return 0
@@ -232,7 +234,10 @@ def download_release(product):
         if name not in assets:
             raise RuntimeError(f'Release is missing {name}')
         target = directory / name
-        download(assets[name], target)
+        cached = False
+        if target.is_file() and not target.is_symlink():
+            with target.open('rb') as stream: cached = hashlib.file_digest(stream, 'sha256').hexdigest() == package['sha256']
+        if not cached: download(assets[name], target)
         with target.open('rb') as stream:
             digest = hashlib.file_digest(stream, 'sha256').hexdigest()
         if digest != package['sha256']:
@@ -255,6 +260,131 @@ def installed_version(package):
     return version.strip() if result.returncode == 0 and status == 'installed' else ''
 
 
+def recovery_root():
+    return Path('/var/lib/fidan/recovery')
+
+
+def atomic_json(target, value, mode=0o600):
+    descriptor, name = tempfile.mkstemp(prefix='.state-', dir=target.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, 'w') as stream:
+            os.fchmod(stream.fileno(), mode)
+            json.dump(value, stream)
+            stream.flush(); os.fsync(stream.fileno())
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def recovery_status():
+    path = recovery_root().parent / 'recovery-status.json'
+    try:
+        if path.is_symlink() or path.stat().st_uid != 0 or path.stat().st_mode & 0o022 or path.stat().st_size > METADATA_LIMIT:
+            return {'available': False}
+        data = json.loads(path.read_text())
+        return {'available': data.get('available') is True, 'version': str(data.get('version', '')), 'created': data.get('created', 0)}
+    except (OSError, ValueError):
+        return {'available': False}
+
+
+def prepare_recovery(product, packages):
+    """Keep a root-owned copy of the exact installed PiOS packages before APT."""
+    if not shutil.which('dpkg-repack'):
+        raise RuntimeError('Install dpkg-repack before updating; no update was applied without a recovery copy')
+    root = recovery_root(); private_directory(root)
+    pointer = root / 'latest.json'
+    if pointer.exists():
+        # Keep the original pre-update copy when a failed APT transaction is
+        # retried. Repacking a partially updated system would lose that baseline.
+        with tempfile.TemporaryDirectory(prefix='.inspect-', dir=root) as temporary:
+            staging = Path(temporary); snapshot(pointer, staging/'latest.json', METADATA_LIMIT)
+            previous = json.loads((staging/'latest.json').read_text())
+            if previous.get('pending'):
+                directory = previous.get('directory', '')
+                if not isinstance(directory, str) or not re.fullmatch(r'checkpoint-[0-9a-f]{32}', directory): raise RuntimeError('Invalid recovery directory')
+                checkpoint = root / directory; private_directory(checkpoint)
+                snapshot(checkpoint/'checkpoint.json', staging/'checkpoint.json', METADATA_LIMIT)
+                manifest = json.loads((staging/'checkpoint.json').read_text())
+                entries = manifest.get('packages', [])
+                if manifest.get('schema') != 1 or not isinstance(entries, list) or not entries: raise RuntimeError('Invalid recovery manifest')
+                names = set()
+                for entry in entries:
+                    name, filename = entry.get('Package',''), entry.get('file','')
+                    if not PACKAGE.fullmatch(name) or name in names or Path(filename).name != filename or not filename.endswith('.deb'): raise RuntimeError('Invalid recovery package')
+                    names.add(name); target = staging/filename; snapshot(checkpoint/filename, target, PACKAGE_LIMIT)
+                    with target.open('rb') as stream: digest = hashlib.file_digest(stream,'sha256').hexdigest()
+                    if digest != entry.get('sha256'): raise RuntimeError('The recovery copy is damaged; repair it before retrying')
+                if not set(packages).issubset(names): raise RuntimeError('Resolve the pending update before updating a different package set')
+                return checkpoint
+    with tempfile.TemporaryDirectory(prefix='.prepare-', dir=root) as temporary:
+        staging = Path(temporary)
+        versions = {package: installed_version(package) for package in packages}
+        if not all(PACKAGE.fullmatch(package) and version for package, version in versions.items()):
+            raise RuntimeError('Cannot checkpoint an uninstalled or invalid package')
+        subprocess.run(['dpkg-repack', '--tag=none', *packages], cwd=staging, check=True, stdout=subprocess.DEVNULL)
+        entries = []
+        for archive in staging.glob('*.deb'):
+            fields = subprocess.check_output(['dpkg-deb', '-f', str(archive), 'Package', 'Version', 'Architecture'], text=True)
+            actual = dict(line.split(': ', 1) for line in fields.splitlines())
+            package = actual.get('Package')
+            if package not in versions or actual.get('Version') != versions[package] or actual.get('Architecture') not in ('all', architecture()):
+                raise RuntimeError('Recovery package identity does not match the installed version')
+            with archive.open('rb') as stream: digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            entries.append(dict(actual, file=archive.name, sha256=digest))
+        if len(entries) != len(versions) or {entry['Package'] for entry in entries} != set(versions):
+            raise RuntimeError('The recovery copy is incomplete; no update was applied')
+        manifest = {'schema': 1, 'version': product['version'], 'created': int(time.time()), 'packages': entries}
+        atomic_json(staging / 'checkpoint.json', manifest)
+        destination = root / ('checkpoint-' + uuid.uuid4().hex)
+        staging.rename(destination)
+        atomic_json(root / 'latest.json', {'directory': destination.name, 'pending': True})
+        atomic_json(root.parent / 'recovery-status.json', {'available': True, 'version': product['version'], 'created': manifest['created']}, 0o644)
+        # Retain the latest two successful snapshots. Never follow symlinks or
+        # remove unrelated data in the recovery root.
+        checkpoints = sorted((p for p in root.iterdir() if re.fullmatch(r'checkpoint-[0-9a-f]{32}',p.name)
+                              and not p.is_symlink() and p.is_dir() and p.stat().st_uid == os.geteuid()),key=lambda p:p.stat().st_mtime_ns,reverse=True)
+        for obsolete in [p for p in checkpoints if p != destination][1:]: shutil.rmtree(obsolete)
+        return destination
+
+
+def recovery_packages():
+    root = recovery_root(); private_directory(root)
+    pointer = root / 'latest.json'
+    if pointer.is_symlink() or pointer.stat().st_uid != os.geteuid() or pointer.stat().st_mode & 0o022 or pointer.stat().st_size > METADATA_LIMIT:
+        raise RuntimeError('Untrusted recovery state')
+    directory = json.loads(pointer.read_text()).get('directory', '')
+    if not re.fullmatch(r'checkpoint-[0-9a-f]{32}', directory): raise RuntimeError('Invalid recovery directory')
+    checkpoint = root / directory; private_directory(checkpoint)
+    with tempfile.TemporaryDirectory(prefix='.restore-', dir=root) as temporary:
+        staging = Path(temporary)
+        snapshot(checkpoint / 'checkpoint.json', staging / 'checkpoint.json', METADATA_LIMIT)
+        manifest = json.loads((staging / 'checkpoint.json').read_text())
+        if manifest.get('schema') != 1 or not isinstance(manifest.get('packages'), list) or not manifest['packages']:
+            raise RuntimeError('Invalid recovery manifest')
+        selected = []
+        seen = set()
+        for entry in manifest['packages']:
+            package, filename = entry.get('Package', ''), entry.get('file', '')
+            if not PACKAGE.fullmatch(package) or package in seen or Path(filename).name != filename or not filename.endswith('.deb'):
+                raise RuntimeError('Invalid recovery package path or identity')
+            seen.add(package)
+            target = staging / filename; snapshot(checkpoint / filename, target, PACKAGE_LIMIT)
+            with target.open('rb') as stream: digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            if digest != entry.get('sha256'): raise RuntimeError('The recovery copy is damaged')
+            fields = subprocess.check_output(['dpkg-deb', '-f', str(target), 'Package', 'Version', 'Architecture'], text=True)
+            actual = dict(line.split(': ', 1) for line in fields.splitlines())
+            if actual != {key: entry[key] for key in ('Package', 'Version', 'Architecture')} or actual['Architecture'] not in ('all', architecture()):
+                raise RuntimeError('Recovery package metadata does not match')
+            selected.append(str(target))
+        env = dict(os.environ, DEBIAN_FRONTEND='noninteractive', NEEDRESTART_MODE='l')
+        result = subprocess.run(['apt-get', '-o', 'Dpkg::Options::=--force-confold', 'install', '-y', '--no-remove', '--allow-downgrades', '--', *selected], env=env, check=False).returncode
+        if result == 0:
+            atomic_json(root / 'latest.json', {'directory': directory, 'pending': False})
+            atomic_json(root.parent / 'recovery-status.json', {'available': False, 'version': manifest.get('version'), 'created': manifest.get('created')}, 0o644)
+        return result
+
+
 def install_verified(product, source):
     if os.geteuid() != 0:
         raise RuntimeError('The privileged installer must run as root')
@@ -268,6 +398,7 @@ def install_verified(product, source):
         if not newer(product['version'], manifest['version']):
             raise RuntimeError('Refusing an update that is not newer than the installed PiOS version')
         selected = []
+        selected_packages = []
         for package in compatible_packages(manifest):
             current = installed_version(package['package'])
             if not current:
@@ -287,10 +418,15 @@ def install_verified(product, source):
             if actual != {'Package': package['package'], 'Version': manifest['debianVersion'], 'Architecture': package['architecture']}:
                 raise RuntimeError('Debian package metadata differs from signed manifest')
             selected.append(str(target))
+            selected_packages.append(package['package'])
         if not selected:
             raise RuntimeError('No installed PiOS Debian packages need this update')
+        checkpoint = prepare_recovery(product, selected_packages)
         env = dict(os.environ, DEBIAN_FRONTEND='noninteractive', NEEDRESTART_MODE='l')
-        return subprocess.run(['apt-get', '-o', 'Dpkg::Options::=--force-confold', 'install', '-y', '--no-remove', '--', *selected], env=env, check=False).returncode
+        result = subprocess.run(['apt-get', '-o', 'Dpkg::Options::=--force-confold', 'install', '-y', '--no-remove', '--', *selected], env=env, check=False).returncode
+        if result == 0 and checkpoint is not None:
+            atomic_json(recovery_root()/'latest.json', {'directory': checkpoint.name, 'pending': False})
+        return result
 
 
 def command_install(product):
@@ -312,6 +448,9 @@ def main():
     check = commands.add_parser('check'); check.add_argument('--notify', action='store_true')
     commands.add_parser('download')
     commands.add_parser('install')
+    commands.add_parser('recovery-status', help='Show whether a previous PiOS package version can be restored')
+    commands.add_parser('rollback', help='After authorization, restore the local pre-update PiOS package checkpoint')
+    commands.add_parser('repair', help='After authorization, finish interrupted package configuration without removing packages')
     commands.add_parser('auto', help='As root, download and install newer signed releases for installed PiOS packages')
     configure = commands.add_parser('configure', help='Enable or disable automatic updates after authorization')
     configure.add_argument('state', choices=('on', 'off'))
@@ -319,18 +458,27 @@ def main():
     arguments = parser.parse_args()
     try:
         product = product_manifest()
+        if arguments.command == 'recovery-status':
+            print(json.dumps(recovery_status())); return 0
+        if arguments.command in ('rollback', 'repair') and os.geteuid() != 0:
+            return subprocess.run(['pkexec', str(Path(__file__).resolve()), arguments.command], check=False).returncode
         if arguments.command == 'configure':
             if os.geteuid() != 0:
                 return subprocess.run(['pkexec', str(Path(__file__).resolve()), 'configure', arguments.state], check=False).returncode
             return subprocess.run(['systemctl', 'enable' if arguments.state == 'on' else 'disable', '--now', 'fidan-auto-update.timer'], check=False).returncode
         lock = None
-        if arguments.command in ('auto', 'install', '_install-verified') and os.geteuid() == 0:
+        if arguments.command in ('auto', 'install', '_install-verified', 'rollback', 'repair') and os.geteuid() == 0:
             runtime = Path('/run/fidan-update')
             runtime.mkdir(mode=0o700, exist_ok=True)
             if runtime.is_symlink() or runtime.stat().st_uid != 0 or runtime.stat().st_mode & 0o022:
                 raise RuntimeError('The updater runtime directory is not root-owned and private')
             lock = (runtime / 'update.lock').open('w')
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if arguments.command == 'rollback': return recovery_packages()
+        if arguments.command == 'repair':
+            env = dict(os.environ, DEBIAN_FRONTEND='noninteractive', NEEDRESTART_MODE='l')
+            result = subprocess.run(['dpkg', '--configure', '-a'], env=env, check=False).returncode
+            return result if result == 0 else subprocess.run(['apt-get', '--fix-broken', '--no-remove', '-y', 'install'], env=env, check=False).returncode
         if arguments.command == 'check':
             return command_check(product, arguments.notify)
         if arguments.command in ('download', 'auto'):

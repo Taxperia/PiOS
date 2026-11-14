@@ -20,11 +20,28 @@
   </desktops>
   <keyboard>
     <default />
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute" command="fidan-shellctl volume up" /></keybind>
+    <keybind key="XF86AudioLowerVolume"><action name="Execute" command="fidan-shellctl volume down" /></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute" command="fidan-shellctl volume mute" /></keybind>
+    <keybind key="XF86MonBrightnessUp"><action name="Execute" command="fidan-shellctl brightness up" /></keybind>
+    <keybind key="XF86MonBrightnessDown"><action name="Execute" command="fidan-shellctl brightness down" /></keybind>
+    <keybind key="XF86AudioMicMute"><action name="Execute" command="fidan-shellctl microphone mute" /></keybind>
+    <keybind key="XF86AudioPlay"><action name="Execute" command="fidan-shellctl media play-pause" /></keybind>
+    <keybind key="XF86AudioPause"><action name="Execute" command="fidan-shellctl media play-pause" /></keybind>
+    <keybind key="XF86AudioNext"><action name="Execute" command="fidan-shellctl media next" /></keybind>
+    <keybind key="XF86AudioPrev"><action name="Execute" command="fidan-shellctl media previous" /></keybind>
+    <keybind key="C-A-Prior"><action name="Execute" command="fidan-shellctl brightness up" /></keybind>
+    <keybind key="C-A-Next"><action name="Execute" command="fidan-shellctl brightness down" /></keybind>
+    <keybind key="C-A-S-m"><action name="Execute" command="fidan-shellctl microphone mute" /></keybind>
+    <keybind key="C-A-Up"><action name="Execute" command="fidan-shellctl volume up" /></keybind>
+    <keybind key="C-A-Down"><action name="Execute" command="fidan-shellctl volume down" /></keybind>
+    <keybind key="C-A-m"><action name="Execute" command="fidan-shellctl volume mute" /></keybind>
     <keybind key="W-space"><action name="Execute" command="fidan-shellctl launcher toggle" /></keybind>
     <keybind key="W-e"><action name="Execute" command="fidan-files" /></keybind>
     <keybind key="W-i"><action name="Execute" command="fidan-shellctl settings" /></keybind>
     <keybind key="C-S-Escape"><action name="Execute" command="fidan-task-manager" /></keybind>
-    <keybind key="Print"><action name="Execute" command="fidan-screenshot" /></keybind>
+    <keybind key="Print"><action name="Execute" command="fidan-shellctl screenshot" /></keybind>
+    <keybind key="W-Print"><action name="Execute" command="fidan-shellctl screenshot window" /></keybind>
     <keybind key="W-S-s"><action name="Execute" command="fidan-screenshot --region" /></keybind>
     <keybind key="W-1"><action name="Execute" command="fidan-shellctl workspace 1" /></keybind>
     <keybind key="W-2"><action name="Execute" command="fidan-shellctl workspace 2" /></keybind>

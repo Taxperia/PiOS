@@ -1,0 +1,61 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Add authenticated, bounded connection reports to the matching alpha.4 card."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+FILES = {'broker.py':'src/remote/broker.py', 'gateway.py':'src/remote/gateway.py',
+         'index.html':'data/remote/index.html', 'ui.js':'data/remote/ui.js'}
+
+
+def sha(data): return hashlib.sha256(data).hexdigest()
+
+
+def write(path, data):
+    fd, name = tempfile.mkstemp(prefix='.fidan-health-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data); stream.flush(); os.fsync(stream.fileno())
+        os.replace(name, path)
+    finally: Path(name).unlink(missing_ok=True)
+
+
+def prepare(boot, source=ROOT, capture_fix=False):
+    boot, source = Path(boot).resolve(strict=True), Path(source)
+    for name in ('config.txt','cmdline.txt','kernel_2712.img','initramfs_2712'):
+        if not (boot/name).is_file() or (boot/name).is_symlink(): raise ValueError('Select the PiOS BOOT partition')
+    original = (boot/'cmdline.txt').read_bytes(); command = original.decode().strip()
+    if 'root=/dev/disk/by-slot/system' not in command.split(): raise ValueError('Unsupported PiOS boot')
+    if any(arg.startswith(('systemd.run','systemd.unit=','init=')) for arg in command.split()): raise ValueError('Custom boot already configured')
+    kit_name = 'fidan-capture-repair' if capture_fix else 'fidan-connection-repair'
+    kit = boot/kit_name
+    if kit.exists() or kit.is_symlink(): raise FileExistsError('A connection repair already exists')
+    base = json.loads((source/'data/repair/connection-report/base-sha256.json').read_text())
+    if capture_fix: base['src/remote/broker.py'] = base['connectionReportV1Broker']
+    payloads = {name:(source/path).read_bytes().replace(b'\r\n',b'\n') for name,path in FILES.items()}
+    program = (source/'data/repair/connection-report/apply').read_bytes().replace(b'\r\n',b'\n')
+    compile(program, 'apply', 'exec')
+    for name, data in payloads.items():
+        if name.endswith('.py'): compile(data, name, 'exec')
+    manifest = {'repair':'connection-report-20261114','originalCmdlineSha256':sha(original),
+                'files':{name:{'sha256':sha(data),'baseSha256':base[path]} for name,path in FILES.items() for data in (payloads[name],)}}
+    kit.mkdir(); write(kit/'cmdline.original', original)
+    for name, data in payloads.items(): write(kit/name, data)
+    write(kit/'apply', program); write(kit/'manifest.json', json.dumps(manifest,indent=2).encode())
+    extra = ' systemd.run=/boot/firmware/'+kit_name+'/apply systemd.run_success_action=reboot systemd.run_failure_action=none systemd.unit=kernel-command-line.target\n'
+    write(boot/'cmdline.txt', (command+extra).encode())
+    return manifest
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument('--boot', type=Path, required=True)
+    parser.add_argument('--capture-fix',action='store_true',help='Repair capture launch on a card with the first connection-report patch')
+    args = parser.parse_args()
+    try:
+        prepare(args.boot,capture_fix=args.capture_fix); print('Desktop connection update prepared. Safely eject the card and boot the Pi.')
+    except (OSError, ValueError) as error: parser.exit(1, str(error)+'\n')

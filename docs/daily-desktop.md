@@ -98,8 +98,14 @@ user's MIME default; FeatherPad is a fallback when no text handler is registered
 | Ctrl+Alt+T | Terminal |
 | Alt+Tab / Alt+Shift+Tab | Switch windows |
 | Alt+F4 | Close window |
-| Print Screen | Save screenshot and copy image to clipboard |
+| Volume up / down keys or Ctrl+Alt+Up / Down | Adjust volume by 5%; show the volume indicator |
+| Mute key or Ctrl+Alt+M | Toggle mute; show the volume indicator |
+| Print Screen | Open the screenshot toolbar (region / window bounds / all displays) |
+| Win+Print Screen | Select a window's bounds for a screenshot |
 | Win+Shift+S | Select screenshot region |
+| Brightness keys or Ctrl+Alt+Page Up / Page Down | Adjust brightness by 5%; show the brightness indicator |
+| Microphone mute key or Ctrl+Alt+Shift+M | Toggle the default microphone; show its on/off indicator |
+| Media play/pause, previous and next keys | Control the selected MPRIS player |
 
 Screenshots are saved in Pictures/Screenshots. `grim`, `slurp` and `wl-clipboard`
 are included in development setup and image dependencies. Cancelling a region
@@ -109,12 +115,48 @@ Notifications expose application-provided action buttons. Replaced notifications
 update their existing history entry. Expiration, dismissal and application close
 signals use their respective reasons; actions cannot be invoked after closing.
 
+The volume indicator appears at the bottom center, shows the level or mute state,
+and closes two seconds after the last adjustment. It leaves keyboard focus on the
+active application. The same shortcuts work in the visual preview with simulated
+audio. Under WSLg, use Ctrl+Alt+Up / Down / M if Windows handles the media keys.
+
+## Sound, media and power
+
+Quick Settings includes an expandable audio mixer. Select any currently available
+speaker, headphone, Bluetooth or HDMI output; existing audio streams move to that
+output. Per-application sliders and mute buttons appear while an app has a playback
+stream. The microphone button toggles the default recording source. The shell uses
+`pactl` against PulseAudio or PipeWire's PulseAudio server and reports failed changes.
+
+The media card discovers MPRIS players on the session bus, displays track, artist
+and cover art, and enables only the playback commands the player supports. When
+several players are open, use the player selector. A playing player is selected
+automatically until a player is chosen manually. Closed players disappear.
+
+On devices exposing batteries through `/sys/class/power_supply`, the panel and
+Quick Settings show charge and external-power state. Notifications report charger
+connection/disconnection and battery levels at 20%, 10% and 5%. Warnings do not
+repeat at each poll and reset after charging or recovery above 25%. Multiple
+batteries use energy-weighted percentages where available. Battery and backlight
+controls are absent when the host has no corresponding hardware, including most
+WSL and Raspberry Pi systems. Preview mode simulates these features.
+
+Print Screen opens the capture toolbar; Escape cancels and Enter captures the
+selected target. The toolbar hides before capture. Region/window-bounds selection
+uses `slurp`, and images are saved with `grim` and copied with `wl-copy`. With the
+Debian 13 / Labwc 0.9 toolchain, window mode asks you to drag around the window;
+it cannot automatically identify a native Wayland window. Later Labwc versions
+add toplevel capture ([upstream release notes](https://github.com/labwc/labwc/blob/master/NEWS.md)).
+Cancelling leaves no empty file. Preview capture controls only show a simulated
+notification and do not take screenshots.
+
 ## WSLg and X11 applications
 
 The development Labwc/wlroots runtime builds with Xwayland. WSLg's read-only
 `/tmp/.X11-unix` mount cannot hold the nested compositor's sockets. Launching the
 development script through WSL root creates a private mount namespace, opens a
 PAM login session and drops to `fidan` before starting any desktop application.
+It preserves WSLg's `PULSE_SERVER` address for sound playback and microphone input.
 This lets the PolicyKit authentication agent register with the session.
 The original WSLg mount is
 unchanged. On normal Debian/Pi systems the usual writable X11 socket directory

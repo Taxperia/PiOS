@@ -1,3 +1,22 @@
+fidan-desktop (0.1.0~alpha5-1) unstable; urgency=medium
+
+  * Complete device setup in the desktop welcome; retain the legacy UI opt-in.
+  * Carry appearance and region choices into the new account without repeating setup.
+  * Repair browser desktop capture and add bounded authenticated diagnostics.
+  * Include local SSH/browser access, optional RDP and Pi image tooling.
+  * Expand desktop controls and preserve recovery copies for signed updates.
+
+ -- Project Fidan Maintainers <maintainers@project-fidan.invalid>  Sat, 14 Nov 2026 21:15:00 +0300
+
+fidan-desktop (0.1.0~alpha4-1) unstable; urgency=medium
+
+  * Open the native first-boot installer on a real shared Labwc desktop.
+  * Authenticate setup desktop access with per-device broker tokens.
+  * Fix private Unix RFB/WebSocket transport and full browser viewport scaling.
+  * Include working Wi-Fi dependencies and a writable setup account home.
+
+ -- Project Fidan Maintainers <maintainers@project-fidan.invalid>  Sat, 14 Nov 2026 00:00:00 +0300
+
 fidan-desktop (0.1.0~alpha3-1) unstable; urgency=medium
 
   * Restore desktop box selection and native multi-file folder drag and drop.

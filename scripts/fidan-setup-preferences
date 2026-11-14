@@ -1,0 +1,56 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Persist only allowlisted setup choices, running as the new account."""
+import configparser
+import json
+import os
+from pathlib import Path
+import pwd
+import re
+import sys
+import tempfile
+
+CHOICES={'themeMode':('appearance','themeMode',('light','dark','auto')),
+         'dockPosition':('dock','position',('left','bottom','right')),
+         'panelPosition':('panel','position',('top','bottom')),
+         'panelStyle':('panel','style',('detailed','compact')),
+         'dateFormat':('region','dateFormat',('locale','iso','day-first')),
+         'language':('region','language',('tr_TR.UTF-8','en_US.UTF-8')),
+         'keyboardLayout':('input','keyboardLayout',('tr','us','de','gb'))}
+
+
+def save(home, values):
+    if not isinstance(values,dict) or set(values)!=set(CHOICES)|{'accentColor','reducedMotion'}:
+        raise ValueError('Invalid preference fields')
+    for key,(_,_,choices) in CHOICES.items():
+        if not isinstance(values[key],str) or values[key] not in choices: raise ValueError('Unsupported preference')
+    if type(values['reducedMotion']) is not bool or not isinstance(values['accentColor'],str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',values['accentColor']):
+        raise ValueError('Invalid appearance value')
+    target=Path(home)/'.config/fidan/shell.conf'
+    if target.is_symlink(): raise ValueError('Refusing a linked preference file')
+    config=configparser.ConfigParser(interpolation=None); config.optionxform=str
+    if target.exists():
+        if not target.is_file() or target.stat().st_size>65536: raise ValueError('Invalid preference file')
+        config.read(target,encoding='utf-8')
+    def put(group,key,value):
+        if not config.has_section(group): config.add_section(group)
+        config.set(group,key,str(value))
+    for key,(group,name,_) in CHOICES.items(): put(group,name,values[key])
+    put('appearance','accentColor',values['accentColor'].lower())
+    put('appearance','darkTheme','false' if values['themeMode']=='light' else 'true')
+    put('accessibility','reducedMotion',str(values['reducedMotion']).lower())
+    put('welcome','completed','true');put('welcome','step','5')
+    target.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+    fd,name=tempfile.mkstemp(prefix='.setup-',dir=target.parent)
+    try:
+        with os.fdopen(fd,'w',encoding='utf-8') as output:
+            os.fchmod(output.fileno(),0o600);config.write(output,space_around_delimiters=False);output.flush();os.fsync(output.fileno())
+        os.replace(name,target)
+    finally: Path(name).unlink(missing_ok=True)
+
+
+if __name__=='__main__':
+    if os.getuid()<1000 or os.getuid()==65534: raise SystemExit('Run as the new desktop account')
+    raw=sys.stdin.buffer.read(8193)
+    if len(raw)>8192: raise SystemExit('Preference input too large')
+    save(pwd.getpwuid(os.getuid()).pw_dir,json.loads(raw))

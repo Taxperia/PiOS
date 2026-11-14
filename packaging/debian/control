@@ -88,11 +88,17 @@ Description: Project Fidan secure Wayland lock screen
 Package: fidan-firstboot
 Architecture: any
 Depends:
+ python3,
+ cloud-guest-utils,
+ libpam-modules-bin,
+ e2fsprogs,
+ util-linux,
  ${misc:Depends},
  ${shlibs:Depends},
  accountsservice,
- cage,
+ fidan-session (= ${binary:Version}),
  network-manager,
+ wpasupplicant,
  sudo,
  qml6-module-qtquick,
  qml6-module-qtquick-controls,
@@ -148,6 +154,7 @@ Depends:
  ${misc:Depends},
  fidan-artwork (= ${binary:Version}),
  python3,
+ dpkg-repack,
  apt,
  gpgv,
  libnotify-bin,
@@ -169,6 +176,7 @@ Depends:
  fidan-task-manager (= ${binary:Version}),
  fidan-photos (= ${binary:Version}),
  fidan-updater (= ${binary:Version}),
+ fidan-remote (= ${binary:Version}),
  chromium,
  pcmanfm-qt,
  network-manager-gnome,
@@ -193,12 +201,33 @@ Depends:
  polkitd,
  lxqt-policykit,
  unattended-upgrades,
+ deja-dup,
  openssh-server
 Recommends: fidan-apps (= ${binary:Version})
 Suggests: rpd-preferences
 Description: Project Fidan lightweight desktop metapackage
  Installs the complete Project Fidan alpha desktop and its lightweight default
  application set for Raspberry Pi 5.
+
+Package: fidan-remote
+Architecture: all
+Depends:
+ ${misc:Depends},
+ python3,
+ fidan-firstboot (= ${binary:Version}),
+ python3-pam,
+ openssl,
+ wayvnc (>= 0.9),
+ websockify,
+ novnc,
+ avahi-daemon,
+ network-manager,
+ wpasupplicant,
+ dnsmasq-base,
+ dbus-user-session
+Description: PiOS local HTTPS setup and authenticated browser desktop
+ Per-device headless setup, optional local-network browser desktop and a
+ privilege-separated PAM broker using private per-user Unix sockets.
 
 Package: fidan-photos
 Architecture: any

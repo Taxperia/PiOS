@@ -15,10 +15,13 @@
 #include <QMimeData>
 #include <QSettings>
 #include <QDateTime>
+#include <sys/stat.h>
 #include <QtConcurrentRun>
 #ifdef Q_OS_UNIX
 #include <unistd.h>
 #endif
+
+namespace { QString identity(const QString &path); }
 
 FilesModel::FilesModel(const QString &initialPath, QObject *parent)
     : QAbstractListModel(parent)
@@ -40,7 +43,7 @@ FilesModel::FilesModel(const QString &initialPath, QObject *parent)
     load(initialPath.isEmpty() ? QDir::homePath() : initialPath, true);
 }
 
-FilesModel::~FilesModel() { m_transfer.waitForFinished(); m_clipboardReader.waitForFinished(); }
+FilesModel::~FilesModel() { if (m_cancel) m_cancel->store(true); m_transfer.waitForFinished(); m_clipboardReader.waitForFinished(); }
 
 int FilesModel::rowCount(const QModelIndex &parent) const
 {
@@ -83,8 +86,20 @@ void FilesModel::setFilter(const QString &value)
     if (m_filter == value)
         return;
     m_filter = value;
-    load(m_path, false);
+    rebuildVisible();
     emit filterChanged();
+}
+
+void FilesModel::rebuildVisible()
+{
+    beginResetModel();
+    m_visible.clear();
+    m_visible.reserve(m_all.size());
+    for (const QFileInfo &entry : m_all) {
+        if (m_filter.isEmpty() || entry.fileName().contains(m_filter, Qt::CaseInsensitive))
+            m_visible.append(entry);
+    }
+    endResetModel();
 }
 
 bool FilesModel::load(const QString &requested, bool record)
@@ -108,14 +123,8 @@ bool FilesModel::load(const QString &requested, bool record)
     const auto order = m_sortBy == QStringLiteral("size") ? QDir::Size
         : m_sortBy == QStringLiteral("modified") ? QDir::Time : QDir::Name;
     const auto entries = directory.entryInfoList(flags, QDir::DirsFirst | order | QDir::IgnoreCase);
-    beginResetModel();
     m_all = entries;
-    m_visible.clear();
-    for (const QFileInfo &entry : m_all) {
-        if (m_filter.isEmpty() || entry.fileName().contains(m_filter, Qt::CaseInsensitive))
-            m_visible.append(entry);
-    }
-    endResetModel();
+    rebuildVisible();
     setError({});
 
     if (m_path != clean) {
@@ -232,6 +241,7 @@ bool FilesModel::createFolder(const QString &name)
         setError(tr("The folder could not be created."));
         return false;
     }
+    remember({{target, {}, identity(target), true}});
     refresh();
     return true;
 }
@@ -250,6 +260,7 @@ bool FilesModel::createFile(const QString &name)
         return false;
     }
     file.close();
+    remember({{file.fileName(), {}, identity(file.fileName()), true}});
     refresh();
     return true;
 }
@@ -267,6 +278,7 @@ bool FilesModel::renameEntry(int row, const QString &newName)
         setError(tr("The item could not be renamed."));
         return false;
     }
+    remember({{target, entry.absoluteFilePath(), identity(target), false}});
     refresh();
     return true;
 }
@@ -276,10 +288,13 @@ bool FilesModel::moveToTrash(int row)
     if (busy() || inTrash()) return false;
     if (!validRow(row))
         return false;
-    if (!QFile::moveToTrash(m_visible.at(row).absoluteFilePath())) {
+    const QString original = m_visible.at(row).absoluteFilePath();
+    QString trashed;
+    if (!QFile::moveToTrash(original, &trashed)) {
         setError(tr("The item could not be moved to Trash."));
         return false;
     }
+    if (!trashed.isEmpty()) remember({{trashed, original, identity(trashed), false, true}});
     refresh();
     return true;
 }
@@ -336,8 +351,23 @@ void FilesModel::setError(const QString &message)
 namespace {
 bool present(const QString &path) { const QFileInfo info(path); return info.exists() || info.isSymbolicLink(); }
 
-bool copyTree(const QString &source, const QString &target)
+QString identity(const QString &path)
 {
+#ifdef Q_OS_UNIX
+    struct stat info;
+    if (::lstat(QFile::encodeName(path).constData(), &info) == 0)
+        return QString::number(info.st_dev) + ':' + QString::number(info.st_ino);
+    return {};
+#else
+    const QFileInfo info(path);
+    return info.exists() ? info.birthTime().toString(Qt::ISODateWithMs) : QString();
+#endif
+}
+struct CreatedEntry { QString path, identity; bool directory; };
+
+bool copyTree(const QString &source, const QString &target, const std::shared_ptr<std::atomic_bool> &cancel, QList<CreatedEntry> &created)
+{
+    if (cancel && cancel->load()) return false;
     const QFileInfo info(source);
     if (present(target)) return false;
     if (info.isSymbolicLink()) {
@@ -349,19 +379,33 @@ bool copyTree(const QString &source, const QString &target)
             if (length < link.size()) { link.resize(length); break; }
             link.resize(link.size() * 2);
         }
-        return ::symlink(link.constData(), QFile::encodeName(target).constData()) == 0;
+        const bool ok = ::symlink(link.constData(), QFile::encodeName(target).constData()) == 0;
 #else
-        return QFile::link(info.symLinkTarget(), target);
+        const bool ok = QFile::link(info.symLinkTarget(), target);
 #endif
+        if (ok) created.append({target, identity(target), false});
+        return ok;
     }
     // Devices, sockets and FIFOs are not ordinary documents. Reading a FIFO
     // could otherwise leave a background transfer waiting indefinitely.
-    if (!info.isDir()) return info.isFile() && QFile::copy(source, target);
+    if (!info.isDir()) {
+        if (!info.isFile()) return false;
+        QFile input(source), output(target);
+        if (!input.open(QIODevice::ReadOnly) || !output.open(QIODevice::WriteOnly | QIODevice::NewOnly)) return false;
+        created.append({target, identity(target), false});
+        while (!input.atEnd()) {
+            if (cancel && cancel->load()) return false;
+            const auto bytes = input.read(1024 * 1024);
+            if (bytes.isEmpty() || output.write(bytes) != bytes.size()) return false;
+        }
+        return output.flush() && output.setPermissions(info.permissions());
+    }
     if (!info.isReadable()) return false;
     if (!QDir().mkdir(target)) return false;
+    created.append({target, identity(target), true});
     const auto children = QDir(source).entryInfoList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
     for (const auto &child : children)
-        if (!copyTree(child.absoluteFilePath(), QDir(target).filePath(child.fileName()))) return false;
+        if (!copyTree(child.absoluteFilePath(), QDir(target).filePath(child.fileName()), cancel, created)) return false;
     if (!QFile::setPermissions(target, info.permissions())) return false;
     return true;
 }
@@ -372,8 +416,9 @@ bool removeTree(const QString &path)
     return info.isDir() && !info.isSymbolicLink() ? QDir(path).removeRecursively() : QFile::remove(path);
 }
 
-QString transferOne(const QString &source, const QString &destination, bool move)
+QString transferOne(const QString &source, const QString &destination, bool move, const std::shared_ptr<std::atomic_bool> &cancel)
 {
+    if (cancel && cancel->load()) return QObject::tr("Operation cancelled. Completed items can be undone.");
     const QFileInfo info(source);
     const QString target = QDir(destination).filePath(info.fileName());
     const QString canonicalSource = info.canonicalFilePath();
@@ -386,8 +431,17 @@ QString transferOne(const QString &source, const QString &destination, bool move
         return QObject::tr("A folder cannot be placed inside itself: %1").arg(info.fileName());
     if (present(target)) return QObject::tr("Already exists; nothing was replaced: %1").arg(target);
     if (move && QFile::rename(source, target)) return {};
-    if (!copyTree(source, target))
-        return QObject::tr("Could not copy %1. A partial copy may remain at %2; the source was kept.").arg(source, target);
+    QList<CreatedEntry> created;
+    if (!copyTree(source, target, cancel, created) || (cancel && cancel->load())) {
+        // Remove only objects this operation created, never a replacement or a
+        // file another application added to a newly created folder.
+        for (auto it = created.crbegin(); it != created.crend(); ++it) {
+            if (identity(it->path) != it->identity) continue;
+            if (it->directory) QDir().rmdir(it->path); else QFile::remove(it->path);
+        }
+        return cancel && cancel->load() ? QObject::tr("Operation cancelled. Completed items can be undone.")
+            : QObject::tr("Could not copy %1. The source was kept; check %2 for any remaining partial items.").arg(source, target);
+    }
     if (move && !removeTree(source))
         return QObject::tr("Copied, but could not remove the original: %1").arg(source);
     return {};
@@ -491,36 +545,78 @@ void FilesModel::dropUrls(const QList<QUrl> &urls, const QString &destination, b
 void FilesModel::transfer(const QStringList &sources, const QString &destination, bool move, bool clipboard)
 {
     if (sources.isEmpty() || busy() || inTrash()) return;
-    runOperation([sources, destination, move] {
+    auto entries = std::make_shared<QList<UndoEntry>>();
+    auto cancel = std::make_shared<std::atomic_bool>(false);
+    runOperation([sources, destination, move, entries, cancel] {
         QStringList errors;
         for (const auto &source : sources) {
-            const QString error = transferOne(source, destination, move);
+            const QString error = transferOne(source, destination, move, cancel);
             if (!error.isEmpty()) errors.append(error);
+            else { const QString target = QDir(destination).filePath(QFileInfo(source).fileName()); entries->append({target, move ? source : QString(), identity(target), !move}); }
+            if (cancel->load()) break;
         }
         return errors.join(QLatin1Char('\n'));
-    }, move ? tr("Moving items…") : tr("Copying items…"), clipboard);
+    }, move ? tr("Moving items…") : tr("Copying items…"), clipboard, entries, cancel);
 }
 
-void FilesModel::runOperation(const std::function<QString()> &operation, const QString &status, bool clearClipboard)
+void FilesModel::runOperation(const std::function<QString()> &operation, const QString &status, bool clearClipboard,
+    std::shared_ptr<QList<UndoEntry>> undoEntries, std::shared_ptr<std::atomic_bool> cancel)
 {
     if (busy()) return;
     setError({}); m_operationStatus = status;
     const auto originalUrls = QGuiApplication::clipboard()->mimeData()
         ? QGuiApplication::clipboard()->mimeData()->urls() : QList<QUrl>{};
     disconnect(&m_transfer, nullptr, this, nullptr);
-    connect(&m_transfer, &QFutureWatcher<QString>::finished, this, [this, clearClipboard, originalUrls] {
+    connect(&m_transfer, &QFutureWatcher<QString>::finished, this, [this, clearClipboard, originalUrls, undoEntries] {
         const QString error = m_transfer.result();
         if (clearClipboard && error.isEmpty() && QGuiApplication::clipboard()->mimeData()
             && QGuiApplication::clipboard()->mimeData()->urls() == originalUrls)
             QGuiApplication::clipboard()->clear();
         m_busy = false;
+        m_cancel.reset();
+        if (undoEntries) remember(*undoEntries);
         refresh(); setError(error);
         m_operationStatus = error.isEmpty() ? tr("Operation completed.") : tr("Some items could not be processed.");
         emit busyChanged();
+        emit undoChanged();
     });
     m_busy = true;
+    m_cancel = std::move(cancel);
     m_transfer.setFuture(QtConcurrent::run(operation));
     emit busyChanged();
+    emit undoChanged();
+}
+
+void FilesModel::cancelOperation() { if (m_cancel) m_cancel->store(true); }
+void FilesModel::remember(const QList<UndoEntry> &entries)
+{
+    if (entries.isEmpty()) return;
+    m_undo.append(entries);
+    while (m_undo.size() > 20) m_undo.removeFirst();
+    emit undoChanged();
+}
+void FilesModel::undo()
+{
+    if (!canUndo()) return;
+    const auto entries = m_undo.takeLast();
+    auto failed = std::make_shared<QList<UndoEntry>>();
+    runOperation([entries, failed] {
+        QStringList errors;
+        for (auto it = entries.crbegin(); it != entries.crend(); ++it) {
+            if (identity(it->current).isEmpty() || identity(it->current) != it->identity) { errors.append(QObject::tr("Cannot undo: the item was removed or replaced: %1").arg(it->current)); continue; }
+            if (it->toTrash) {
+                if (!QFile::moveToTrash(it->current)) { errors.append(QObject::tr("Could not move to Trash: %1").arg(it->current)); failed->prepend(*it); }
+            } else if (present(it->original) || !QFileInfo(it->original).dir().exists() || !QFile::rename(it->current, it->original)) {
+                errors.append(QObject::tr("Cannot undo without overwriting an existing item: %1").arg(it->original));
+                failed->prepend(*it);
+            } else {
+                const QFileInfo current(it->current);
+                if (it->trashMetadata)
+                    QFile::remove(current.dir().absolutePath() + "/../info/" + current.fileName() + ".trashinfo");
+            }
+        }
+        return errors.join('\n');
+    }, tr("Undoing the last operation…"), false, failed);
 }
 
 void FilesModel::trashEntries(const QVariantList &rows, bool permanently)
@@ -529,15 +625,20 @@ void FilesModel::trashEntries(const QVariantList &rows, bool permanently)
     QStringList paths;
     for (const auto &url : entryUrls(rows)) paths.append(url.toLocalFile());
     const bool trashView = inTrash();
-    runOperation([paths, permanently, trashView] {
+    auto entries = std::make_shared<QList<UndoEntry>>();
+    runOperation([paths, permanently, trashView, entries] {
         QStringList errors;
         for (const auto &path : paths) {
-            const bool ok = permanently ? removeTree(path) : QFile::moveToTrash(path);
+            QString trashed;
+            const bool ok = permanently ? removeTree(path) : QFile::moveToTrash(path, &trashed);
             if (!ok) errors.append(QObject::tr("Could not remove: %1").arg(path));
-            else if (trashView) QFile::remove(QFileInfo(path).dir().absolutePath() + QStringLiteral("/../info/") + QFileInfo(path).fileName() + QStringLiteral(".trashinfo"));
+            else {
+                if (!permanently && !trashed.isEmpty()) entries->append({trashed, path, identity(trashed), false, true});
+                if (trashView) QFile::remove(QFileInfo(path).dir().absolutePath() + QStringLiteral("/../info/") + QFileInfo(path).fileName() + QStringLiteral(".trashinfo"));
+            }
         }
         return errors.join(QLatin1Char('\n'));
-    }, permanently ? tr("Deleting items…") : tr("Moving to Trash…"));
+    }, permanently ? tr("Deleting items…") : tr("Moving to Trash…"), false, entries);
 }
 
 void FilesModel::restoreEntries(const QVariantList &rows)
@@ -545,7 +646,8 @@ void FilesModel::restoreEntries(const QVariantList &rows)
     if (busy() || !inTrash()) return;
     QStringList paths;
     for (const auto &url : entryUrls(rows)) paths.append(url.toLocalFile());
-    runOperation([paths] {
+    auto entries = std::make_shared<QList<UndoEntry>>();
+    runOperation([paths, entries] {
         QStringList errors;
         for (const auto &path : paths) {
             const QString metadata = QFileInfo(path).dir().absolutePath() + QStringLiteral("/../info/") + QFileInfo(path).fileName() + QStringLiteral(".trashinfo");
@@ -561,10 +663,10 @@ void FilesModel::restoreEntries(const QVariantList &rows)
             }
             // Trash filenames can have a suffix; restore the original name.
             if (!QFile::rename(path, original)) errors.append(QObject::tr("Could not restore: %1").arg(original));
-            else QFile::remove(metadata);
+            else { QFile::remove(metadata); entries->append({original, {}, identity(original), true}); }
         }
         return errors.join(QLatin1Char('\n'));
-    }, tr("Restoring items…"));
+    }, tr("Restoring items…"), false, entries);
 }
 
 QVariantMap FilesModel::properties(int row) const

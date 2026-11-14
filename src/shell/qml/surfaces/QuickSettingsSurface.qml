@@ -23,9 +23,9 @@ Window {
     }
     Item {
         id: content
-        width: 336; height: Controller.brightnessAvailable ? 402 : 358
+        width: 336; height: quickSettings.implicitHeight + 16
         anchors.centerIn: parent; scale: window.popupScale
-        QuickSettings { anchors.fill: parent; anchors.margins: 8 }
+        QuickSettings { id: quickSettings; anchors.fill: parent; anchors.margins: 8; maximumHeight: Math.max(300, (Screen.height - 110) / Controller.interfaceScale) }
     }
 }
 

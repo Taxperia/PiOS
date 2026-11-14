@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Install a local, authenticated setup connection report on alpha.4."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import tempfile
+
+REPAIR = 'connection-report-20261114'
+FILES = {'broker.py':'/usr/lib/fidan/remote/broker.py', 'gateway.py':'/usr/lib/fidan/remote/gateway.py',
+         'index.html':'/usr/share/fidan/remote/index.html', 'ui.js':'/usr/share/fidan/remote/ui.js'}
+
+
+def sha(content): return hashlib.sha256(content).hexdigest()
+
+
+def read(path):
+    if not stat.S_ISREG(path.lstat().st_mode): raise ValueError('Expected a regular file')
+    return path.read_bytes()
+
+
+def write(path, content):
+    fd, temporary = tempfile.mkstemp(prefix='.fidan-health-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            os.fchmod(stream.fileno(), 0o644); stream.write(content); stream.flush(); os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally: Path(temporary).unlink(missing_ok=True)
+
+
+def apply(root, boot, kit_name='fidan-connection-repair'):
+    root, boot = Path(root), Path(boot)
+    if not (root/'etc/fidan/pi-image').is_file(): raise ValueError('Not a PiOS image')
+    if kit_name not in ('fidan-connection-repair','fidan-capture-repair'): raise ValueError('Unknown repair directory')
+    kit = boot/kit_name
+    manifest = json.loads(read(kit/'manifest.json'))
+    if manifest.get('repair') != REPAIR or set(manifest.get('files', {})) != set(FILES): raise ValueError('Wrong manifest')
+    original = read(kit/'cmdline.original')
+    if sha(original) != manifest['originalCmdlineSha256']: raise ValueError('Boot backup changed')
+    write(boot/'cmdline.txt', original)
+    payloads = {}
+    for name, target in FILES.items():
+        data = read(kit/name); expected = manifest['files'][name]
+        if sha(data) != expected['sha256']: raise ValueError('Payload changed')
+        if sha(read(root/target.lstrip('/'))) not in (expected['baseSha256'], expected['sha256']): raise ValueError('Unsupported installed version')
+        if name.endswith('.py'): compile(data, name, 'exec')
+        payloads[name] = data
+    backup = root/'var/lib/fidan/repairs'/REPAIR
+    backup.mkdir(parents=True, exist_ok=True, mode=0o700); backup.chmod(0o700)
+    changed = []
+    try:
+        for name, target in FILES.items():
+            target = root/target.lstrip('/'); before = read(target)
+            if not (backup/name).exists(): shutil.copy2(target, backup/name)
+            changed.append((target, before)); write(target, payloads[name])
+    except Exception:
+        for target, before in reversed(changed): write(target, before)
+        raise
+    result = {'repair':REPAIR, 'ok':True, 'accountsAndProgressUntouched':True}
+    write(kit/'result.json', (json.dumps(result)+'\n').encode())
+    return result
+
+
+if __name__ == '__main__':
+    kit_name = Path(__file__).resolve().parent.name
+    try:
+        if os.geteuid() != 0: raise PermissionError('Root required')
+        result = apply('/', '/boot/firmware',kit_name); os.sync(); print(json.dumps(result), flush=True)
+    except Exception as error:
+        try:
+            write(Path('/boot/firmware')/kit_name/'result.json',
+                  json.dumps({'ok':False, 'errorType':type(error).__name__}).encode()); os.sync()
+        except OSError: pass
+        raise SystemExit(1)

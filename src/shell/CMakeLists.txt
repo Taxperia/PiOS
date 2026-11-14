@@ -2,6 +2,8 @@ set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_executable(fidan-shell
     main.cpp
+    ${PROJECT_SOURCE_DIR}/src/firstboot/FirstBootClient.cpp
+    ${PROJECT_SOURCE_DIR}/src/firstboot/FirstBootClient.h
     ${PROJECT_SOURCE_DIR}/src/settings/SettingsData.cpp
     ${PROJECT_SOURCE_DIR}/src/settings/SettingsData.h
     ${PROJECT_SOURCE_DIR}/src/settings/UpdateController.cpp
@@ -22,6 +24,8 @@ qt_add_executable(fidan-shell
     ProductInfo.h
     ShellController.cpp
     ShellController.h
+    DesktopServices.cpp
+    DesktopServices.h
     SystemMonitor.cpp
     SystemMonitor.h
     ${PROJECT_SOURCE_DIR}/src/common/ThemeIconProvider.cpp
@@ -65,12 +69,19 @@ qt_add_qml_module(fidan-shell
         qml/components/GlassPanel.qml
         qml/components/IconButton.qml
         qml/components/FirstBootPreview.qml
+        qml/components/WelcomeWizard.qml
+        qml/components/DeviceWelcomeWizard.qml
+        qml/surfaces/WelcomeSurface.qml
         qml/components/LockScreenPreview.qml
         qml/components/MetricBar.qml
         qml/components/PiBoard.qml
         qml/components/NotificationToast.qml
         qml/components/NotificationCenter.qml
         qml/components/QuickSettings.qml
+        qml/components/VolumeOsd.qml
+        qml/components/AudioMixer.qml
+        qml/components/MediaCard.qml
+        qml/components/ScreenshotToolbar.qml
         qml/components/SettingsWindow.qml
         qml/components/SoftwareCenterWindow.qml
         qml/components/StatusCard.qml
@@ -85,10 +96,13 @@ qt_add_qml_module(fidan-shell
         qml/surfaces/PanelSurface.qml
         qml/surfaces/PreviewWindow.qml
         qml/surfaces/QuickSettingsSurface.qml
+        qml/surfaces/VolumeOsdSurface.qml
+        qml/surfaces/ScreenshotSurface.qml
 )
 
 qt_add_translations(fidan-shell
     TS_FILES ${PROJECT_SOURCE_DIR}/translations/fidan-shell_tr.ts
+        ${PROJECT_SOURCE_DIR}/translations/fidan-firstboot_tr.ts
     RESOURCE_PREFIX /i18n
 )
 

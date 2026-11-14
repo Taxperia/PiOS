@@ -1,0 +1,14 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+[ "$(id -u)" -ne 0 ] && [ -n "${DISPLAY:-}" ] || exit 1
+if [ "${1:-}" != '--desktop' ]; then
+    exec dbus-run-session -- /usr/bin/fidan-rdp-session --desktop
+fi
+unset WAYLAND_DISPLAY SESSION_MANAGER DBUS_STARTER_ADDRESS DBUS_STARTER_BUS_TYPE
+export XDG_SESSION_TYPE=x11 XDG_CURRENT_DESKTOP=FidanRDP QT_QPA_PLATFORM=xcb
+export QT_WAYLAND_SHELL_INTEGRATION=xdg-shell
+# This small Xorg/Openbox maintenance session is separate from the Wayland desktop.
+pcmanfm-qt --desktop &
+qterminal &
+exec openbox

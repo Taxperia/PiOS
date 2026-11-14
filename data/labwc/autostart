@@ -1,8 +1,21 @@
 #!/bin/sh
+if [ "${FIDAN_SETUP_SESSION:-}" = 1 ]; then
+    # Run the real shell directly: a system user may have no systemd user manager.
+    fidan-remote-session prepare-output
+    fidan-shell &
+    # Retained as an explicit recovery UI. The shell welcome owns normal setup.
+    if [ "${FIDAN_LEGACY_FIRSTBOOT_UI:-0}" = 1 ]; then
+        fidan-firstboot &
+    fi
+    exit 0
+fi
 systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS
 dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS
 lxqt-policykit-agent &
 fidan-display-restore
+if [ -f /etc/fidan/remote-enabled ]; then
+    fidan-remote-session prepare-output &
+fi
 fidan-night-light restore &
 systemctl --user start fidan-session.target
 

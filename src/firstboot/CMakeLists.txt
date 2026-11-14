@@ -26,6 +26,8 @@ install(FILES
     ${PROJECT_SOURCE_DIR}/data/dbus/org.fidan.FirstBoot1.conf
     DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d
 )
+install(FILES ${PROJECT_SOURCE_DIR}/data/greetd/10-fidan-firstboot.conf
+    DESTINATION lib/systemd/system/greetd.service.d)
 install(FILES
     ${PROJECT_SOURCE_DIR}/data/systemd/system/fidan-firstbootd.service
     ${PROJECT_SOURCE_DIR}/data/systemd/system/fidan-firstboot-session.service

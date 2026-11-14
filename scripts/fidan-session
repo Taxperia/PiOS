@@ -2,8 +2,52 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 set -eu
 
+case "${1:-}" in
+    --setup)
+        # A real, temporary desktop shared by the local monitor and browser.
+        # The shell welcome completes device setup and saves the new profile.
+        export FIDAN_SETUP_SESSION=1
+        export FIDAN_SKIP_FIRSTBOOT=1
+        # System-unit %U expands to the manager's UID (0), not User=. Use
+        # the actual process identity; PAMName=login creates this runtime.
+        export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+        # A browser-only Pi can have DRM devices without a keyboard or mouse.
+        export WLR_LIBINPUT_NO_DEVICES=1
+        if [ -z "${WLR_BACKENDS:-}" ]; then
+            if ls /dev/dri/card* >/dev/null 2>&1; then
+                export WLR_BACKENDS=drm,libinput,headless
+            else
+                export WLR_BACKENDS=headless
+                export WLR_RENDERER=pixman
+            fi
+            export WLR_HEADLESS_OUTPUTS=1
+        fi
+        ;;
+    '') ;;
+    *) echo 'usage: fidan-session [--setup]' >&2; exit 2 ;;
+esac
+
 preferences="${XDG_CONFIG_HOME:-$HOME/.config}/fidan/shell.conf"
+if [ "${FIDAN_SETUP_SESSION:-}" = 1 ] && [ ! -e "$preferences" ]; then
+    mkdir -p "$(dirname "$preferences")"
+    umask 077
+    cat > "$preferences" <<'EOF'
+[appearance]
+darkTheme=true
+interfaceScale=1
+accentColor=#a8b8ff
+wallpaper=file:///usr/share/backgrounds/fidan/fidan-mountain-dawn-4k.png
+[panel]
+position=top
+EOF
+fi
+# Values are allowlisted and never evaluated as shell code.
+session_language=$(sed -n 's/^language=//p' "$preferences" 2>/dev/null || true)
+case "$session_language" in tr_TR.UTF-8|en_US.UTF-8) export LANG="$session_language"; export LC_TIME="$session_language" ;; esac
 keyboard_layout=$(sed -n 's/^keyboardLayout=//p' "$preferences" 2>/dev/null || true)
+if [ -z "$keyboard_layout" ]; then
+    keyboard_layout=$(sed -n 's/^XKBLAYOUT="\([a-z]*\)"$/\1/p' /etc/default/keyboard 2>/dev/null || true)
+fi
 case "$keyboard_layout" in us|tr|de|gb) export XKB_DEFAULT_LAYOUT="$keyboard_layout" ;; esac
 export XDG_CURRENT_DESKTOP=Fidan
 export XDG_SESSION_DESKTOP=Fidan
@@ -14,6 +58,10 @@ export QT_QPA_PLATFORM=wayland
 export QT_QPA_PLATFORMTHEME=qt6ct
 export QT_STYLE_OVERRIDE=Fusion
 export MOZ_ENABLE_WAYLAND=1
+if [ -z "${WLR_BACKENDS:-}" ] && [ -f /etc/fidan/remote-enabled ]; then
+    export WLR_BACKENDS=drm,libinput,headless
+    export WLR_HEADLESS_OUTPUTS=1
+fi
 
 FIDAN_LABWC_CONFIG="$(fidan-input prepare)"
 export FIDAN_LABWC_CONFIG

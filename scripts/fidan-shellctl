@@ -3,6 +3,43 @@
 set -eu
 
 case "${1:-}" in
+  brightness)
+    case "${2:-}" in
+      up) method=IncreaseBrightness ;;
+      down) method=DecreaseBrightness ;;
+      *) echo "usage: fidan-shellctl brightness {up|down}" >&2; exit 2 ;;
+    esac
+    exec qdbus6 org.fidan.Shell /Shell "org.fidan.Shell1.$method"
+    ;;
+  microphone)
+    [ "${2:-mute}" = "mute" ] || exit 2
+    exec qdbus6 org.fidan.Shell /Shell org.fidan.Shell1.ToggleMicrophoneMute
+    ;;
+  media)
+    case "${2:-}" in
+      play-pause) action=PlayPause ;;
+      next) action=Next ;;
+      previous) action=Previous ;;
+      *) echo "usage: fidan-shellctl media {play-pause|next|previous}" >&2; exit 2 ;;
+    esac
+    exec qdbus6 org.fidan.Shell /Shell org.fidan.Shell1.MediaAction "$action"
+    ;;
+  screenshot)
+    case "${2:-toolbar}" in
+      toolbar) exec qdbus6 org.fidan.Shell /Shell org.fidan.Shell1.ShowScreenshotToolbar ;;
+      screen|region|window) exec qdbus6 org.fidan.Shell /Shell org.fidan.Shell1.CaptureScreenshot "$2" ;;
+      *) echo "usage: fidan-shellctl screenshot {toolbar|screen|region|window}" >&2; exit 2 ;;
+    esac
+    ;;
+  volume)
+    case "${2:-}" in
+      up) method=IncreaseVolume ;;
+      down) method=DecreaseVolume ;;
+      mute) method=ToggleVolumeMute ;;
+      *) echo "usage: fidan-shellctl volume {up|down|mute}" >&2; exit 2 ;;
+    esac
+    exec qdbus6 org.fidan.Shell /Shell "org.fidan.Shell1.$method"
+    ;;
   settings)
     exec qdbus6 org.fidan.Shell /Shell org.fidan.Shell1.OpenSettingsPage "${2:-System}"
     ;;
@@ -18,7 +55,7 @@ case "${1:-}" in
     exec qdbus6 org.fidan.Shell /Shell org.fidan.Shell1.SetWorkspace "${2:?workspace number required}"
     ;;
   *)
-    echo "usage: fidan-shellctl {launcher|quick-settings|workspace|settings} [toggle|number|page]" >&2
+    echo "usage: fidan-shellctl {launcher|quick-settings|workspace|settings|volume|brightness|microphone|media|screenshot} [action]" >&2
     exit 2
     ;;
 esac

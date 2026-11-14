@@ -40,6 +40,7 @@ private slots:
     void exposesBoundedMockMetrics();
     void storesAndClearsNotificationHistory();
     void controlsMockSystem();
+    void volumeShortcutsAndOsdTimeout();
     void loadsStoreCatalog();
     void installsFlatpakWithoutBlocking_data();
     void installsFlatpakWithoutBlocking();
@@ -56,6 +57,9 @@ private slots:
     void opensTextDocumentWithSpacesInEditor();
     void sortsDesktopItems();
     void clearsSearchWhenChangingFolders();
+    void filtersCachedFilesAndRefreshesExternalChanges();
+    void cancelsCopyWithoutRemovingSourceOrLeavingPartialTarget();
+    void undoesMovesAndRefusesConflictingDestinations();
     void keepsHistoryWhenFolderDisappears();
     void measuresStorageWithoutCountingReservedBlocks();
     void createsKnownSidebarLocation();
@@ -349,6 +353,42 @@ void CoreTest::controlsMockSystem()
     controller.setVolume(47);
     QCOMPARE(controller.volume(), 47);
 
+}
+
+void CoreTest::volumeShortcutsAndOsdTimeout()
+{
+    ShellController controller(true, true);
+    QVERIFY(!controller.volumeOsdVisible());
+    controller.setVolume(50);
+    controller.IncreaseVolume();
+    QCOMPARE(controller.volume(), 55);
+    controller.DecreaseVolume();
+    QCOMPARE(controller.volume(), 50);
+
+    controller.setVolume(0);
+    controller.DecreaseVolume();
+    QCOMPARE(controller.volume(), 0);
+    controller.setVolume(100);
+    controller.ToggleVolumeMute();
+    QVERIFY(controller.volumeMuted());
+    controller.IncreaseVolume();
+    QCOMPARE(controller.volume(), 100);
+    QVERIFY(!controller.volumeMuted());
+    QVERIFY(controller.volumeOsdVisible());
+
+    QTest::qWait(1200);
+    controller.IncreaseVolume(); // Repeated presses at the limit extend the display.
+    QTest::qWait(1100);
+    QVERIFY(controller.volumeOsdVisible());
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.volumeOsdVisible(), 1800);
+
+    controller.ToggleVolumeMute();
+    QVERIFY(controller.volumeMuted());
+    QVERIFY(controller.volumeOsdVisible());
+    QCOMPARE(controller.volume(), 100);
+    controller.ToggleVolumeMute();
+    QVERIFY(!controller.volumeMuted());
+    QCOMPARE(controller.volume(), 100);
 }
 
 void CoreTest::loadsStoreCatalog()
@@ -790,6 +830,79 @@ void CoreTest::clearsSearchWhenChangingFolders()
     files.back();
     QCOMPARE(files.path(), directory.path());
     QCOMPARE(files.rowCount(), 1);
+}
+
+void CoreTest::filtersCachedFilesAndRefreshesExternalChanges()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    QVERIFY(QDir(directory.path()).mkdir(QStringLiteral("Notes")));
+    for (const auto &name : {"a-note.txt", "z-NOTE.txt", ".hidden-note.txt", "other.txt"}) {
+        QFile file(directory.filePath(QString::fromLatin1(name)));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(name);
+    }
+    FilesModel files(directory.path());
+    files.setFilter(QStringLiteral("note"));
+    QCOMPARE(files.rowCount(), 3);
+    QCOMPARE(files.entryName(0), QStringLiteral("Notes"));
+    QCOMPARE(files.entryName(1), QStringLiteral("a-note.txt"));
+    QCOMPARE(files.entryName(2), QStringLiteral("z-NOTE.txt"));
+    files.setFilter(QStringLiteral("unmatched"));
+    QCOMPARE(files.rowCount(), 0);
+    files.setFilter({});
+    QCOMPARE(files.rowCount(), 4);
+
+    // Do not deliver watcher events yet: typing must use the existing snapshot.
+    QFile external(directory.filePath(QStringLiteral("new-note.txt")));
+    QVERIFY(external.open(QIODevice::WriteOnly));
+    external.close();
+    files.setFilter(QStringLiteral("new-note"));
+    QCOMPARE(files.rowCount(), 0);
+    files.refresh();
+    QCOMPARE(files.rowCount(), 1);
+    QCOMPARE(files.entryName(0), QStringLiteral("new-note.txt"));
+    QVERIFY(QFile::remove(external.fileName()));
+    QTRY_COMPARE(files.rowCount(), 0);
+
+    files.setFilter(QStringLiteral("note"));
+    files.setShowHidden(true);
+    QCOMPARE(files.rowCount(), 4);
+    files.setSortBy(QStringLiteral("size"));
+    QCOMPARE(files.entryName(0), QStringLiteral("Notes"));
+    QCOMPARE(files.entryName(1), QStringLiteral(".hidden-note.txt"));
+    files.setShowHidden(false);
+    QCOMPARE(files.rowCount(), 3);
+}
+
+void CoreTest::cancelsCopyWithoutRemovingSourceOrLeavingPartialTarget()
+{
+    QTemporaryDir source, destination;
+    QFile file(source.filePath("large-test.dat")); QVERIFY(file.open(QIODevice::WriteOnly)); QVERIFY(file.resize(64 * 1024 * 1024)); file.close();
+    FilesModel files(destination.path());
+    files.dropUrls({QUrl::fromLocalFile(file.fileName())}, destination.path(), false);
+    QVERIFY(files.busy()); QVERIFY(files.canCancel()); files.cancelOperation();
+    QTRY_VERIFY_WITH_TIMEOUT(!files.busy(), 5000);
+    QVERIFY(QFileInfo::exists(file.fileName())); QCOMPARE(QFileInfo(file.fileName()).size(), qint64(64 * 1024 * 1024));
+    QVERIFY(!QFileInfo::exists(destination.filePath("large-test.dat")));
+    QVERIFY(!files.canCancel());
+}
+
+void CoreTest::undoesMovesAndRefusesConflictingDestinations()
+{
+    QTemporaryDir source, destination;
+    QFile file(source.filePath("undo-test.txt")); QVERIFY(file.open(QIODevice::WriteOnly)); file.write("original"); file.close();
+    FilesModel files(destination.path());
+    files.dropUrls({QUrl::fromLocalFile(file.fileName())}, destination.path(), true);
+    QTRY_VERIFY_WITH_TIMEOUT(!files.busy(), 5000); QVERIFY(files.canUndo()); QVERIFY(!file.exists());
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::NewOnly)); file.write("keep this new file"); file.close();
+    files.undo(); QTRY_VERIFY_WITH_TIMEOUT(!files.busy(), 5000);
+    QVERIFY(!files.errorText().isEmpty()); QVERIFY(files.canUndo());
+    QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), QByteArray("keep this new file")); file.close();
+    QVERIFY(QFileInfo::exists(destination.filePath("undo-test.txt")));
+    QVERIFY(file.remove()); files.undo(); QTRY_VERIFY_WITH_TIMEOUT(!files.busy(), 5000);
+    QVERIFY(files.errorText().isEmpty()); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), QByteArray("original"));
+    QVERIFY(!QFileInfo::exists(destination.filePath("undo-test.txt")));
 }
 
 void CoreTest::keepsHistoryWhenFolderDisappears()

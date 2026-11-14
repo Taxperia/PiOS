@@ -12,6 +12,8 @@ mmdebstrap:
     - locales
     - keyboard-configuration
     - network-manager
+    - wpasupplicant
+    - dnsmasq-base
     - network-manager-gnome
     - blueman
     - pavucontrol
@@ -34,10 +36,10 @@ mmdebstrap:
     - wtype
     - wlrctl
     - qdbus-qt6
-    - policykit-1
     - lxqt-policykit
     - accountsservice
     - unattended-upgrades
+    - deja-dup
     - libnotify-bin
     - grim
     - wlr-randr
@@ -68,15 +70,5 @@ mmdebstrap:
     - qml6-module-qtquick-layouts
     - qml6-module-qtquick-pdf
     - qt6-image-formats-plugin-pdf
-    - ${@SRCROOT}/packages/fidan-artwork_0.1.0~alpha3-1_all.deb
-    - ${@SRCROOT}/packages/fidan-shell_0.1.0~alpha3-1_arm64.deb
-    - ${@SRCROOT}/packages/fidan-session_0.1.0~alpha3-1_all.deb
-    - ${@SRCROOT}/packages/fidan-greeter_0.1.0~alpha3-1_arm64.deb
-    - ${@SRCROOT}/packages/fidan-lock_0.1.0~alpha3-1_all.deb
-    - ${@SRCROOT}/packages/fidan-firstboot_0.1.0~alpha3-1_arm64.deb
-    - ${@SRCROOT}/packages/fidan-store_0.1.0~alpha3-1_arm64.deb
-    - ${@SRCROOT}/packages/fidan-photos_0.1.0~alpha3-1_arm64.deb
-    - ${@SRCROOT}/packages/fidan-apps_0.1.0~alpha3-1_arm64.deb
-    - ${@SRCROOT}/packages/fidan-task-manager_0.1.0~alpha3-1_arm64.deb
-    - ${@SRCROOT}/packages/fidan-updater_0.1.0~alpha3-1_all.deb
-    - ${@SRCROOT}/packages/fidan-desktop_0.1.0~alpha3-1_all.deb
+# Verified local archives are listed in ../packages.list. The customize hook
+# installs them inside the target; bdebstrap does not expand package paths.

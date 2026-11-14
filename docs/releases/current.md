@@ -1,19 +1,27 @@
-PiOS 0.1.0-alpha.3 improves everyday desktop use and includes security fixes. This is an engineering alpha.
+PiOS 0.1.0-alpha.5 brings first setup into the real desktop and repairs monitor-free browser access. This is an engineering alpha.
 
 ## Yenilikler ve düzeltmeler
 
-- **Masaüstü:** Boş alanda sol tuşla dikdörtgen çizerek toplu seçim, Ctrl+tıklama ve Ctrl+A. Seçili dosyaları ve uygulama kısayollarını klasörlere taşıma; Ctrl ile sürükleyerek kopyalama. Masaüstünün tablet gibi kayması giderildi. Klasöre taşınan güvenilir uygulama kısayolları açılabilir.
-- **Mağaza:** 40 uygulamalık katalog, uygulama detayları, kurulum/kaldırma/güncelleme aşamaları, gerçek işlem yüzdesi ve hata ayrıntıları. APT ve Flatpak üzerinden gerçek kurulumlar yapılır. Mevcut yeşil mağaza görünümü korunmuştur.
-- **Ayarlar:** Klavye dili ve diğer seçim menülerindeki çökme düzeltildi.
-- **Görev yöneticisi:** CPU ve bellek grafikleri, aranabilir ve sıralanabilir süreç listesi, süreç ayrıntıları, duraklatma ve onaylı sonlandırma.
-- **Güvenlik:** İlk kurulumda girdi ve yetki denetimleri; Wi-Fi parolalarının işlem argümanlarından çıkarılması; güvenilir kısayol denetimi; kilit ekranı, WSL başlatıcısı ve güncelleyicide geçici dosya/sembolik bağlantı korumaları. APT kurulumları mevcut paketleri kaldıramaz. Ayrıntılar: [güvenlik incelemesi](https://github.com/Taxperia/PiOS/blob/v0.1.0-alpha.3/docs/security-review-2026-10-16.md).
+- **Tek ilk kurulum:** Dil, klavye, saat dilimi, hesap, ağ, tema, vurgu rengi, görev çubuğu, gizlilik ve güncelleme adımları normal duvar kâğıtlı masaüstünde tamamlanır. Seçimler yeni hesaba taşınır; aynı kurulum ikinci kez açılmaz. Eski mor kurulum, açıkça etkinleştirilen bir kurtarma seçeneği olarak korundu.
+- **Monitörsüz kurulum:** Ethernet üzerinden tek kullanımlık kurulum parolasıyla gerçek masaüstüne erişim; cihaz başına hesap, TLS sertifikası ve SSH anahtarları. SSH ve kurulum sonrası tarayıcı erişimi kullanıcı tarafından seçilir. İsteğe bağlı RDP ayrıca açılabilir.
+- **Tarayıcı masaüstü:** Siyah ekran/bağlantı kesilmesine yol açan yakalama başlatma hatası, servis kullanıcı kimliği ve fiziksel giriş aygıtı olmadan oturum başlatma düzeltildi. Kurulum hesabının eksik ev dizini onarılır. Yerel hesapla giriş, pano aktarımı ve bağlantı raporu desteği vardır.
+- **Masaüstü:** Başlat menüsü, ses ve mikrofon denetimleri, bildirim göstergeleri, ekran görüntüsü araçları ve kişisel karşılama seçenekleri genişletildi. Dosya işlemleri ve uygulama ayarlarında düzeltmeler yapıldı.
+- **Güncellemeler ve güvenlik:** GitHub sürümleri imzalı manifest ve paket özetleriyle doğrulanır. Güncelleme öncesinde kurulu PiOS paketlerinin kurtarma kopyası saklanır. Bağlantı raporları yalnızca yetkili kurulum oturumunda, sınırlı ve gizli alanlar temizlenerek alınabilir.
 
-## Packages and updates
+## Mevcut PiOS cihazını güncelleme
 
-The assets include Debian 13 packages for **amd64** and **arm64**, a signed package manifest, SHA-256 checksums and the public release key. This release does **not** contain a bootable Raspberry Pi image; physical Pi 5 acceptance testing is still pending.
+Ayarlar → Sistem bölümünde güncellemeleri denetleyip indirerek kurun. Terminalden aynı işlemler:
 
-Install the packages for your architecture on a Debian 13 system. For an existing development desktop, install the artwork, shell, store, photos, task-manager, session, lock and updater packages. The `fidan-desktop` meta-package also installs the login/first-boot components and is intended for a dedicated desktop system.
+```sh
+fidan-update check
+fidan-update download
+fidan-update install
+```
 
-Existing PiOS installations with the updater enabled check GitHub every six hours and update installed PiOS packages after signature verification. Installation never forces a reboot or restarts the active desktop. Debian base-system packages and third-party APT/Flatpak applications retain their own update mechanisms; local Debian security updates described in the review are not bundled in these assets.
+Yeni masaüstü kodunun çalışması için işlemler başarıyla tamamlandıktan sonra oturumu yeniden açın veya cihazı yeniden başlatın. Güncelleyici açık masaüstünü zorla kapatmaz. Otomatik güncelleme zamanlayıcısı etkinse GitHub yaklaşık altı saatte bir denetlenir. İnternet bağlantısı gerekir.
+
+Bu sürüm **Debian 13 için amd64 ve arm64 paketleri**, imzalı manifest ve sağlama toplamları içerir. **Yeni bir önyüklenebilir IMG içermez.** Mevcut kartı yeniden yazmak gerekmez. Fiziksel Raspberry Pi 5 kabul testlerinin tamamı henüz bitmemiştir.
+
+Debian temel sistem paketleri ve üçüncü taraf uygulamalar kendi APT/Flatpak güncelleme yollarını kullanır. Mevcut hesaplar ve kişisel tercihler korunur. Önceden tamamlanmış bir kurulum yeniden başlatılmaz; kişisel karşılama henüz tamamlanmadıysa masaüstünde tamamlanabilir.
 
 Release trust fingerprint: `1085 5324 032F 285A FB73 CCD4 C41F F807 5817 D3B6`.

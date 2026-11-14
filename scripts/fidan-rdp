@@ -1,0 +1,34 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Enable an optional Windows RDP maintenance desktop through an SSH tunnel."""
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import sys
+sys.path.insert(0, '/usr/lib/fidan/remote' if Path('/usr/lib/fidan/remote/rdp.py').is_file() else str(Path(__file__).resolve().parents[1]/'src/remote'))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('action', choices=('on', 'off', 'status'))
+    parser.add_argument('username', nargs='?')
+    args = parser.parse_args()
+    if args.action == 'status':
+        return subprocess.run(['systemctl', 'status', '--no-pager', 'xrdp.service', 'xrdp-sesman.service'], check=False).returncode
+    if os.geteuid() != 0: raise PermissionError('Administrator authorization is required')
+    if not Path('/var/lib/fidan/firstboot-complete').is_file(): raise ValueError('Complete device setup first')
+    os.umask(0o077)
+    if args.action == 'off':
+        return subprocess.run(['systemctl', 'disable', '--now', 'xrdp.service', 'xrdp-sesman.service'], check=False).returncode
+    if not args.username: raise ValueError('Usage: sudo fidan-rdp on LOCAL_USERNAME')
+    from rdp import enable
+    enable(args.username)
+    print('RDP is listening only on 127.0.0.1:3389. See docs/rdp.md for the Windows SSH tunnel.')
+    return 0
+
+
+if __name__ == '__main__':
+    try: sys.exit(main())
+    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+        print('fidan-rdp: '+str(error), file=sys.stderr); sys.exit(1)

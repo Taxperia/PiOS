@@ -1,0 +1,57 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""PiOS local HTTPS portal and narrowly scoped PAM/desktop broker."""
+import argparse
+import os
+from pathlib import Path
+import pwd
+import socket
+import ssl
+import subprocess
+import sys
+sys.path.insert(0, '/usr/lib/fidan/remote' if Path('/usr/lib/fidan/remote/provision.py').is_file() else str(Path(__file__).resolve().parents[1]/'src/remote'))
+from provision import Paths, bootstrap, cleanup
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('command', choices=('bootstrap','cleanup-setup','gateway','broker','should-serve','configure'))
+    parser.add_argument('state', nargs='?', choices=('on','off'))
+    args = parser.parse_args(); paths = Paths()
+    if args.command == 'should-serve': return 0 if paths.enabled or not paths.complete and paths.provision.is_file() else 1
+    if args.command == 'gateway':
+        from gateway import Gateway
+        tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); tls.minimum_version = ssl.TLSVersion.TLSv1_2
+        tls.load_cert_chain('/var/lib/fidan/tls/cert.pem', '/var/lib/fidan/tls/key.pem')
+        with Gateway(('0.0.0.0',443), tls) as server: server.serve_forever()
+        return 0
+    if os.geteuid() != 0: raise PermissionError('This operation requires administrator authorization')
+    os.umask(0o077)
+    if args.command == 'bootstrap': bootstrap(paths); return 0
+    if args.command == 'cleanup-setup': cleanup(paths); return 0
+    if args.command == 'broker':
+        if not (paths.enabled and paths.complete or not paths.complete and paths.provision.is_file()): return 0
+        from broker import BrokerServer
+        gateway = pwd.getpwnam('fidan-gateway'); path = Path('/run/fidan-remote/broker.sock')
+        path.parent.mkdir(mode=0o750, parents=True, exist_ok=True); os.chown(path.parent,0,gateway.pw_gid)
+        # The system unit owns this private directory; never unlink an arbitrary socket path.
+        path.unlink(missing_ok=True)
+        with BrokerServer(path, gateway.pw_uid) as server:
+            os.chown(path,0,gateway.pw_gid); path.chmod(0o660); server.serve_forever()
+        return 0
+    if args.command == 'configure':
+        if args.state is None: raise ValueError('Choose on or off')
+        if not paths.complete: raise ValueError('Finish first-boot setup before changing desktop access')
+        flag = paths.at('/etc/fidan/remote-enabled'); flag.parent.mkdir(parents=True,exist_ok=True)
+        if args.state == 'on':
+            descriptor = os.open(flag, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o644)
+            with os.fdopen(descriptor,'w') as stream: stream.write('enabled\n')
+            bootstrap(paths)
+            return subprocess.run(['systemctl','enable','--now','fidan-gateway.service','fidan-remote-broker.service'],check=False).returncode
+        flag.unlink(missing_ok=True)
+        return subprocess.run(['systemctl','disable','--now','fidan-gateway.service','fidan-remote-broker.service'],check=False).returncode
+    return 1
+
+if __name__ == '__main__':
+    try: sys.exit(main())
+    except (OSError,ValueError,RuntimeError,subprocess.SubprocessError) as error:
+        print('fidan-remote: '+str(error),file=sys.stderr); sys.exit(1)

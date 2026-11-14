@@ -1,0 +1,60 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Read-only raw Pi image checks, optional signed SHA256SUMS; never mounts/flashes."""
+import argparse
+import hashlib
+from pathlib import Path
+import re
+import struct
+import subprocess
+import sys
+
+
+def partitions(path):
+    if path.is_symlink() or not path.is_file():raise ValueError('Choose a regular, uncompressed .img file')
+    size=path.stat().st_size
+    with path.open('rb') as stream:
+        sector=stream.read(512)
+        if len(sector)!=512 or sector[510:]!=b'\x55\xaa':raise ValueError('Missing DOS partition signature')
+        entries=[]
+        for index in range(4):
+            offset=446+index*16;kind=sector[offset+4];start,length=struct.unpack_from('<II',sector,offset+8)
+            if not kind:continue
+            if kind==0xee:raise ValueError('GPT images are not supported by this Pi DOS-layout check')
+            if not start or not length or (start+length)*512>size:raise ValueError('Partition exceeds image bounds')
+            entries.append((start,start+length,kind))
+        ordered=sorted(entries)
+        if any(a[1]>b[0] for a,b in zip(ordered,ordered[1:])):raise ValueError('Overlapping partitions')
+        if len(entries)!=2 or entries[0][2] not in (0x0b,0x0c,0x0e) or entries[1][2]!=0x83:raise ValueError('Expected FAT boot and Linux root partitions')
+        stream.seek(entries[0][0]*512);boot=stream.read(512)
+        if boot[510:]!=b'\x55\xaa' or not (b'FAT' in boot[54:90]):raise ValueError('Boot partition lacks a FAT superblock')
+        stream.seek(entries[1][0]*512+1024+56)
+        if stream.read(2)!=b'\x53\xef':raise ValueError('Root partition lacks an ext filesystem superblock')
+        return {'bytes':size,'partitions':[{'startSector':a,'sectors':b-a,'type':hex(c)} for a,b,c in entries]}
+
+
+def verify_checksum(image,sums,keyring):
+    subprocess.run(['gpgv','--keyring',str(keyring.resolve()),str(sums)+'.asc',str(sums)],check=True)
+    matches=[]
+    for line in sums.read_text().splitlines():
+        match=re.fullmatch(r'([a-fA-F0-9]{64}) [ *](.+)',line)
+        if match and match[2]==image.name:matches.append(match[1].lower())
+    if len(matches)!=1:raise ValueError('Image must appear exactly once in signed SHA256SUMS')
+    digest=hashlib.sha256()
+    with image.open('rb') as stream:
+        for block in iter(lambda:stream.read(1024*1024),b''):digest.update(block)
+    if digest.hexdigest()!=matches[0]:raise ValueError('Image SHA-256 mismatch')
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('image',type=Path)
+    parser.add_argument('--sums',type=Path);parser.add_argument('--keyring',type=Path);args=parser.parse_args()
+    if bool(args.sums)!=bool(args.keyring):parser.error('Use --sums and --keyring together')
+    if args.sums:verify_checksum(args.image,args.sums,args.keyring)
+    import json
+    print(json.dumps({'layout':partitions(args.image),'signatureVerified':bool(args.sums),'hardwareBootVerified':False},indent=2))
+
+
+if __name__=='__main__':
+    try:main()
+    except (OSError,ValueError,subprocess.SubprocessError) as error:print('verify-image: '+str(error),file=sys.stderr);sys.exit(1)

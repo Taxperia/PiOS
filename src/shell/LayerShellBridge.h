@@ -14,6 +14,7 @@ public:
 
     Q_INVOKABLE void configure(QObject *windowObject, const QString &role);
     Q_INVOKABLE void positionDock(QObject *windowObject, const QString &position);
+    Q_INVOKABLE void positionPanel(QObject *windowObject, const QString &position);
 
 private:
     bool m_enabled = false;

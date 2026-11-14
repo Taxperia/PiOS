@@ -1,0 +1,42 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -eu
+target_root=${1:?target root is required}
+
+# This runs after every customize hook, including upstream account/network
+# defaults. The first human account is created by our first-boot wizard.
+if chroot "$target_root" getent passwd fidan-build >/dev/null; then
+    chroot "$target_root" userdel --remove fidan-build
+fi
+rm -f "$target_root/etc/sudoers.d/010_rpi-passwd"
+if chroot "$target_root" getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 { found=1 } END { exit !found }'; then
+    echo 'Refusing image with an unexpected pre-created human account' >&2
+    exit 1
+fi
+chroot "$target_root" passwd --lock root
+# Never clone the build host's device identity or random seed onto every card.
+rm -f "$target_root"/etc/ssh/ssh_host_* "$target_root/var/lib/systemd/random-seed"
+rm -f "$target_root/var/lib/dbus/machine-id"
+truncate -s 0 "$target_root/etc/machine-id"
+install -d -m 0755 "$target_root/etc/fidan"
+printf 'PiOS Raspberry Pi 5\n' > "$target_root/etc/fidan/pi-image"
+chroot "$target_root" systemctl disable systemd-networkd.service systemd-networkd-wait-online.service iwd.service ssh.service ssh.socket greetd.service 2>/dev/null || true
+# tty1 belongs to the graphical setup/login service. A default getty holding
+# its controlling terminal can prevent StandardInput=tty from starting Cage.
+chroot "$target_root" systemctl mask getty@tty1.service
+chroot "$target_root" systemctl enable NetworkManager.service avahi-daemon.service bluetooth.service
+chroot "$target_root" systemctl enable fidan-ssh-hostkeys.service
+chroot "$target_root" systemctl enable fidan-grow-root.service
+chroot "$target_root" systemctl enable fidan-firstbootd.service fidan-firstboot-session.service
+chroot "$target_root" systemctl enable fidan-remote-bootstrap.service fidan-gateway.service fidan-remote-broker.service
+test -x "$target_root/usr/bin/fidan-firstboot"
+test -x "$target_root/usr/bin/fidan-session"
+test -x "$target_root/usr/bin/fidan-update"
+test -f "$target_root/usr/lib/systemd/system/greetd.service.d/10-fidan-firstboot.conf"
+test ! -e "$target_root/var/lib/fidan/firstboot-complete"
+# A resumed build must create the initial ramdisk, not only request an update
+# of images that may not exist yet. Stop before producing an unbootable image.
+if [ ! -s "$target_root/boot/firmware/initramfs_2712" ]; then
+    echo 'Missing Pi 5 initramfs; run update-initramfs -c for the installed kernel before image assembly' >&2
+    exit 1
+fi

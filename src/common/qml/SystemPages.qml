@@ -13,6 +13,7 @@ Item {
     Timer { interval: 30000; repeat: true; running: root.visible; onTriggered: SettingsData.refreshSystem() }
     function showSheet(name) { SettingsData.refreshSystem(); root.navigate("System/"+name) }
     ColumnLayout {
+        SettingsControls.Button { visible: root.category === "System"; text: qsTr("PiOS karşılama ekranını aç"); onClicked: Controller.showFirstBoot() }
         id: layout; width: root.width; spacing: 14; visible: !root.sheet.length
         SettingsControls.Caption { text: root.category === "System" ? qsTr("Cihazının temel ayarlarını yönet.") : root.category === "Storage" ? qsTr("Disk kullanımını ve depolama ayarlarını yönet.") : qsTr("Cihazın ve işletim sistemin hakkında bilgiler.") }
         GridLayout {
@@ -35,6 +36,8 @@ Item {
                     SettingsControls.Caption { text: Updates.statusText }
                     SettingsControls.Toggle { label: qsTr("Otomatik güncellemeler"); hint: qsTr("GitHub'daki imzalı PiOS paketlerini 6 saatte bir kontrol et ve kur. Oturumun açık kalır."); checked: Updates.automaticEnabled; enabled: !Updates.busy && !Controller.mockMode; onToggled: value => Updates.setAutomaticEnabled(value) }
                     SettingsControls.Button { Layout.fillWidth: true; text: Updates.busy ? qsTr("İşlem sürüyor…") : Updates.downloaded ? qsTr("Güncellemeyi kur") : Updates.updateAvailable && Updates.installable ? qsTr("Güncellemeyi indir") : qsTr("Güncellemeleri kontrol et"); primary: true; enabled: !Updates.busy && !Controller.mockMode; onClicked: Updates.downloaded ? Updates.install() : Updates.updateAvailable && Updates.installable ? Updates.download() : Updates.check() }
+                    SettingsControls.Button { Layout.fillWidth: true; text: qsTr("Önceki PiOS sürümünü geri yükle…"); enabled: !Updates.busy && Updates.recoveryAvailable && !Controller.mockMode; onClicked: recoveryDialog.open() }
+                    SettingsControls.Button { Layout.fillWidth: true; text: qsTr("Yarıda kalan kurulumu onar"); enabled: !Updates.busy && !Controller.mockMode; onClicked: Updates.repair() }
                 }
                 SettingsControls.Link { label: qsTr("Daha fazla bilgi"); hint: qsTr("Sürüm, lisanslar ve yardım"); iconName:"help-about-symbolic"; onTriggered: root.navigate("About") }
             }
@@ -70,14 +73,35 @@ Item {
         }
         SettingsControls.Caption { visible: SettingsData.actionError.length>0; text: SettingsData.actionError; color: Controller.darkTheme ? "#FFB3A3" : "#A43138" }
     }
+    Dialog {
+        id: recoveryDialog; anchors.centerIn: parent; width: Math.max(280, Math.min(420, root.width - 20)); modal: true
+        implicitHeight: 300
+        title: qsTr("Önceki PiOS paketleri geri yüklensin mi?")
+        standardButtons: Dialog.Cancel | Dialog.Ok
+        contentItem: Label { wrapMode: Text.WordWrap; text: qsTr("Çalışmalarını kaydet. Bu işlem son güncelleme öncesindeki PiOS paketlerini geri yükler; kişisel dosyaların ve Debian'ın diğer paketleri geri alınmaz.") }
+        onAccepted: Updates.rollback()
+    }
     SettingsControls.Card {
             id:detailBody; width:root.width; visible:root.sheet.length>0
             contentSpacing: 13
+            ColumnLayout {
+                visible: root.sheet === "date"; Layout.fillWidth: true
+                SettingsControls.Label { text: qsTr("Saat dilimini değiştir") }
+                TextField { id: timezoneInput; Layout.fillWidth: true; text: SettingsData.info.timezone || "UTC"; placeholderText: "Europe/Istanbul"; maximumLength: 100; Accessible.name: qsTr("Saat dilimi") }
+                SettingsControls.Button { text: qsTr("Uygula"); enabled: !SettingsData.actionBusy && !Controller.mockMode; onClicked: SettingsData.setTimezone(timezoneInput.text) }
+            }
+            ColumnLayout {
+                visible: root.sheet === "region"; Layout.fillWidth: true
+                SettingsControls.Label { text: qsTr("Sonraki oturumun dili") }
+                SettingsControls.Combo { model: ["Türkçe", "English"]; currentIndex: Controller.sessionLanguage.startsWith("tr") ? 0 : 1; onActivated: Controller.sessionLanguage = currentIndex === 0 ? "tr_TR.UTF-8" : "en_US.UTF-8" }
+                SettingsControls.Label { text: qsTr("Panelde tarih biçimi") }
+                SettingsControls.Combo { model: [qsTr("Sistem diline göre"), "2026-11-11", "11.11.2026"]; currentIndex: ["locale","iso","day-first"].indexOf(Controller.dateFormat); onActivated: Controller.dateFormat = ["locale","iso","day-first"][currentIndex] }
+            }
             ColumnLayout { visible: root.sheet === "date"; Layout.fillWidth: true; SettingsControls.InfoRow { label:qsTr("Yerel saat"); value: SettingsData.info.time } SettingsControls.InfoRow { label:qsTr("Saat dilimi"); value:SettingsData.info.timezone } SettingsControls.Toggle { label:qsTr("Otomatik saat eşitleme"); hint: SettingsData.info.ntpAvailable ? qsTr("Sistem yetkilendirmesi gerekebilir") : qsTr("Bu ortamda saat eşitleme hizmeti kullanılamıyor"); checked: SettingsData.info.ntpEnabled; enabled: SettingsData.info.ntpAvailable && !SettingsData.actionBusy; onToggled: value => SettingsData.setNtp(value) } }
-            ColumnLayout { visible: root.sheet === "region"; Layout.fillWidth: true; SettingsControls.InfoRow { label:qsTr("Sistem dili"); value:SettingsData.info.locale } SettingsControls.Label { text:qsTr("Klavye düzeni") } SettingsControls.Combo { property var layouts:["us","tr","de","gb"]; model:["English (US)","Türkçe","Deutsch","English (UK)"]; currentIndex:Math.max(0,layouts.indexOf(Controller.keyboardLayout)); onActivated:Controller.keyboardLayout=layouts[currentIndex] } SettingsControls.Caption { text:qsTr("Klavye düzeni sonraki masaüstü oturumunda uygulanır. Sistem dili Debian dil paketleriyle yönetilir.") } }
+            ColumnLayout { visible: root.sheet === "region"; Layout.fillWidth: true; SettingsControls.InfoRow { label:qsTr("Sistem dili"); value:SettingsData.info.locale } SettingsControls.Label { text:qsTr("Klavye düzeni") } SettingsControls.Combo { property var layouts:["us","tr","de","gb"]; model:["English (US)","Türkçe","Deutsch","English (UK)"]; currentIndex:Math.max(0,layouts.indexOf(Controller.keyboardLayout)); onActivated:Controller.keyboardLayout=layouts[currentIndex] } SettingsControls.Caption { text:qsTr("Dil ve klavye tercihi sonraki masaüstü oturumunda uygulanır. Ek diller için Debian dil paketleri gerekir.") } }
             ColumnLayout { visible: root.sheet === "users"; Layout.fillWidth: true; SettingsControls.InfoRow { label:qsTr("Kullanıcı"); value:SettingsData.info.user } SettingsControls.InfoRow { label:qsTr("Ev klasörü"); value:SettingsData.info.home } SettingsControls.Caption { text: SettingsData.toolAvailable("users") ? qsTr("Hesap değişiklikleri yönetici yetkisi isteyebilir.") : qsTr("Bu sistemde grafik hesap yöneticisi kurulu değil.") } SettingsControls.Button { text:qsTr("Hesapları yönet"); enabled:SettingsData.toolAvailable("users"); onClicked:SettingsData.openTool("users") } }
             SettingsControls.Caption { visible: root.sheet === "backup" || root.sheet === "storageTools"; text: root.sheet === "backup" ? qsTr("Dosya yedeklerini yönetmek için Déjà Dup gibi bir yedekleme uygulaması kullanabilirsin. Burada otomatik yedekleme etkinleştirilmiş değildir.") : qsTr("Diskleri yönetmek için GNOME Disks, klasör boyutlarını incelemek için Disk Usage Analyzer kullanabilirsin. Bu araçlar ayrıca kurulur.") }
-            SettingsControls.Button { visible:root.sheet === "backup" && SettingsData.toolAvailable("backup"); text:qsTr("Yedekleme uygulamasını aç"); onClicked:SettingsData.openTool("backup") }
+            SettingsControls.Button { visible:root.sheet === "backup" && SettingsData.toolAvailable("backup"); text:qsTr("Yedekleme ve geri yüklemeyi aç"); onClicked:SettingsData.openTool("backup") }
             SettingsControls.Button { visible:root.sheet === "storageTools" || (root.sheet === "backup" && !SettingsData.toolAvailable("backup")); text:qsTr("Uygulama mağazasını aç"); onClicked:Controller.openSoftwareCenter() }
             ColumnLayout { visible:root.sheet === "advanced"; Layout.fillWidth:true; SettingsControls.Button { text:qsTr("Depolama"); onClicked:{ root.navigate("Storage") } } SettingsControls.Button { text:qsTr("Klavye ve fare"); onClicked:{ root.navigate("Keyboard & Mouse") } } SettingsControls.Button { text:qsTr("Gizlilik"); onClicked:{ root.navigate("Privacy") } } SettingsControls.Button { text:qsTr("Görev yöneticisi"); onClicked:Controller.openTaskManager() } }
             SettingsControls.Caption { visible:SettingsData.actionError.length>0; text:SettingsData.actionError; color:"#EAA495" }

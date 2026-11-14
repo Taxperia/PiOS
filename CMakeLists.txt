@@ -51,7 +51,7 @@ foreach(icon_target fidan-shell fidan-firstboot fidan-greeter fidan-store
         fidan-task-manager fidan-settings fidan-files fidan-photos fidan-apps
         fidan-files-ui-tests fidan-photos-display-tests fidan-settings-tests
         fidan-store-ui-tests fidan-taskmanager-ui-tests fidan-desktop-ui-tests
-        fidan-utilities-tests fidan-icon-tests)
+        fidan-utilities-tests fidan-icon-tests fidan-launcher-ui-tests)
     if(TARGET ${icon_target})
         string(MAKE_C_IDENTIFIER "fidan_icons_${icon_target}" icon_resource)
         qt_add_resources(${icon_target} ${icon_resource}
@@ -66,7 +66,7 @@ install(DIRECTORY data/icons/mimetypes/
 install(FILES config/product.json
     DESTINATION ${CMAKE_INSTALL_DATADIR}/fidan
 )
-install(FILES artwork/wallpapers/fidan-mountain-dawn-4k.png
+install(FILES artwork/wallpapers/fidan-mountain-dawn-4k.png artwork/wallpapers/fidan-mountain-dawn.png
     DESTINATION ${CMAKE_INSTALL_DATADIR}/backgrounds/fidan
 )
 install(FILES artwork/ASSET-LICENSES.md artwork/wallpapers/fidan-mountain-dawn.prompt.txt
@@ -95,6 +95,12 @@ install(FILES data/wayland-sessions/fidan.desktop
 install(PROGRAMS scripts/fidan-session
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+install(PROGRAMS scripts/fidan-ssh DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS scripts/fidan-grow-root DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES data/systemd/system/fidan-grow-root.service DESTINATION lib/systemd/system)
+install(FILES data/ssh/00-fidan.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/ssh/sshd_config.d)
+install(FILES data/ssh/10-fidan-hostkeys.conf DESTINATION lib/systemd/system/ssh.service.d)
+install(FILES data/systemd/system/fidan-ssh-hostkeys.service DESTINATION lib/systemd/system)
 install(PROGRAMS scripts/fidan-input DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(PROGRAMS scripts/fidan-shellctl scripts/fidan-workspace scripts/fidan-lock scripts/fidan-screenshot scripts/fidan-display-restore scripts/fidan-night-light
     DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -102,6 +108,15 @@ install(PROGRAMS scripts/fidan-shellctl scripts/fidan-workspace scripts/fidan-lo
 install(PROGRAMS scripts/fidan-update
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+install(PROGRAMS scripts/fidan-setup-preferences DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS scripts/fidan-remote scripts/fidan-remote-session scripts/fidan-provision scripts/fidan-rdp scripts/fidan-rdp-session DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY src/remote/ DESTINATION lib/fidan/remote FILES_MATCHING PATTERN "*.py")
+install(DIRECTORY data/remote/ DESTINATION ${CMAKE_INSTALL_DATADIR}/fidan/remote
+    FILES_MATCHING PATTERN "*.html" PATTERN "*.js" PATTERN "*.css")
+install(FILES data/remote/wayvnc.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fidan)
+install(FILES data/pam/fidan-remote DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/pam.d)
+install(FILES data/systemd/system/fidan-remote-bootstrap.service data/systemd/system/fidan-gateway.service data/systemd/system/fidan-remote-broker.service
+    DESTINATION lib/systemd/system)
 install(FILES data/keys/fidan-release-keyring.gpg
     DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/fidan
     RENAME release-keyring.gpg
@@ -161,4 +176,4 @@ install(FILES
 )
 
 install(DIRECTORY artwork/wallpapers/collection DESTINATION ${CMAKE_INSTALL_DATADIR}/backgrounds/fidan)
-install(FILES docs/daily-desktop.md docs/photos-display.md docs/settings-redesign.md docs/settings-expanded.md docs/builtin-apps.md docs/virtualbox.md DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/fidan-shell)
+install(FILES docs/daily-desktop.md docs/photos-display.md docs/settings-redesign.md docs/settings-expanded.md docs/builtin-apps.md docs/virtualbox.md docs/pi5-kurulum.md docs/rdp.md DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/fidan-shell)

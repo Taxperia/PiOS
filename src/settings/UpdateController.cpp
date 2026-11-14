@@ -52,6 +52,8 @@ void UpdateController::install()
     if (m_downloaded)
         start(Operation::Install, QStringLiteral("install"));
 }
+void UpdateController::rollback() { start(Operation::Rollback, QStringLiteral("rollback")); }
+void UpdateController::repair() { start(Operation::Repair, QStringLiteral("repair")); }
 
 void UpdateController::setAutomaticEnabled(bool enabled)
 {
@@ -84,6 +86,12 @@ void UpdateController::start(Operation operation, const QString &argument)
         break;
     case Operation::Configure:
         setStatus(tr("Otomatik güncelleme tercihi için yetkilendirme bekleniyor…"));
+        break;
+    case Operation::Rollback:
+        setStatus(tr("Önceki PiOS paketleri geri yükleniyor; yetkilendirme gerekebilir…"));
+        break;
+    case Operation::Repair:
+        setStatus(tr("Yarıda kalan paket kurulumu onarılıyor; yetkilendirme gerekebilir…"));
         break;
     case Operation::None:
         return;
@@ -122,6 +130,7 @@ void UpdateController::finish(int exitCode, QProcess::ExitStatus exitStatus)
         m_downloaded = result.value(QStringLiteral("downloaded")).toBool();
         m_automaticEnabled = result.value(QStringLiteral("automaticEnabled")).toBool();
         m_installable = result.value(QStringLiteral("installable")).toBool();
+        m_recoveryAvailable = result.value(QStringLiteral("recoveryAvailable")).toBool();
         setStatus(m_updateAvailable
                       ? (m_installable ? tr("%1 sürümü kullanılabilir.").arg(m_latestVersion) : tr("%1 sürümünün imzalı paketleri henüz hazır değil.").arg(m_latestVersion))
                       : (m_latestVersion.isEmpty() ? tr("Bu kanal için henüz sürüm yayınlanmadı.") : tr("PiOS güncel. Sürüm: %1").arg(m_latestVersion)));
@@ -141,10 +150,16 @@ void UpdateController::finish(int exitCode, QProcess::ExitStatus exitStatus)
     }
 
     if (completed == Operation::Install) {
+        m_recoveryAvailable = true;
         m_downloaded = false;
         m_updateAvailable = false;
         setStatus(tr("Güncelleme kuruldu. Yeni masaüstünü sonraki oturumda kullanabilirsin."));
     }
+    if (completed == Operation::Rollback) {
+        m_recoveryAvailable = false;
+        setStatus(tr("Önceki PiOS paketleri geri yüklendi. Değişiklikler sonraki oturumda uygulanır."));
+    }
+    if (completed == Operation::Repair) setStatus(tr("Paket yapılandırması tamamlandı. Güncellemeleri yeniden kontrol edebilirsin."));
 }
 
 void UpdateController::setStatus(const QString &status)

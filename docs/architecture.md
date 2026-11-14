@@ -12,10 +12,12 @@ and notification Layer Shell surfaces. When LayerShellQt is unavailable, the
 same components can run in a normal preview window; the production image makes
 LayerShellQt mandatory.
 
-For a Pi without a monitor, Labwc creates the `NOOP-fidan` fallback output.
-WayVNC exports that output over a loopback-only socket. An authenticated HTTPS
-gateway serves noVNC at `fidan.local`, so first boot and the later desktop can
-be reached from a browser on the same local network. See
+When browser access is enabled, a monitor-free session uses Labwc's wlroots
+headless backend and a 1920×1080 virtual output. WayVNC's native WebSocket server
+listens on a private per-user Unix socket. A PAM broker passes an authenticated
+socket descriptor to the unprivileged HTTPS gateway, which serves noVNC at
+`fidan.local`. A one-time provisioning credential grants access to first boot;
+the browser desktop requires a local account and explicit opt-in. See
 [headless management](headless-management.md) for the provisioning flow and
 security boundaries.
 

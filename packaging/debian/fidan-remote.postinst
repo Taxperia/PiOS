@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+install -d -m 0755 -o root -g root /var/lib/fidan
+if ! getent passwd fidan-gateway >/dev/null; then
+    adduser --system --group --no-create-home --home /var/lib/fidan-gateway fidan-gateway
+fi
+#DEBHELPER#

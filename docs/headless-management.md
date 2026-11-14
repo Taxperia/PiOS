@@ -1,47 +1,133 @@
-# Headless management
+# Local HTTPS setup and browser desktop
 
-Project Fidan must be installable and usable without connecting a monitor to
-the Raspberry Pi. Headless management stays on the local network and does not
-require a cloud account or an Internet connection.
+The `fidan-remote` package implements a local HTTPS portal with an unprivileged
+gateway, a PAM/session broker and noVNC. Hardware qualification is still pending.
+Neither SSH nor post-setup browser access is enabled by default.
 
-## First boot
+## Prepare an individual card
 
-The image-writing helper asks the owner to choose a one-time setup password and
-writes the provisioning data to the FAT boot partition. There is no shared or
-factory-default password.
+Flash a verified Pi image using Raspberry Pi Imager, mount its FAT boot partition,
+then run the helper on Linux:
 
-1. Connect the Pi to the router with Ethernet and power it on.
-2. Open `https://fidan.local` on a computer on the same network.
-3. Enter the one-time setup password and complete the existing first-boot
-   wizard: language, keyboard, time zone, user account, Wi-Fi and privacy.
-4. After successful setup, the provisioning endpoint deletes its secrets and
-   disables itself.
+```sh
+python3 scripts/fidan-provision --boot /media/owner/bootfs --hostname fidan
+```
 
-If Ethernet is unavailable, the device creates a temporary WPA2 network named
-`Fidan-Setup-<device suffix>`. The setup password protects this network and its
-local portal. The access point is removed after the Pi joins the selected Wi-Fi
-network.
+The helper prompts twice for a unique 12–63 UTF-8-byte setup password. It writes
+a salted scrypt verifier and WPA2 PSK, never the clear password, to
+`fidan-setup.json`. Treat that file/card as a credential until setup completes;
+the WPA2 PSK itself grants access to the temporary network. The helper refuses
+to overwrite existing provisioning data and never writes a raw block device.
+There is no factory password or embedded TLS private key.
 
-## Browser desktop
+Card preparation also works with Python 3 on Windows:
+`python scripts/fidan-provision --boot E:\ --hostname fidan` (replace `E:` with the
+mounted boot partition). The Pi-side services themselves require Linux.
+Wait for `Prepared https://fidan.local` before removing the card. A rejected
+password does not produce provisioning data. Windows installations without
+the optional `py` launcher can use `python` directly.
 
-After setup, `https://fidan.local` opens a browser-based remote desktop. The
-gateway authenticates against the created local account through PAM. noVNC
-provides the browser client, websockify carries the VNC connection, and WayVNC
-captures a virtual Labwc output named `NOOP-fidan` when no physical output is
-connected.
+The 2026-11-11 local image lacks `wpasupplicant` and `dnsmasq-base`; use Ethernet
+for its first setup. After account setup, install those packages with APT before
+using Wi-Fi or the temporary access point. Package/image dependencies have been
+corrected in source for subsequent builds; the existing local image was not
+rebuilt with this correction.
 
-The raw VNC service listens only on loopback. The HTTPS gateway is the only
-network-facing desktop endpoint. Remote desktop access can be disabled from
-settings; SSH remains a separate, opt-in feature.
+On boot, the root bootstrap service consumes and removes the FAT file, sets the
+hostname and generates a unique self-signed TLS certificate. Connect Ethernet,
+then visit `https://fidan.local` on the same LAN. If Ethernet/Wi-Fi is unavailable,
+join the printed `Fidan-Setup-<suffix>` WPA2 network using your setup password and
+visit `https://192.168.50.1`. AP mode depends on the physical Wi-Fi adapter and
+regulatory environment and needs Pi testing.
 
-## Security boundaries
+Browsers warn about the self-signed certificate. Verify its SHA-256 fingerprint
+against the device using a trusted local console before accepting it:
 
-- No default human account, fixed password or reusable setup credential exists.
-- The setup API is available only until the first-boot completion marker is
-  committed.
-- Device TLS material and the provisioning secret are generated per image.
-- Passwords and Wi-Fi secrets are never written to logs.
-- Virtual keyboard and pointer input terminate at the compositor session.
-- The alpha provides no Internet relay, vendor cloud or automatic port
-  forwarding.
+```sh
+sudo openssl x509 -in /var/lib/fidan/tls/cert.pem -noout -sha256 -fingerprint
+```
 
+If you have no trusted way to compare the fingerprint, first-contact identity
+is not independently verified. A changed certificate on a later connection
+should be investigated rather than accepted automatically.
+
+Sign in with the one-time password and complete language/keyboard/time zone,
+account/password confirmation, network, SSH/browser preferences and update steps.
+Progress survives a service/device restart; account and Wi-Fi passwords are
+excluded from setup history. Wi-Fi may disconnect the temporary AP while joining
+the selected network: reconnect your computer to that network and reopen the
+hostname to resume. Completing setup removes the temporary profile and verifier,
+enables the login service and schedules reboot. If reboot fails, restart manually.
+
+## Browser desktop after setup
+
+Choose browser access during setup or enable it in Settings → Privacy. An
+administrator can also run `sudo fidan-remote configure on` or `off`. This is
+separate from SSH. Sign in with the local username/password, authenticated by
+PAM; the setup password no longer works. Sessions expire after 20 minutes.
+
+The browser opens with a startup screen followed by sign-in. The one-time setup
+password authenticates to a broker token restricted to the `fidan-setup` account.
+The browser then streams the real Labwc desktop and shell from that account,
+with the shell's device welcome wizard open on the normal wallpaper. A connected
+monitor and the browser share the same setup session. There is no HTML installer
+or simulated desktop. The shell saves setup through its privileged
+D-Bus service; the web gateway cannot call setup operations.
+
+Setup tokens cannot access a regular user's desktop and are revoked at setup
+completion. After reboot, the local account password opens the user's own
+desktop, if browser access was enabled. Setup choices are saved to that account,
+so its welcome dialog does not repeat the completed setup. Existing accounts
+without completed preferences still receive the personal desktop welcome.
+The stream fills the browser viewport in both cases.
+
+The old purple native installer remains in source and installed packages for
+recovery. It is disabled by default; explicitly set `FIDAN_LEGACY_FIRSTBOOT_UI=1`
+in the setup session environment to use it. The portal's former purple artwork
+is retained behind `data-legacy-portal="true"` on the HTML body. Its old completion
+page is also retained behind `data-legacy-completion-screen="true"`; normally,
+setup completion returns to the local-account login after reboot.
+Desktop controls in the upper right provide clipboard transfer, reconnect,
+sign-out and an optional full-screen button. Full screen requires a click;
+the viewport is filled even when browser tabs and the address bar remain visible.
+noVNC scales the complete desktop to the browser while preserving the shared
+display's resolution, including the native installer's position and size.
+
+For local UI regression checks without a device, run
+`python3 tests/serve_remote_ui.py` and open `http://localhost:8765/checks`.
+This loopback-only fixture tests startup, login, setup transport, responsive sizing and
+reconnection with a stub RFB client. It does not test PAM or actual VNC transport;
+`python3 tests/test_remote.py` covers the gateway/broker boundaries separately.
+
+For a real compositor and noVNC review on the Debian development host, build
+`fidan-shell`, `fidan-firstboot` and `fidan-firstboot-tests`, then run
+`sh scripts/verify-native-setup` and open `http://localhost:8766/` using
+`fixture-password`. This temporary local test streams a real Wayland desktop
+and native installer; setup operations use the isolated test service and never
+create host accounts. Artifacts are saved in `artifacts/native-setup/`. Stop the
+script after the review. Install all matching desktop packages on a device;
+the legacy web-only repair cannot deploy this architecture change.
+
+SSH can be changed after setup in Settings → Privacy, or using
+`sudo fidan-ssh on` / `off`. Every card generates its own SSH host keys.
+For Windows Remote Desktop, see the [optional RDP guide](rdp.md).
+
+WayVNC 0.9 or newer uses a private raw RFB Unix socket in `/run/user/<uid>/`.
+The same user's capture unit runs websockify between that socket and a second,
+private WebSocket Unix socket. Both sockets use owner-only permissions; neither
+process opens a TCP listener. WayVNC's `-w` and `-u` options cannot be combined.
+The root broker authorizes each session and passes the connected socket FD
+to the gateway. The gateway runs as `fidan-gateway` and exposes only HTTPS 443.
+A monitor-free session uses a 1080p headless output; attaching and switching
+physical displays still requires the hardware checklist.
+
+The portal rejects nonlocal clients, invalid Host/Origin, missing CSRF tokens,
+oversized requests and expired/revoked sessions. Cookies are Secure/HttpOnly/
+SameSite=Strict. Login attempts, workers and sessions are bounded. The services
+do not log request bodies/passwords. No UPnP, port forwarding or cloud relay is
+configured. Only enable it on a trusted local network.
+
+```sh
+journalctl -u fidan-remote-bootstrap -u fidan-gateway -u fidan-remote-broker
+systemctl status fidan-firstbootd
+```

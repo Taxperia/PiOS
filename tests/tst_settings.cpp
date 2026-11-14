@@ -10,6 +10,7 @@
 #include <QtTest>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQmlComponent>
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QQuickStyle>
@@ -22,6 +23,7 @@
 #include <QFile>
 #include <QImage>
 #include <QTime>
+#include <QTranslator>
 #include <QFileInfo>
 #include <QScopeGuard>
 #include <QJsonDocument>
@@ -60,6 +62,52 @@ private slots:
         first.setLockWallpaperUrl(QUrl::fromLocalFile(home.filePath("lock photo.png")).toString());
         QVERIFY(!first.lockWallpaperUrl().isEmpty()); const auto saved=first.lockWallpaperUrl(); first.setLockWallpaperUrl("https://invalid.example/photo.png"); QCOMPARE(first.lockWallpaperUrl(),saved);
     }
+    void welcomeResumesAndKeepsUserPreferences() {
+        qputenv("PATH", "/nonexistent"); // Read-only controller test; do not start desktop helper processes.
+        ShellController first(false, false);
+        QVERIFY(first.firstBootVisible());
+        first.setWelcomeStep(3); first.setDateFormat("iso"); first.setSessionLanguage("tr_TR.UTF-8");
+        first.setPanelPosition("bottom"); first.setPanelStyle("compact");
+        first.setWelcomeStep(99); first.setDateFormat("bad"); first.setSessionLanguage("en_US.UTF-8\nmalicious");
+        first.setPanelPosition("side"); first.setPanelStyle("bad");
+        ShellController resumed(false, false);
+        QCOMPARE(resumed.welcomeStep(), 3); QCOMPARE(resumed.dateFormat(), "iso");
+        QCOMPARE(resumed.sessionLanguage(), "tr_TR.UTF-8"); QCOMPARE(resumed.panelPosition(), "bottom"); QCOMPARE(resumed.panelStyle(), "compact");
+        QCOMPARE(resumed.dateText(), QDate::currentDate().toString("yyyy-MM-dd"));
+        QVERIFY(resumed.finishWelcome()); QVERIFY(!resumed.firstBootVisible()); QVERIFY(!resumed.lockScreenVisible());
+        ShellController completed(false, false); QVERIFY(!completed.firstBootVisible());
+        completed.ShowWelcome(); QVERIFY(completed.firstBootVisible()); QCOMPARE(completed.welcomeStep(), 0);
+        completed.dismissWelcome(); QVERIFY(!completed.firstBootVisible());
+    }
+    void welcomePagesRemainUsable_data() {
+        QTest::addColumn<int>("width"); QTest::addColumn<int>("height");
+        QTest::newRow("720p") << 900 << 650; QTest::newRow("small") << 600 << 500; QTest::newRow("light") << 900 << 650;
+    }
+    void welcomePagesRemainUsable() {
+        QFETCH(int, width); QFETCH(int, height);
+        QTranslator translator;
+        const QString translation = qEnvironmentVariable("FIDAN_WELCOME_TRANSLATOR");
+        if (!translation.isEmpty()) { QVERIFY(translator.load(translation)); QCoreApplication::installTranslator(&translator); }
+        ShellController controller(true,true); SettingsData data(true); UpdateController updates;
+        controller.setThemeMode(QByteArray(QTest::currentDataTag()) == "light" ? "light" : "dark");
+        QQmlEngine engine; engine.rootContext()->setContextProperty("Controller", &controller);
+        engine.rootContext()->setContextProperty("SettingsData", &data); engine.rootContext()->setContextProperty("Updates", &updates);
+        QStringList warnings; connect(&engine, &QQmlEngine::warnings, this, [&](const QList<QQmlError> &errors){ for (const auto &error: errors) warnings.append(error.toString()); });
+        QQmlComponent component(&engine, QUrl::fromLocalFile(QString(FIDAN_SOURCE_DIR) + "/src/shell/qml/components/WelcomeWizard.qml"));
+        std::unique_ptr<QObject> object(component.create()); QVERIFY2(object, qPrintable(component.errorString()));
+        auto *item = qobject_cast<QQuickItem *>(object.get()); QVERIFY(item);
+        QQuickWindow window; window.resize(width,height); item->setParentItem(window.contentItem()); item->setSize(QSizeF(width,height)); window.show();
+        auto *next = object->findChild<QObject *>("welcomeNext"); auto *back = object->findChild<QObject *>("welcomeBack"); QVERIFY(next && back);
+        for (int step = 0; step < 6; ++step) {
+            QCOMPARE(controller.welcomeStep(), step); QTest::qWait(50);
+            QVERIFY(next->property("enabled").toBool());
+            const auto output = qEnvironmentVariable("FIDAN_WELCOME_CAPTURE_DIR");
+            if (!output.isEmpty()) { QVERIFY(QDir().mkpath(output)); QVERIFY(window.grabWindow().save(output + QString("/welcome-%1-%2x%3%4.png").arg(step).arg(width).arg(height).arg(controller.darkTheme() ? "" : "-light"))); }
+            QVERIFY(QMetaObject::invokeMethod(next, "clicked"));
+        }
+        QSettings saved(home.filePath("fidan/shell.conf"), QSettings::IniFormat); QVERIFY(saved.value("welcome/completed").toBool());
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n'))); window.close();
+    }
     void systemAndStorageAreReal() {
         SettingsData data(true);
         QCOMPARE(data.info().value("architecture").toString(),QSysInfo::currentCpuArchitecture());
@@ -71,6 +119,14 @@ private slots:
         QVERIFY(data.wallpapers().size()>=8);
         for(const auto &item:data.wallpapers()) QVERIFY(QFileInfo::exists(item.toMap().value("url").toUrl().toLocalFile()));
         QVERIFY(!data.toolAvailable("unknown-tool"));
+    }
+    void setupKeyboardSurvivesSavingOtherPreferences() {
+        const auto previous = qgetenv("XKB_DEFAULT_LAYOUT");
+        const auto restore = qScopeGuard([previous] { if (previous.isNull()) qunsetenv("XKB_DEFAULT_LAYOUT"); else qputenv("XKB_DEFAULT_LAYOUT",previous); });
+        qputenv("XKB_DEFAULT_LAYOUT","tr");
+        { ShellController controller(true,true); QCOMPARE(controller.keyboardLayout(),"tr"); controller.setNotificationsEnabled(false); }
+        qputenv("XKB_DEFAULT_LAYOUT","us");
+        ShellController nextSession(true,true); QCOMPARE(nextSession.keyboardLayout(),"tr");
     }
     void loadsAndNavigatesAllPages() {
         ShellController controller(true,true); SettingsData data(true); ProductInfo product; SystemMonitor monitor(true); UpdateController updates; DisplayController displays(true);

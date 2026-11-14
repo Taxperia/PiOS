@@ -1,0 +1,7 @@
+{
+  "src/remote/broker.py": "3f6486897a9e0acc05eb7158f56fd602a44e35338ed9ca96a1bee664d44148d3",
+  "connectionReportV1Broker": "f86bfcdeeff66bc315fdfb6aee6c54ebfee733bb6094a38ea89d344c920c1ca9",
+  "src/remote/gateway.py": "657718de317fc49b356fa4e35c3e038ff626ae5fa462e6552ae0ed797b200183",
+  "data/remote/index.html": "bc3c33a5dac0beb2db52cb90f3cf2a0c7d2367c2f00385c04e9ef6f7da3277b5",
+  "data/remote/ui.js": "5d833ee714d12dfb36083cf9013f0e84dd46952759d895174e39d0895a5215c0"
+}

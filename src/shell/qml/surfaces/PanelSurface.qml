@@ -10,8 +10,11 @@ Window {
     flags: Qt.FramelessWindowHint
     Component.onCompleted: {
         LayerShell.configure(window, "panel")
+        LayerShell.positionPanel(window, Controller.panelPosition)
         visible = !Controller.previewMode
     }
+    Connections { target: Controller; function onPreferencesChanged() { LayerShell.positionPanel(window, Controller.panelPosition) } }
+    onHeightChanged: LayerShell.positionPanel(window, Controller.panelPosition)
     TopBar { width: window.width / Controller.interfaceScale; height: Theme.panelHeight; scale: Controller.interfaceScale; transformOrigin: Item.TopLeft }
 }
 

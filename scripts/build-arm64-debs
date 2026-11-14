@@ -1,0 +1,21 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Run in a Linux source snapshot with the ARM64 multiarch development packages.
+set -eu
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+case "$(dpkg --print-architecture)" in amd64|arm64) ;; *) echo 'Use Debian AMD64 or ARM64' >&2; exit 1 ;; esac
+cd "$repo_dir"
+resume=
+if [ "${1:-}" = '--resume' ]; then resume=-nc
+elif [ "$#" -ne 0 ]; then echo 'Usage: build-arm64-debs [--resume]' >&2; exit 2
+elif [ -e debian ]; then echo 'Use a fresh build snapshot, or --resume' >&2; exit 1; fi
+mkdir -p debian
+cp -a packaging/debian/. debian/
+chmod 0644 debian/*.install
+chmod 0755 debian/rules debian/*.postinst
+export DEB_BUILD_OPTIONS='nocheck noautodbgsym parallel=2'
+# Native source/UI tests are run separately; target executables are smoke-tested
+# with QEMU after cross compilation. No target tests are claimed as native tests.
+dpkg-buildpackage --host-arch=arm64 --build=binary --no-sign -d $resume
+mkdir -p dist
+for package in ../fidan-*.deb; do cp "$package" dist/; done

@@ -45,6 +45,7 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+X"; enabled: grid.activeFocus; onActivated: filesBackend.copyEntries(root.selection(), true) }
     Shortcut { sequence: "Ctrl+V"; enabled: grid.activeFocus && !filesBackend.busy; onActivated: filesBackend.paste() }
     Shortcut { sequence: "Ctrl+H"; onActivated: filesBackend.showHidden = !filesBackend.showHidden }
+    Shortcut { sequence: "Ctrl+Z"; enabled: !search.activeFocus && !pathField.activeFocus && filesBackend.canUndo; onActivated: filesBackend.undo() }
     Shortcut { sequence: "Alt+Return"; enabled: grid.activeFocus; onActivated: root.openProperties(grid.currentIndex) }
     function openProperties(row) { if (row >= 0) { itemProperties = filesBackend.properties(row); propertiesDialog.open() } }
     onClosing: function(close) { if (filesBackend.busy) { close.accepted = false; operationDialog.open() } }
@@ -373,7 +374,8 @@ ApplicationWindow {
         anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
         height: 34; color: UiStyle.color("#101A17", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#2B3A35", UiStyle.dark)
         Text { anchors.left: parent.left; anchors.leftMargin: 190; anchors.verticalCenter: parent.verticalCenter; text: filesBackend.busy ? filesBackend.operationStatus : qsTr("%1 items · %2 selected").arg(grid.count).arg(root.selectedRows.length); color: root.secondary; font.family: "Inter"; font.pixelSize: 11 }
-        Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: grid.currentItem ? grid.currentItem.name : ""; color: root.secondary; font.family: "Inter"; font.pixelSize: 11 }
+        Text { visible: !filesBackend.canCancel; anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: grid.currentItem ? grid.currentItem.name : ""; color: root.secondary; font.family: "Inter"; font.pixelSize: 11 }
+        Button { objectName: "cancelTransfer"; visible: filesBackend.canCancel; anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; height: 28; text: qsTr("Cancel transfer"); onClicked: filesBackend.cancelOperation() }
     }
 
     Menu {
@@ -411,6 +413,8 @@ ApplicationWindow {
         DarkMenuItem { text: qsTr("Paste"); enabled: filesBackend.canPaste && !filesBackend.busy; onTriggered: filesBackend.paste() }
         DarkMenuItem { text: qsTr("Open in Terminal"); onTriggered: filesBackend.openTerminalHere() }
         DarkMenuItem { text: qsTr("Refresh"); onTriggered: filesBackend.refresh() }
+        DarkMenuItem { text: qsTr("Undo (Ctrl+Z)"); enabled: filesBackend.canUndo; onTriggered: filesBackend.undo() }
+        DarkMenuItem { text: qsTr("Cancel transfer"); enabled: filesBackend.canCancel; onTriggered: filesBackend.cancelOperation() }
     }
 
     Dialog {
@@ -501,6 +505,7 @@ ApplicationWindow {
         contentItem: ColumnLayout {
             Text { Layout.fillWidth: true; text: qsTr("Wait for the file operation to finish before closing this window."); wrapMode: Text.Wrap; color: root.foreground }
             ActionButton { label: qsTr("OK"); onInvoked: operationDialog.close() }
+            ActionButton { label: qsTr("Cancel transfer"); visible: filesBackend.canCancel; onInvoked: { filesBackend.cancelOperation(); operationDialog.close() } }
         }
     }
 }

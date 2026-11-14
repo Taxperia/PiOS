@@ -1,0 +1,106 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Prepare a mounted PiOS BOOT volume for one-shot, account-preserving repair."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+BASE = {
+    'gateway.py': ('src/remote/gateway.py', '7b277c373ece7b70c87be6a6bd554e39b4974f54482a9fb3a4583c9db29dd78d'),
+    'index.html': ('data/remote/index.html', 'af4dcf13125bc8a7f6ea5d912b27dcbb4e75a93162da9f681e9f8ff600e0178c'),
+    'ui.js': ('data/remote/ui.js', '4957784e12433ffbbd35057e2824416f7b5f1020de933bacdb23dc3743a62983'),
+    'style.css': ('data/remote/style.css', 'e87c74128ff154e63682ea4f367783ea80b23d0c2f9bbd09698520325146603b'),
+}
+RUN = 'systemd.run=/boot/firmware/fidan-repair/apply systemd.run_success_action=reboot systemd.run_failure_action=none systemd.unit=kernel-command-line.target'
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def write(path, content):
+    descriptor, temporary = tempfile.mkstemp(prefix='.fidan-repair-', dir=path.parent)
+    try:
+        with os.fdopen(descriptor, 'wb') as stream:
+            stream.write(content); stream.flush(); os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+def prepare(boot, source=ROOT):
+    boot, source = Path(boot).resolve(strict=True), Path(source)
+    if b'NATIVE_SETUP_DESKTOP = True' in (source / 'src/remote/gateway.py').read_bytes():
+        raise ValueError('This source requires matching native desktop packages. The legacy web-only repair cannot install it; use the original repair checkout or update fidan-firstboot, fidan-session, fidan-shell and fidan-remote together.')
+    for name in ('config.txt', 'cmdline.txt', 'kernel_2712.img', 'initramfs_2712'):
+        if not (boot / name).is_file() or (boot / name).is_symlink():
+            raise ValueError('Select the PiOS BOOT partition containing ' + name)
+    original = (boot / 'cmdline.txt').read_bytes()
+    command = original.decode('utf-8').strip()
+    if 'root=/dev/disk/by-slot/system' not in command.split():
+        raise ValueError('This does not match the supported PiOS image')
+    if any(part.startswith(('systemd.run', 'systemd.unit=', 'init=')) for part in command.split()):
+        raise ValueError('A custom/repair boot is already configured; keep the existing backup')
+    kit = boot / 'fidan-repair'
+    if kit.exists() or kit.is_symlink():
+        raise FileExistsError('A repair directory already exists; inspect it before preparing another repair')
+    # Resolve and compile all inputs before modifying the mounted card.
+    payloads = {name: (source / pair[0]).read_bytes().replace(b'\r\n', b'\n') for name, pair in BASE.items()}
+    program = (source / 'data/repair/setup-web/apply').read_bytes().replace(b'\r\n', b'\n')
+    compile(program, 'apply', 'exec'); compile(payloads['gateway.py'], 'gateway.py', 'exec')
+    manifest = {'repair': 'setup-web-20261112', 'originalCmdlineSha256': sha(original),
+                'files': {name: {'sha256': sha(data), 'baseSha256': BASE[name][1]} for name, data in payloads.items()}}
+    kit.mkdir()
+    # cmdline.txt is changed last: interruption while copying leaves normal boot.
+    write(kit / 'cmdline.original', original)
+    for name, data in payloads.items():
+        write(kit / name, data)
+    write(kit / 'apply', program)
+    write(kit / 'manifest.json', (json.dumps(manifest, indent=2) + '\n').encode())
+    write(boot / 'cmdline.txt', (command + ' ' + RUN + '\n').encode())
+    return manifest
+
+
+def resume(boot, source=ROOT):
+    """Complete only this repair's known staged boot, without replacing backups."""
+    boot, source = Path(boot).resolve(strict=True), Path(source)
+    kit = boot / 'fidan-repair'
+    if kit.is_symlink():
+        raise ValueError('Unexpected repair directory')
+    manifest = json.loads((kit / 'manifest.json').read_text())
+    original = (kit / 'cmdline.original').read_bytes()
+    if manifest.get('repair') != 'setup-web-20261112' or sha(original) != manifest.get('originalCmdlineSha256'):
+        raise ValueError('The original boot backup is not valid')
+    command = original.decode('utf-8').strip()
+    before = (boot / 'cmdline.txt').read_bytes()
+    old_run = RUN.rsplit(' systemd.unit=', 1)[0]
+    if before not in ((command + ' ' + old_run + '\n').encode(), (command + ' ' + RUN + '\n').encode()):
+        raise ValueError('Boot settings no longer match this staged repair')
+    if set(manifest.get('files', {})) != set(BASE):
+        raise ValueError('Unexpected repair payload')
+    for name, pair in BASE.items():
+        content = (kit / name).read_bytes()
+        expected = (source / pair[0]).read_bytes().replace(b'\r\n', b'\n')
+        if content != expected or sha(content) != manifest['files'][name]['sha256']:
+            raise ValueError('Repair payload changed: ' + name)
+    if (kit / 'apply').read_bytes() != (source / 'data/repair/setup-web/apply').read_bytes().replace(b'\r\n', b'\n'):
+        raise ValueError('The repair program changed')
+    write(boot / 'cmdline.txt', (command + ' ' + RUN + '\n').encode())
+    return manifest
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--boot', required=True, type=Path)
+    parser.add_argument('--resume', action='store_true', help='Complete this repair\'s existing boot selection after validating the saved backup and payload')
+    args = parser.parse_args()
+    try:
+        (resume if args.resume else prepare)(args.boot)
+        print('Onarim hazir. Karti guvenle cikarip Pi\'ye takin; bir kez onarim yapip yeniden baslayacak.')
+        print('Hesaplar ve kurulum ilerlemesi korunur. Yeniden acildiginda web sayfasini Ctrl+F5 ile yenileyin.')
+    except (OSError, ValueError) as error:
+        parser.exit(1, str(error) + '\n')
