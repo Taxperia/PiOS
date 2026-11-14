@@ -94,6 +94,13 @@ git status --short
 git diff
 ```
 
+Mevcut Windows klasöründe Git `dubious ownership` hatası verirse, bu proje
+klasörüne özel güven kaydı PowerShell'de şöyle eklenir:
+
+```powershell
+git config --global --add safe.directory C:/Users/talba/Desktop/debian
+```
+
 Her seferinde küçük bir değişiklik yap ve önce VirtualBox/WSL'de dene. Çalışan
 değişiklikleri açıklayıcı bir Git commit'iyle kaydet. Hata raporu için sınırlı log:
 

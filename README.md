@@ -125,7 +125,11 @@ image.
 
 ## Status
 
-Version `0.1.0-alpha.4` is an engineering alpha. On 2026-11-14, all 13 ARM64/all
+Current desktop packages are `0.1.0-alpha.7`, an engineering alpha. Signed
+Debian 13 packages for amd64 and arm64 are available in GitHub Releases.
+The separate VirtualBox OVA is described in [the VirtualBox guide](docs/virtualbox.md).
+The latest Raspberry Pi image remains `0.1.0-alpha.4`; it can receive newer
+desktop packages through Settings. On 2026-11-14, all 13 ARM64/all
 packages and a 4,194,304,000-byte Raspberry Pi 5 image were built under AMD64
 WSL with QEMU. Browser setup streams the real Wayland desktop and its native
 setup window. The image includes the kernel, matching initramfs, graphical
@@ -133,8 +137,7 @@ login and resumable first boot. All 23 native CTest groups, 51 offline image
 checks, FAT/ext4 checks and installed ARM64 application smoke tests passed.
 The compressed image decompresses to the verified raw image's exact checksum.
 The provisioning helper prepares an already mounted boot partition; it does
-not flash disks. Physical acceptance of this new image and release signing
-remain pending. See
+not flash disks. Further physical acceptance testing remains pending. See
 [installation and image readiness](docs/installation-readiness.md).
 
 License: GPL-3.0-or-later.
