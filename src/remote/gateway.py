@@ -31,7 +31,7 @@ class Sessions:
         with self.lock:
             now = time.monotonic(); self.items = {key: value for key, value in self.items.items() if value['expires'] > now}
             if len(self.items) >= 32: raise PermissionError('Too many sessions')
-            sid = secrets.token_urlsafe(32); session = {'role': role, 'token': token, 'csrf': secrets.token_urlsafe(32), 'expires': now+1200}
+            sid = secrets.token_urlsafe(32); session = {'role': role, 'token': token, 'csrf': secrets.token_urlsafe(32), 'expires': now+broker.SESSION_IDLE_SECONDS, 'until':now+broker.SESSION_MAX_SECONDS}
             self.items[sid] = session
             return sid, session
     def get(self, cookie):
@@ -39,7 +39,15 @@ class Sessions:
             values = SimpleCookie(cookie); sid = values['__Host-pios_session'].value
         except (KeyError, ValueError, CookieError): return None
         with self.lock: session = self.items.get(sid)
-        return session if session and session['expires'] > time.monotonic() else None
+        return session if session and min(session['expires'],session['until']) > time.monotonic() else None
+    def renew(self,cookie):
+        try:sid=SimpleCookie(cookie)['__Host-pios_session'].value
+        except (KeyError,ValueError,CookieError):raise PermissionError('Sign in again') from None
+        with self.lock:
+            now=time.monotonic();session=self.items.get(sid)
+            if not session or min(session['expires'],session['until'])<=now:raise PermissionError('Sign in again')
+            session['expires']=min(now+broker.SESSION_IDLE_SECONDS,session['until'])
+        return sid
     def remove(self, cookie):
         try: sid = SimpleCookie(cookie)['__Host-pios_session'].value
         except (KeyError, ValueError, CookieError): return
@@ -99,7 +107,7 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(value, ensure_ascii=False).encode()
         self.send_response(status); self.common_headers(); self.send_header('Content-Type','application/json; charset=utf-8')
         self.send_header('Content-Length',str(len(body)))
-        if cookie is not None: self.send_header('Set-Cookie', '__Host-pios_session='+cookie+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age='+('1200' if cookie else '0'))
+        if cookie is not None: self.send_header('Set-Cookie', '__Host-pios_session='+cookie+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age='+(str(broker.SESSION_IDLE_SECONDS) if cookie else '0'))
         self.end_headers(); self.wfile.write(body)
     def common_headers(self):
         self.send_header('Cache-Control','no-store'); self.send_header('X-Content-Type-Options','nosniff'); self.send_header('X-Frame-Options','DENY')
@@ -117,7 +125,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/state':
             session = self.session()
             if not session: self.reply(401, {'error':'Sign in again'}); return
-            self.reply(200, {'role':session['role'], 'csrf':session['csrf'], 'mode':'desktop' if self.server.paths.complete else 'setup'})
+            self.reply(200, {'role':session['role'], 'csrf':session['csrf'], 'mode':'desktop' if self.server.paths.complete else 'setup', 'sessionRenewal':True})
             return
         if path == '/api/diagnostics':
             session = self.session()
@@ -174,6 +182,13 @@ class Handler(BaseHTTPRequestHandler):
                 try: self.server.ipc({'command':'logout','token':session['token']})
                 except OSError: pass
             self.server.sessions.remove(self.headers.get('Cookie','')); self.reply(200, {'ok':True}, ''); return
+        if path == '/api/keepalive':
+            try:
+                self.server.ipc({'command':'renew','token':session['token']})
+                sid=self.server.sessions.renew(self.headers.get('Cookie',''))
+                self.reply(200,{'ok':True},sid)
+            except (OSError,ValueError): self.reply(401,{'error':'Sign in again'})
+            return
         self.reply(403, {'error':'Not allowed'})
     def desktop(self):
         session = self.session()

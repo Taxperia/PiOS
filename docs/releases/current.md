@@ -1,27 +1,17 @@
-PiOS 0.1.0-alpha.5 brings first setup into the real desktop and repairs monitor-free browser access. This is an engineering alpha.
+PiOS 0.1.0-alpha.6 improves the monitor-free browser desktop.
 
-## Yenilikler ve düzeltmeler
+## Düzeltmeler
 
-- **Tek ilk kurulum:** Dil, klavye, saat dilimi, hesap, ağ, tema, vurgu rengi, görev çubuğu, gizlilik ve güncelleme adımları normal duvar kâğıtlı masaüstünde tamamlanır. Seçimler yeni hesaba taşınır; aynı kurulum ikinci kez açılmaz. Eski mor kurulum, açıkça etkinleştirilen bir kurtarma seçeneği olarak korundu.
-- **Monitörsüz kurulum:** Ethernet üzerinden tek kullanımlık kurulum parolasıyla gerçek masaüstüne erişim; cihaz başına hesap, TLS sertifikası ve SSH anahtarları. SSH ve kurulum sonrası tarayıcı erişimi kullanıcı tarafından seçilir. İsteğe bağlı RDP ayrıca açılabilir.
-- **Tarayıcı masaüstü:** Siyah ekran/bağlantı kesilmesine yol açan yakalama başlatma hatası, servis kullanıcı kimliği ve fiziksel giriş aygıtı olmadan oturum başlatma düzeltildi. Kurulum hesabının eksik ev dizini onarılır. Yerel hesapla giriş, pano aktarımı ve bağlantı raporu desteği vardır.
-- **Masaüstü:** Başlat menüsü, ses ve mikrofon denetimleri, bildirim göstergeleri, ekran görüntüsü araçları ve kişisel karşılama seçenekleri genişletildi. Dosya işlemleri ve uygulama ayarlarında düzeltmeler yapıldı.
-- **Güncellemeler ve güvenlik:** GitHub sürümleri imzalı manifest ve paket özetleriyle doğrulanır. Güncelleme öncesinde kurulu PiOS paketlerinin kurtarma kopyası saklanır. Bağlantı raporları yalnızca yetkili kurulum oturumunda, sınırlı ve gizli alanlar temizlenerek alınabilir.
+- Masaüstünün üstüne binen “Masaüstü kontrolleri” menüsü kaldırıldı. Bağlantı normalken tarayıcıdan ek bir panel görünmez; kurtarma seçenekleri yalnızca bağlantı kesilince gösterilir.
+- Aktif kullanımdaki bağlantının yaklaşık 20 dakikada kesilmesi düzeltildi. Oturum, görünür ve yakın zamanda kullanılan masaüstünde yenilenir. Boşta kalma süresi, çıkış ve erişim iptali korunur; sekiz saatte bir yeniden giriş gerekir.
+- Kısa ağ kesintilerinde beş denemeyle sınırlı, artan beklemeli otomatik yeniden bağlantı eklendi. Parola saklanmaz veya yeniden gönderilmez.
+- Monitörsüz varsayılan ekran 1600×900, 30 Hz ve %125 ölçek olarak ayarlandı. Böylece uygulama pencereleri ve yazılar daha büyük görünür. Kaydedilmiş ekran tercihleri ve fiziksel monitör ayarları korunur.
+- Görüntü aktarımı 25 FPS ile sınırlandı. Monitörsüz oturum artık her cihazda yazılımsal çizime zorlanmaz; erişilebilir bir DRM çizim aygıtı varsa kullanılır. GPU oturumu başlatılamazsa yazılımsal çizime dönülür.
 
-## Mevcut PiOS cihazını güncelleme
+## Güncelleme
 
-Ayarlar → Sistem bölümünde güncellemeleri denetleyip indirerek kurun. Terminalden aynı işlemler:
+Ayarlar → Sistem üzerinden güncellemeleri denetleyip indirerek kurun. Ardından **cihazı yeniden başlatın**; sanal ekran, çizim ve bağlantı servisleri yeni ayarları sonraki açılışta kullanır. Sonra tarayıcı sayfasını yenileyip yeniden giriş yapın. SD kartı yeniden yazmak gerekmez.
 
-```sh
-fidan-update check
-fidan-update download
-fidan-update install
-```
-
-Yeni masaüstü kodunun çalışması için işlemler başarıyla tamamlandıktan sonra oturumu yeniden açın veya cihazı yeniden başlatın. Güncelleyici açık masaüstünü zorla kapatmaz. Otomatik güncelleme zamanlayıcısı etkinse GitHub yaklaşık altı saatte bir denetlenir. İnternet bağlantısı gerekir.
-
-Bu sürüm **Debian 13 için amd64 ve arm64 paketleri**, imzalı manifest ve sağlama toplamları içerir. **Yeni bir önyüklenebilir IMG içermez.** Mevcut kartı yeniden yazmak gerekmez. Fiziksel Raspberry Pi 5 kabul testlerinin tamamı henüz bitmemiştir.
-
-Debian temel sistem paketleri ve üçüncü taraf uygulamalar kendi APT/Flatpak güncelleme yollarını kullanır. Mevcut hesaplar ve kişisel tercihler korunur. Önceden tamamlanmış bir kurulum yeniden başlatılmaz; kişisel karşılama henüz tamamlanmadıysa masaüstünde tamamlanabilir.
+Bu sürüm Debian 13 için amd64/arm64 paketlerini ve imzalı güncelleme manifestini içerir; yeni bir IMG içermez. Pi üzerindeki gerçek gecikme ve GPU davranışı güncellemeden sonra cihazda ayrıca doğrulanmalıdır. Kare hızı sınırı ölçülmüş bir performans garantisi değildir.
 
 Release trust fingerprint: `1085 5324 032F 285A FB73 CCD4 C41F F807 5817 D3B6`.

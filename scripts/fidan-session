@@ -18,7 +18,6 @@ case "${1:-}" in
                 export WLR_BACKENDS=drm,libinput,headless
             else
                 export WLR_BACKENDS=headless
-                export WLR_RENDERER=pixman
             fi
             export WLR_HEADLESS_OUTPUTS=1
         fi
@@ -65,5 +64,22 @@ fi
 
 FIDAN_LABWC_CONFIG="$(fidan-input prepare)"
 export FIDAN_LABWC_CONFIG
+# Let wlroots use the render node on monitor-free hardware as well. Keep a
+# software fallback for machines without a usable GPU or a failed EGL startup.
+case "${WLR_BACKENDS:-}" in
+    headless)
+        if [ -z "${WLR_RENDERER:-}" ]; then
+            for render_node in /dev/dri/renderD*; do
+                if [ -r "$render_node" ] && [ -w "$render_node" ]; then
+                    export WLR_RENDER_DRM_DEVICE="$render_node"
+                    if labwc -C "$FIDAN_LABWC_CONFIG"; then exit 0; fi
+                    printf '%s\n' 'Headless GPU session failed; retrying software rendering.' >&2
+                    break
+                fi
+            done
+            export WLR_RENDERER=pixman
+        fi
+        ;;
+esac
 exec labwc -C "$FIDAN_LABWC_CONFIG"
 

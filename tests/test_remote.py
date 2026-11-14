@@ -119,6 +119,7 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(captures, [(987, {'setup': True})])
         self.paths.at('/var/lib/fidan/firstboot-complete').touch()
         with self.assertRaises(PermissionError): instance.connect(token)
+        with self.assertRaises(PermissionError): instance.renew(token)
         with self.assertRaises(PermissionError): instance.login(None, 'setup-password-123', setup=True)
 
     def test_setup_rejects_root_and_any_other_system_identity(self):
@@ -211,6 +212,26 @@ class BrokerTests(unittest.TestCase):
             except PermissionError: pass
         with self.assertRaises(PermissionError): instance.login('maker','secret')
 
+    def test_active_renewal_keeps_idle_and_absolute_limits_and_revocation(self):
+        instance=broker.Broker(lambda *_:1000,lambda *_:None,paths=self.paths)
+        with patch.object(broker.time,'monotonic',return_value=100) as clock:
+            token=instance.login('maker','secret');ceiling=instance.sessions[token][3]
+            clock.return_value=1200;instance.renew(token)
+            self.assertEqual(instance.sessions[token][1],2400)
+            clock.return_value=2400
+            with self.assertRaises(PermissionError):instance.renew(token)
+            clock.return_value=2500;token=instance.login('maker','secret');ceiling=instance.sessions[token][3]
+            for now in range(3600,int(ceiling),1100):
+                clock.return_value=now;instance.renew(token)
+            self.assertLessEqual(instance.sessions[token][1],ceiling)
+            clock.return_value=ceiling
+            with self.assertRaises(PermissionError):instance.renew(token)
+            clock.return_value=ceiling+1;token=instance.login('maker','secret')
+            self.paths.at('/etc/fidan/remote-enabled').unlink()
+            with self.assertRaises(PermissionError):instance.renew(token)
+            instance.logout(token)
+            with self.assertRaises(PermissionError):instance.renew(token)
+
     def test_unix_peer_authentication_and_fd_transfer(self):
         with tempfile.TemporaryDirectory() as directory:
             left,right=socket.socketpair()
@@ -220,6 +241,7 @@ class BrokerTests(unittest.TestCase):
                 try:
                     call=lambda data,**kwargs:broker.request(data,Path(directory)/'broker',**kwargs)
                     token=call({'command':'login','username':'maker','password':'secret'})['token']
+                    self.assertTrue(call({'command':'renew','token':token})['ok'])
                     with call({'command':'connect','token':token},receive_fd=True) as received:
                         received.sendall(b'private-desktop');self.assertEqual(right.recv(64),b'private-desktop')
                     call({'command':'logout','token':token})
@@ -325,6 +347,29 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(self.calls[-1]['command'],'setup-login')
         self.assertEqual(self.request('/api/logout',{})[0],200)
         self.assertEqual(self.request('/api/state')[0],401)
+    def test_keepalive_requires_csrf_and_broker_acceptance(self):
+        self.assertEqual(self.request('/api/keepalive',{})[0],403)
+        self.login();original_cookie=self.cookie
+        self.assertEqual(self.request('/api/keepalive',{}, {'X-CSRF-Token':'wrong'})[0],403)
+        self.assertEqual(self.calls[-1]['command'],'setup-login')
+        status,_,headers=self.request('/api/keepalive',{})
+        self.assertEqual(status,200);self.assertEqual(headers['Set-Cookie'].split(';')[0],original_cookie)
+        self.assertEqual(self.calls[-1],{'command':'renew','token':'broker-token'})
+        def reject(*args,**kwargs):raise PermissionError('expired')
+        self.server.ipc=reject
+        self.assertEqual(self.request('/api/keepalive',{})[0],401)
+
+    def test_session_renewal_keeps_stream_identity_and_never_resurrects_expired_cookie(self):
+        sessions=gateway.Sessions()
+        with patch.object(gateway.time,'monotonic',return_value=100) as clock:
+            sid,session=sessions.create('desktop','fixture-token');cookie='__Host-pios_session='+sid
+            clock.return_value=1200;self.assertEqual(sessions.renew(cookie),sid)
+            self.assertIs(sessions.get(cookie),session);self.assertEqual(session['expires'],2400)
+            clock.return_value=2400
+            with self.assertRaises(PermissionError):sessions.renew(cookie)
+            clock.return_value=2500;sid,session=sessions.create('desktop');cookie='__Host-pios_session='+sid
+            clock.return_value=session['until']
+            with self.assertRaises(PermissionError):sessions.renew(cookie)
     def test_host_origin_and_authenticated_static_boundaries(self):
         self.assertEqual(self.request('/',headers={'Host':'attacker.example'})[0],403)
         self.assertEqual(self.request('/',headers={'Host':'fidan.local#attacker'})[0],403)
@@ -388,6 +433,7 @@ class GatewayTests(unittest.TestCase):
             accept = base64.b64encode(hashlib.sha1(key+b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest())
             right.sendall(b'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: '+accept+b'\r\n\r\n'+b'\x82\x06native')
         def ipc(data, **flags):
+            if data['command']=='renew':return {'ok':True}
             self.assertEqual(data, {'command':'connect', 'token':'broker-token'}); self.assertTrue(flags['receive_fd']); return left
         self.server.ipc = ipc
         thread = threading.Thread(target=peer, daemon=True); thread.start()
@@ -402,6 +448,14 @@ class GatewayTests(unittest.TestCase):
             payload=bytearray()
             while len(payload)<8: payload.extend(browser.recv(8-len(payload)))
             self.assertEqual(payload, b'\x82\x06native')
+            # Exercise renewal on a real open TLS/WebSocket stream past its
+            # previous deadline, without waiting twenty minutes in the suite.
+            session=next(iter(self.server.sessions.items.values()));session['expires']=time.monotonic()+.2
+            self.assertEqual(self.request('/api/keepalive',{})[0],200)
+            time.sleep(.3);right.sendall(b'\x82\x05alive')
+            payload=bytearray()
+            while len(payload)<7:payload.extend(browser.recv(7-len(payload)))
+            self.assertEqual(payload,b'\x82\x05alive')
             self.paths.at('/var/lib/fidan/firstboot-complete').touch()
             self.assertEqual(browser.recv(1), b'')
         thread.join(); right.close(); self.assertTrue(received)

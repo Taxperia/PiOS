@@ -87,9 +87,10 @@ in the setup session environment to use it. The portal's former purple artwork
 is retained behind `data-legacy-portal="true"` on the HTML body. Its old completion
 page is also retained behind `data-legacy-completion-screen="true"`; normally,
 setup completion returns to the local-account login after reboot.
-Desktop controls in the upper right provide clipboard transfer, reconnect,
-sign-out and an optional full-screen button. Full screen requires a click;
-the viewport is filled even when browser tabs and the address bar remain visible.
+The connected desktop has no browser controls overlay. A small recovery panel
+appears only while disconnected; transient failures reconnect with bounded
+backoff (five attempts). The browser's normal full-screen command, such as F11
+on Windows, remains available. The stream fills the browser viewport.
 noVNC scales the complete desktop to the browser while preserving the shared
 display's resolution, including the native installer's position and size.
 
@@ -118,8 +119,22 @@ private WebSocket Unix socket. Both sockets use owner-only permissions; neither
 process opens a TCP listener. WayVNC's `-w` and `-u` options cannot be combined.
 The root broker authorizes each session and passes the connected socket FD
 to the gateway. The gateway runs as `fidan-gateway` and exposes only HTTPS 443.
-A monitor-free session uses a 1080p headless output; attaching and switching
-physical displays still requires the hardware checklist.
+A monitor-free session defaults to 1600×900 at 30 Hz with 125% output scale;
+capture is capped at 25 FPS. This reduces the pixel/refresh workload and makes
+all application windows and text larger. Confirmed display profiles and physical
+monitor settings are preserved. An accessible DRM render node is used for
+headless rendering when available, with a software fallback. Actual Pi latency
+and GPU behavior still require device verification. See the
+[wlroots environment documentation](https://sources.debian.org/src/wlroots/0.19.3-1/docs/env_vars.md)
+and [WayVNC frame-rate option](https://github.com/any1/wayvnc/blob/master/wayvnc.scd).
+
+Visible, recently used browser desktops renew their authenticated session once
+a minute. Idle sessions still expire after approximately twenty minutes; every
+sign-in has an eight-hour maximum lifetime. Renewal requires the existing cookie,
+CSRF token and live broker token. Logout, completed setup and disabled browser
+access revoke renewal and existing streams. Renewal keeps the original stream
+identity and does not require resending the password. Older running gateways do
+not receive keepalive requests until restarted after the package update.
 
 The portal rejects nonlocal clients, invalid Host/Origin, missing CSRF tokens,
 oversized requests and expired/revoked sessions. Cookies are Secure/HttpOnly/

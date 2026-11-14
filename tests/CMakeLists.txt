@@ -125,6 +125,7 @@ add_test(NAME fidan-updater-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE
 add_test(NAME fidan-remote-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_remote.py)
 add_test(NAME fidan-connection-repair-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_connection_repair.py)
 add_test(NAME fidan-setup-session-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_setup_session.py)
+add_test(NAME fidan-remote-output-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_remote_output.py)
 add_test(NAME fidan-setup-preferences-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_setup_preferences.py)
 add_test(NAME fidan-image-tools-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_image_tools.py)
 add_test(NAME fidan-setup-repair-tests COMMAND ${FIDAN_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/test_setup_repair.py)

@@ -23,10 +23,14 @@ export default class RFB extends EventTarget {
         surface.textContent='PiOS · Desktop connection fixture';
         surface.style.cssText='width:100%;height:100%;display:grid;place-items:center;color:#cbd5ff;background:#232b43';
         screen.append(surface);
-        this.timer=setTimeout(()=>this.dispatchEvent(new Event('connect')),100);
-        screen.addEventListener('test-disconnect',()=>this.disconnect());
+        screen.dataset.connections=String(Number(screen.dataset.connections||0)+1);
+        this.timer=setTimeout(()=>{
+            if(Number(screen.dataset.failConnections||0)>0){screen.dataset.failConnections=String(Number(screen.dataset.failConnections)-1);this.disconnect();}
+            else this.dispatchEvent(new Event('connect'));
+        },100);
+        this.drop=()=>this.disconnect();screen.addEventListener('test-disconnect',this.drop);
     }
-    disconnect(){clearTimeout(this.timer);this.dispatchEvent(new Event('disconnect'));}
+    disconnect(){clearTimeout(this.timer);this.screen.removeEventListener('test-disconnect',this.drop);this.dispatchEvent(new Event('disconnect'));}
     focus(){}
     clipboardPasteFrom(value){this.screen.dataset.clipboard=value;}
 }
@@ -38,6 +42,8 @@ class Handler(BaseHTTPRequestHandler):
     mode = 'setup'
     state = {'step': 1}
     native_socket = None
+    keepalives = 0
+    renewal = True
 
     def log_message(self, *args):
         pass
@@ -59,7 +65,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/state':
             if not Handler.role:
                 return self.reply({'error': 'Sign in again'}, 401)
-            return self.reply({'role': Handler.role, 'csrf': 'test-only', 'mode': Handler.mode})
+            return self.reply({'role': Handler.role, 'csrf': 'test-only', 'mode': Handler.mode, 'sessionRenewal':Handler.renewal})
+        if path == '/__test/state':return self.reply({'keepalives':Handler.keepalives})
         if path == '/desktop-socket' and self.native_socket and Handler.role:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as desktop:
                 desktop.connect(str(self.native_socket))
@@ -88,7 +95,12 @@ class Handler(BaseHTTPRequestHandler):
                               '<script type="module" src="/checks.js"></script></body></html>', kind='text/html')
         if path in files:
             file, kind = files[path]
-            return self.reply((ROOT / file).read_text(encoding='utf-8'), kind=kind)
+            content=(ROOT/file).read_text(encoding='utf-8')
+            if path=='/' and not self.native_socket:
+                # Test-only accelerated timers; the shipped UI retains real delays.
+                timers="<script>const timeout=window.setTimeout.bind(window),interval=window.setInterval.bind(window);window.setTimeout=(fn,ms,...args)=>timeout(fn,[1000,2000,4000,8000,12000].includes(ms)?150:ms,...args);window.setInterval=(fn,ms,...args)=>interval(fn,ms===60000?500:ms,...args);</script>"
+                content=content.replace('<head>','<head>'+timers)
+            return self.reply(content, kind=kind)
         if path == '/wallpaper.png':
             data=(ROOT/'artwork/wallpapers/fidan-mountain-dawn.png').read_bytes()
             self.send_response(200);self.send_header('Content-Type','image/png');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
@@ -101,6 +113,7 @@ class Handler(BaseHTTPRequestHandler):
             Handler.mode = body.get('mode', 'setup')
             Handler.role = body.get('role', '')
             Handler.state = body.get('state', {'step': 1})
+            Handler.keepalives=0;Handler.renewal=body.get('renewal',True)
             return self.reply({'ok': True})
         if path == '/api/login':
             time.sleep(.15)
@@ -111,6 +124,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/logout':
             Handler.role = ''
             return self.reply({'ok': True})
+        if path == '/api/keepalive':
+            if not Handler.role or self.headers.get('X-CSRF-Token')!='test-only':return self.reply({'error':'Sign in again'},403)
+            Handler.keepalives+=1;return self.reply({'ok':True})
         self.reply({'error': 'Not found'}, 404)
 
 

@@ -18,6 +18,8 @@ import traceback
 from provision import Paths, read_json, verify_password
 
 USER = re.compile(r'[a-z][a-z0-9_-]{1,30}')
+SESSION_IDLE_SECONDS=20*60
+SESSION_MAX_SECONDS=8*3600
 
 
 def authenticate(username, password):
@@ -107,7 +109,7 @@ def capture_socket(uid, setup=False):
             if not wayland: raise RuntimeError('The setup desktop could not start; check the device journal')
         if not wayland:
             env = user_environment(account)
-            env.update(WLR_BACKENDS='headless', WLR_HEADLESS_OUTPUTS='1', WLR_RENDERER='pixman')
+            env.update(WLR_BACKENDS='headless', WLR_HEADLESS_OUTPUTS='1', WLR_LIBINPUT_NO_DEVICES='1')
             command = ['systemd-run', '--quiet', '--collect', '--unit=fidan-remote-session-'+str(uid), '--uid='+account.pw_name,
                        '--property=PAMName=fidan-remote', '--property=Type=exec']
             command += ['--setenv='+key+'='+value for key, value in env.items()]
@@ -130,7 +132,7 @@ def capture_socket(uid, setup=False):
                 return stream
             except Exception: stream.close(); raise
         try: return connect()
-        except FileNotFoundError: pass
+        except (FileNotFoundError, ConnectionRefusedError): pass
         env = user_environment(account, wayland)
         # The broker's sandbox can deny setuid/setgroups in a forked child.
         # Ask PID 1 to create the fixed, unprivileged helper, just as for capture.
@@ -142,13 +144,13 @@ def capture_socket(uid, setup=False):
                        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         command = ['systemd-run', '--quiet', '--collect', '--unit=fidan-remote-capture-'+str(uid), '--uid='+account.pw_name,
                    '--property=UMask=0077', '--property=NoNewPrivileges=yes', '--property=RestrictAddressFamilies=AF_UNIX',
-                   '--property=MemoryMax=256M']
+                   '--property=MemoryMax=256M', '--property=Restart=on-failure', '--property=RestartSec=2s']
         command += ['--setenv='+key+'='+value for key, value in env.items()]
         subprocess.run(command + ['--', '/usr/bin/fidan-remote-session', 'capture'], check=True, timeout=15,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for attempt in range(100):
             try: return connect()
-            except FileNotFoundError: time.sleep(0.1)
+            except (FileNotFoundError, ConnectionRefusedError): time.sleep(0.1)
         raise RuntimeError('The desktop capture service did not start')
 
 
@@ -175,8 +177,17 @@ class Broker:
                 if not self.paths.complete or not self.paths.enabled: raise PermissionError('Desktop access is disabled')
                 uid = self.authenticate(username, password)
                 if uid is None or uid < 1000: raise PermissionError('Sign-in failed')
-            token = secrets.token_urlsafe(32); self.sessions[token] = (uid, now+1200, 'setup' if setup else 'desktop')
+            token = secrets.token_urlsafe(32); self.sessions[token] = (uid, now+SESSION_IDLE_SECONDS, 'setup' if setup else 'desktop', now+SESSION_MAX_SECONDS)
             return token
+    def renew(self, token):
+        if not isinstance(token,str): raise PermissionError('Sign in again')
+        with self.lock:
+            now=time.monotonic(); session=self.sessions.get(token)
+            if session is None or session[1]<=now or session[3]<=now: raise PermissionError('Sign in again')
+            if session[2]=='setup':
+                if self.paths.complete or not self.paths.provision.is_file(): raise PermissionError('Setup is complete')
+            elif not self.paths.complete or not self.paths.enabled: raise PermissionError('Desktop access is disabled')
+            self.sessions[token]=(session[0],min(now+SESSION_IDLE_SECONDS,session[3]),session[2],session[3])
     def connect(self, token):
         if not isinstance(token, str): raise ValueError('Invalid session token')
         with self.lock: session = self.sessions.get(token)
@@ -229,6 +240,8 @@ class BrokerHandler(socketserver.StreamRequestHandler):
                 self.wfile.write(json.dumps({'ok': True, 'token': token}).encode()+b'\n'); self.wfile.flush()
             elif request.get('command') == 'logout':
                 self.server.broker.logout(request.get('token')); self.wfile.write(b'{"ok":true}\n')
+            elif request.get('command') == 'renew':
+                self.server.broker.renew(request.get('token')); self.wfile.write(b'{"ok":true}\n')
             elif request.get('command') == 'connect':
                 with self.server.broker.connect(request.get('token')) as desktop:
                     self.wfile.write(b'{"ok":true}\n'); self.wfile.flush()

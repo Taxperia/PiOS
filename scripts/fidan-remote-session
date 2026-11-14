@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Keep a 1080p headless output available only when no physical output is active."""
+"""Keep a readable, bounded headless output only when no physical output is active."""
 import json
 import os
 import subprocess
@@ -35,7 +35,7 @@ def capture():
         stopping = True
     signal.signal(signal.SIGTERM, stop); signal.signal(signal.SIGINT, stop)
     try:
-        children.append(subprocess.Popen(['/usr/bin/wayvnc', '-C', '/etc/fidan/wayvnc.conf', '-f', '30', '-u',
+        children.append(subprocess.Popen(['/usr/bin/wayvnc', '-C', '/etc/fidan/wayvnc.conf', '-f', '25', '-u',
             '-S', str(runtime/'fidan-remote-ctl'), str(raw)]))
         for attempt in range(100):
             if stopping or children[0].poll() is not None: return 1
@@ -63,8 +63,16 @@ def prepare():
     virtual = next((o for o in outputs if o['name'].startswith(('HEADLESS-','NOOP-'))), None)
     if not virtual: return
     physical = any(o.get('enabled') and not o['name'].startswith(('HEADLESS-','NOOP-')) for o in outputs)
+    # An explicitly confirmed display profile wins over the remote default.
+    profile=Path(os.environ.get('XDG_CONFIG_HOME',str(Path.home()/'.config')))/'fidan/displays.json'
+    if not physical and profile.is_file():
+        try:
+            if profile.stat().st_size<=65536:
+                saved=json.loads(profile.read_text()).get(virtual['name'])
+                if isinstance(saved,dict) and all(key in saved for key in ('width','height','scale')) and virtual.get('enabled'): return
+        except (OSError,ValueError,AttributeError): pass
     args = ['wlr-randr','--output',virtual['name']]
-    args += ['--off'] if physical else ['--on','--custom-mode','1920x1080@60']
+    args += ['--off'] if physical else ['--on','--custom-mode','1600x900@30','--scale','1.25']
     subprocess.run(args, check=True, timeout=10)
 
 if __name__ == '__main__':

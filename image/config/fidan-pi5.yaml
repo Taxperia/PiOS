@@ -8,7 +8,7 @@ device:
 
 image:
   layer: image-rpios
-  name: fidan-0.1.0-alpha.5-pi5-arm64
+  name: fidan-0.1.0-alpha.6-pi5-arm64
   boot_part_size: 200%
   # Leave install headroom; the first boot grows partition 2 to the card capacity.
   root_part_size: 160%
