@@ -10,10 +10,11 @@ ApplicationWindow {
     title: qsTr("Project Fidan Login")
     property bool signInVisible: false
     property date currentTime: new Date()
+    property url wallpaperSource: "file:///usr/share/backgrounds/fidan/fidan-mountain-dawn-4k.png"
     Timer { interval: 1000; running: true; repeat: true; onTriggered: root.currentTime = new Date() }
     Shortcut { sequence: "Return"; enabled: !root.signInVisible; onActivated: { root.signInVisible = true; username.forceActiveFocus() } }
 
-    Image { anchors.fill: parent; source: "file:///usr/share/backgrounds/fidan/fidan-mountain-dawn-4k.png"; fillMode: Image.PreserveAspectCrop }
+    Image { anchors.fill: parent; source: root.wallpaperSource; fillMode: Image.PreserveAspectCrop }
     Rectangle { anchors.fill: parent; color: "#48040B08" }
 
     Column {

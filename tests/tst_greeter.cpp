@@ -43,6 +43,7 @@ private slots:
     void nativeUiCompletesAuthenticationAndStartsExactlyOneSession() {
         QQmlApplicationEngine engine; engine.rootContext()->setContextProperty("GreeterBackend",controller.get());
         QStringList warnings; connect(&engine,&QQmlEngine::warnings,this,[&](const QList<QQmlError> &errors){for(const auto &error:errors)warnings.append(error.toString());});
+        engine.setInitialProperties({{"wallpaperSource",QUrl::fromLocalFile(QString(FIDAN_SOURCE_DIR)+"/artwork/wallpapers/fidan-mountain-dawn-4k.png")}});
         engine.load(QUrl::fromLocalFile(QString(FIDAN_SOURCE_DIR)+"/src/greeter/qml/Greeter.qml"));
         QVERIFY2(!engine.rootObjects().isEmpty(),qPrintable(warnings.join('\n')));
         auto *window=qobject_cast<QQuickWindow *>(engine.rootObjects().first()); QVERIFY(window); window->setProperty("signInVisible",true);
