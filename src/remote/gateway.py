@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ipaddress
 import json
 import mimetypes
+import math
 from pathlib import Path
 import secrets
 import select
@@ -34,6 +35,10 @@ class Sessions:
             sid = secrets.token_urlsafe(32); session = {'role': role, 'token': token, 'csrf': secrets.token_urlsafe(32), 'expires': now+broker.SESSION_IDLE_SECONDS, 'until':now+broker.SESSION_MAX_SECONDS}
             self.items[sid] = session
             return sid, session
+    def retry_after(self,ip):
+        with self.lock:
+            times=self.attempts.get(ip,[])
+            return max(1,min(60,math.ceil(60-(time.monotonic()-times[0])))) if times else 60
     def get(self, cookie):
         try:
             values = SimpleCookie(cookie); sid = values['__Host-pios_session'].value
@@ -107,6 +112,7 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(value, ensure_ascii=False).encode()
         self.send_response(status); self.common_headers(); self.send_header('Content-Type','application/json; charset=utf-8')
         self.send_header('Content-Length',str(len(body)))
+        if status==429:self.send_header('Retry-After',str(value.get('retryAfter',60)))
         if cookie is not None: self.send_header('Set-Cookie', '__Host-pios_session='+cookie+'; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age='+(str(broker.SESSION_IDLE_SECONDS) if cookie else '0'))
         self.end_headers(); self.wfile.write(body)
     def common_headers(self):
@@ -163,7 +169,10 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, OSError): self.reply(400, {'error':'Invalid request'}); return
         path = urlsplit(self.path).path
         if path == '/api/login':
-            if not self.server.sessions.attempt(self.client_address[0]) or not self.server.sessions.password_slots.acquire(False): self.reply(429, {'error':'Wait a minute before trying again'}); return
+            if not self.server.sessions.attempt(self.client_address[0]):
+                self.reply(429,{'error':'Wait a minute before trying again','retryAfter':self.server.sessions.retry_after(self.client_address[0])});return
+            if not self.server.sessions.password_slots.acquire(False):
+                self.reply(429,{'error':'Wait a minute before trying again','retryAfter':2});return
             try:
                 if not self.server.paths.complete:
                     result = self.server.ipc({'command':'setup-login', 'password':data.get('password')})

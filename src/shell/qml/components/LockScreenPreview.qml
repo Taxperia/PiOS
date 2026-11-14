@@ -7,7 +7,7 @@ Item {
     id: root
 
     Image { anchors.fill: parent; source: Controller.lockWallpaperUrl.length ? Controller.lockWallpaperUrl : Controller.wallpaperUrl.length ? Controller.wallpaperUrl : Product.wallpaperUrl; fillMode: Image.PreserveAspectCrop }
-    Rectangle { anchors.fill: parent; color: "#72040B08" }
+    Rectangle { anchors.fill: parent; color: Controller.themeColor("#72040B08", Controller.themeMode, Controller.darkTheme) }
 
     Column {
         anchors.centerIn: parent
@@ -22,12 +22,12 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Controller.dateText
-            color: "#D7E0DB"; font.family: Theme.fontFamily; font.pixelSize: 14
+            color: Controller.themeColor("#D7E0DB", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 14
         }
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 76; height: 76; radius: 38; color: "#E8F0EC"
-            SystemIcon { anchors.centerIn: parent; width: 38; height: 38; name: "home"; color: "#40564B" }
+            width: 76; height: 76; radius: 38; color: Controller.themeColor("#E8F0EC", Controller.themeMode, Controller.darkTheme)
+            SystemIcon { anchors.centerIn: parent; width: 38; height: 38; name: "home"; color: Controller.themeColor("#40564B", Controller.themeMode, Controller.darkTheme) }
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -40,20 +40,20 @@ Item {
             enabled: false
             color: Theme.text(true); placeholderTextColor: Theme.muted(true)
             font.family: Theme.fontFamily
-            background: Rectangle { radius: 10; color: "#CA17221E"; border.width: 1; border.color: Theme.border(true) }
+            background: Rectangle { radius: 10; color: Controller.themeColor("#CA17221E", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: Theme.border(true) }
         }
         Button {
             width: parent.width; height: 40; text: qsTr("Enter desktop preview")
             onClicked: Controller.unlockPreview()
             background: Rectangle { radius: 10; color: Theme.accent }
-            contentItem: Text { text: parent.text; color: "#07110B"; font.family: Theme.fontFamily; font.pixelSize: 12; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            contentItem: Text { text: parent.text; color: Controller.themeColor("#07110B", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 12; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
         Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             text: qsTr("This screen only previews the design. Real locking uses gtklock, ext-session-lock-v1 and PAM in the Labwc session.")
-            color: "#B7C5BE"; font.family: Theme.fontFamily; font.pixelSize: 9
+            color: Controller.themeColor("#B7C5BE", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 9
         }
     }
 }

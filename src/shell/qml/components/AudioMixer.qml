@@ -58,8 +58,8 @@ ColumnLayout {
                 background: Rectangle {
                     x: appSlider.leftPadding; y: appSlider.topPadding + appSlider.availableHeight / 2 - height / 2
                     width: appSlider.availableWidth; height: 6; radius: 3
-                    color: Controller.darkTheme ? "#394640" : "#CDDAD2"
-                    Rectangle { width: parent.width * appSlider.visualPosition; height: parent.height; radius: 3; color: streamRow.modelData.muted ? "#718079" : Theme.accent }
+                    color: Controller.darkTheme ? Controller.themeColor("#394640", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#CDDAD2", Controller.themeMode, Controller.darkTheme)
+                    Rectangle { width: parent.width * appSlider.visualPosition; height: parent.height; radius: 3; color: streamRow.modelData.muted ? Controller.themeColor("#718079", Controller.themeMode, Controller.darkTheme) : Theme.accent }
                 }
                 handle: Rectangle {
                     x: appSlider.leftPadding + appSlider.visualPosition * (appSlider.availableWidth - width)

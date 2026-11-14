@@ -8,7 +8,7 @@ namespace FirstBootValidation {
 inline bool desktopPreferences(const QVariantMap &values)
 {
     const QMap<QString,QStringList> choices{
-        {"themeMode",{"light","dark","auto"}}, {"dockPosition",{"left","bottom","right"}},
+        {"themeMode",{"light","dark","green","auto"}}, {"dockPosition",{"left","bottom","right"}},
         {"panelPosition",{"top","bottom"}}, {"panelStyle",{"detailed","compact"}},
         {"dateFormat",{"locale","iso","day-first"}}, {"language",{"tr_TR.UTF-8","en_US.UTF-8"}},
         {"keyboardLayout",{"tr","us","de","gb"}}};

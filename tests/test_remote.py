@@ -211,6 +211,16 @@ class BrokerTests(unittest.TestCase):
             try: instance.login('maker','wrong')
             except PermissionError: pass
         with self.assertRaises(PermissionError): instance.login('maker','secret')
+    def test_login_normalizes_account_case_but_preserves_password_and_uid_checks(self):
+        calls=[]
+        def auth(username,password):calls.append((username,password));return 1000
+        instance=broker.Broker(auth,lambda *_:None,paths=self.paths)
+        instance.login(' Maker ',' CaSe sensitive ')
+        self.assertEqual(calls,[('maker',' CaSe sensitive ')])
+        for username in ('root\nother','m\u0430ker','m; id',None):
+            with self.assertRaises(PermissionError):instance.login(username,'secret')
+        instance=broker.Broker(lambda *_:0,lambda *_:None,paths=self.paths)
+        with self.assertRaises(PermissionError):instance.login('Root','secret')
 
     def test_active_renewal_keeps_idle_and_absolute_limits_and_revocation(self):
         instance=broker.Broker(lambda *_:1000,lambda *_:None,paths=self.paths)
@@ -416,7 +426,9 @@ class GatewayTests(unittest.TestCase):
         for value in self.server.sessions.items.values():value['expires']=0
         self.assertEqual(self.request('/api/state')[0],401)
         for _ in range(4):self.assertEqual(self.request('/api/login',{'password':'bad'})[0],401)
-        self.assertEqual(self.request('/api/login',{'password':'setup-password-123'})[0],429)
+        status,data,headers=self.request('/api/login',{'password':'setup-password-123'})
+        self.assertEqual(status,429);self.assertGreaterEqual(int(headers['Retry-After']),1)
+        self.assertLessEqual(json.loads(data)['retryAfter'],60)
     def test_web_setup_mutations_are_removed(self):
         self.login()
         for operation in ('account', 'privacy', 'complete', 'not-a-method'):

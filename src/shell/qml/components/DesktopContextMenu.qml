@@ -65,7 +65,7 @@ GlassPanel {
         width: menuColumn.width
         height: 34
         radius: 7
-        color: enabled && (rowMouse.containsMouse || selected) ? "#315F46" : "transparent"
+        color: enabled && (rowMouse.containsMouse || selected) ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : "transparent"
         opacity: enabled ? 1.0 : 0.42
 
         SystemIcon {
@@ -181,7 +181,7 @@ GlassPanel {
                     width: sortColumn.width
                     height: 32
                     radius: 7
-                    color: sortMouse.containsMouse ? "#315F46" : "transparent"
+                    color: sortMouse.containsMouse ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : "transparent"
                     Text { anchors.left: parent.left; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: modelData; color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10 }
                     Text { anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; visible: root.sortedBy === modelData; text: "✓"; color: Theme.accent; font.pixelSize: 12 }
                     MouseArea {

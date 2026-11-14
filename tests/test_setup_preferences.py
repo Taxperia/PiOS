@@ -28,6 +28,14 @@ class SetupPreferencesTests(unittest.TestCase):
             target.symlink_to(other)
             with self.assertRaises(ValueError):module.save(home,self.values())
             self.assertEqual(other.read_text(),'keep')
+    def test_green_and_black_are_distinct_new_profile_choices(self):
+        with tempfile.TemporaryDirectory() as home:
+            for mode in ('green','dark'):
+                values=self.values();values['themeMode']=mode;module.save(home,values)
+                config=configparser.ConfigParser();config.read(Path(home)/'.config/fidan/shell.conf')
+                self.assertEqual(config['appearance']['thememode'],mode)
+                self.assertEqual(config['appearance']['themeschema'],'2')
+                self.assertTrue(config.getboolean('appearance','darktheme'))
 
 
 if __name__=='__main__':unittest.main()

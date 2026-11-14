@@ -13,6 +13,8 @@
 #include <QSettings>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQmlComponent>
+#include <memory>
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QQuickStyle>
@@ -39,6 +41,22 @@ class UtilitiesTest final : public QObject {
     QTemporaryDir home;
     QString pdf;
 private slots:
+    void applicationPaletteSwitchesFromGreenToBlackWithoutRestart() {
+        QTemporaryDir config;const auto old=qgetenv("XDG_CONFIG_HOME");qputenv("XDG_CONFIG_HOME",config.path().toUtf8());
+        const auto restore=qScopeGuard([&]{qputenv("XDG_CONFIG_HOME",old);});
+        QVERIFY(QDir().mkpath(config.filePath("fidan")));
+        QSettings settings(config.filePath("fidan/shell.conf"),QSettings::IniFormat);
+        settings.setValue("appearance/themeMode","green");settings.setValue("appearance/themeSchema",2);settings.sync();
+        AppStyle style;QQmlEngine engine;engine.rootContext()->setContextProperty("UiStyle",&style);
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nRectangle {color:UiStyle.color(\"#0E1715\",UiStyle.dark,UiStyle.mode)}",QUrl());
+        std::unique_ptr<QObject> item(component.create());QVERIFY2(item,qPrintable(component.errorString()));
+        QCOMPARE(item->property("color").value<QColor>(),QColor("#0E1715"));
+        settings.setValue("appearance/themeMode","dark");settings.sync();QTRY_COMPARE(style.mode(),"dark");
+        const QColor black=item->property("color").value<QColor>();QCOMPARE(black.red(),black.green());QCOMPARE(black.green(),black.blue());
+        settings.setValue("appearance/themeMode","green");settings.sync();QTRY_COMPARE(style.mode(),"green");
+        QCOMPARE(item->property("color").value<QColor>(),QColor("#0E1715"));
+    }
     void initTestCase() {
         QVERIFY(home.isValid());
         qputenv("XDG_CONFIG_HOME",home.path().toUtf8()+"/config");

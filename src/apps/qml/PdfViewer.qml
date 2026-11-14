@@ -7,7 +7,7 @@ import QtQuick.Pdf
 Item {
     id: root
     objectName: "pdfPage"
-    readonly property color foreground: UiStyle.color("#F2F7F4",UiStyle.dark)
+    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
     property bool sidebar: true
     property bool find: false
     property bool fitWidth: true
@@ -23,7 +23,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent; spacing: 0
         Rectangle {
-            Layout.fillWidth: true; Layout.preferredHeight: 62; color: UiStyle.color("#111C19",UiStyle.dark)
+            Layout.fillWidth: true; Layout.preferredHeight: 62; color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode)
             RowLayout {
                 anchors.fill: parent; anchors.margins: 12; spacing: 8
                 AppButton { iconName: "document-open"; text: "Aç"; onClicked: picker.open() }
@@ -44,17 +44,17 @@ Item {
             AppButton { text: "↓"; tip: "Sonraki eşleşme"; onClicked: view.searchForward() }
             AppButton { text: "Kapat"; onClicked: { root.find=false; search.clear(); view.searchString="" } }
         }
-        Text { visible: Documents.error.length > 0; text: Documents.error; Layout.fillWidth: true; Layout.margins: 10; color: UiStyle.color("#FF9292",UiStyle.dark); wrapMode: Text.Wrap }
+        Text { visible: Documents.error.length > 0; text: Documents.error; Layout.fillWidth: true; Layout.margins: 10; color: UiStyle.color("#FF9292", UiStyle.dark, UiStyle.mode); wrapMode: Text.Wrap }
         RowLayout {
             Layout.fillWidth: true; Layout.fillHeight: true; spacing: 0
             Rectangle {
-                visible: root.sidebar && pdfDocument.pageCount>0; Layout.preferredWidth: 155; Layout.fillHeight: true; color: UiStyle.color("#101A17",UiStyle.dark)
+                visible: root.sidebar && pdfDocument.pageCount>0; Layout.preferredWidth: 155; Layout.fillHeight: true; color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode)
                 ListView {
                     id: pages; anchors.fill: parent; anchors.margins: 10; clip: true; spacing: 8; model: pdfDocument.pageCount; currentIndex: view.currentPage
                     onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
                     delegate: ItemDelegate {
                         id: thumbnail; required property int index; width: ListView.view.width; height: 176
-                        background: Rectangle { radius: 8; color: thumbnail.index === view.currentPage ? UiStyle.color("#315F46",UiStyle.dark) : thumbnail.hovered ? UiStyle.color("#304039",UiStyle.dark) : "transparent"; border.width: thumbnail.index === view.currentPage ? 1 : 0; border.color: UiStyle.accent }
+                        background: Rectangle { radius: 8; color: thumbnail.index === view.currentPage ? UiStyle.color("#315F46", UiStyle.dark, UiStyle.mode) : thumbnail.hovered ? UiStyle.color("#304039", UiStyle.dark, UiStyle.mode) : "transparent"; border.width: thumbnail.index === view.currentPage ? 1 : 0; border.color: UiStyle.accent }
                         contentItem: Column {
                             spacing: 5
                             Rectangle {
@@ -76,14 +76,14 @@ Item {
                     anchors.centerIn: parent; width: Math.min(460,parent.width-50); spacing: 18; visible: pdfDocument.status === PdfDocument.Null || pdfDocument.status === PdfDocument.Error
                     Image { anchors.horizontalCenter: parent.horizontalCenter; width: 70; height: 70; source: "image://theme/application-pdf" }
                     Text { width: parent.width; text: pdfDocument.status === PdfDocument.Error ? pdfDocument.error : "Belgelerine daha yakından bak"; color: root.foreground; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
-                    Text { width: parent.width; text: "PDF aç, metin ara ve sayfalar arasında kolayca gezin."; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
+                    Text { width: parent.width; text: "PDF aç, metin ara ve sayfalar arasında kolayca gezin."; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
                     AppButton { anchors.horizontalCenter: parent.horizontalCenter; text: "PDF dosyası aç"; accent: true; onClicked: picker.open() }
                 }
                 DropArea { anchors.fill: parent; onDropped: function(drop) { if(drop.hasUrls && drop.urls.length && Documents.open(drop.urls[0])) drop.acceptProposedAction() } }
             }
         }
         Rectangle {
-            Layout.fillWidth: true; Layout.preferredHeight: 48; color: UiStyle.color("#111C19",UiStyle.dark)
+            Layout.fillWidth: true; Layout.preferredHeight: 48; color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode)
             RowLayout {
                 anchors.fill: parent; anchors.margins: 7; spacing: 8
                 AppButton { text: "‹"; tip: "Önceki sayfa"; enabled: view.currentPage>0; onClicked: view.goToPage(view.currentPage-1) }

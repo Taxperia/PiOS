@@ -137,7 +137,7 @@ FocusScope {
             scale: root.interfaceScale
             transformOrigin: Item.TopLeft
             radius: 9
-            color: folderDrop.containsDrag ? "#A0315F46" : selected ? "#80315F46" : iconMouse.containsMouse ? "#602B3A34" : "transparent"
+            color: folderDrop.containsDrag ? Controller.themeColor("#A0315F46", Controller.themeMode, Controller.darkTheme) : selected ? Controller.themeColor("#80315F46", Controller.themeMode, Controller.darkTheme) : iconMouse.containsMouse ? Controller.themeColor("#602B3A34", Controller.themeMode, Controller.darkTheme) : "transparent"
             border.width: selected || folderDrop.containsDrag ? 1 : 0
             border.color: Theme.accent
             DropArea {
@@ -159,7 +159,7 @@ FocusScope {
                 spacing: 5
                 Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: 44; height: 44; radius: 10; color: "#315F46"
+                    width: 44; height: 44; radius: 10; color: Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme)
                     SystemIcon { anchors.centerIn: parent; width: 27; height: 27; visible: icon.isDirectory; name: "folder"; color: "white" }
                     Image {
                         id: artwork
@@ -226,6 +226,6 @@ FocusScope {
         width: Math.abs(selectionMouse.end.x-selectionMouse.origin.x)
         height: Math.abs(selectionMouse.end.y-selectionMouse.origin.y)
         visible: selectionMouse.selecting
-        color: "#3063DE8A"; border.width: 1; border.color: Theme.accent
+        color: Controller.themeColor("#3063DE8A", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: Theme.accent
     }
 }

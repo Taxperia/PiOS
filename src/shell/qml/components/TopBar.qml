@@ -7,7 +7,7 @@ import Fidan.Shell
 GlassPanel {
     id: root
     radius: 0; clip: true
-    color: Controller.darkTheme ? "#F20D1816" : "#F2EDF4F0"
+    color: Controller.darkTheme ? Controller.themeColor("#F20D1816", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F2EDF4F0", Controller.themeMode, Controller.darkTheme)
     RowLayout {
         anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 8
         IconButton { iconName: "menu"; compact: true; accessibleName: qsTr("Applications"); onClicked: Controller.toggleLauncher() }
@@ -53,7 +53,7 @@ GlassPanel {
         Row {
             visible: DesktopServices.batteryAvailable; spacing: 4
             Layout.alignment: Qt.AlignVCenter
-            SystemIcon { width: 17; height: 17; name: DesktopServices.pluggedIn ? "bolt" : "battery"; color: DesktopServices.batteryPercent <= 20 && !DesktopServices.pluggedIn ? "#EBA165" : Theme.accent }
+            SystemIcon { width: 17; height: 17; name: DesktopServices.pluggedIn ? "bolt" : "battery"; color: DesktopServices.batteryPercent <= 20 && !DesktopServices.pluggedIn ? Controller.themeColor("#EBA165", Controller.themeMode, Controller.darkTheme) : Theme.accent }
             Text { text: DesktopServices.batteryPercent + "%"; color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10 }
             TapHandler { onTapped: Controller.toggleQuickSettings() }
         }

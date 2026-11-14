@@ -45,7 +45,7 @@ Item {
         ColumnLayout {
             visible: root.category === "Storage"; Layout.fillWidth: true; spacing: 12
             SettingsControls.Card {
-                RowLayout { Layout.fillWidth: true; spacing: 14; SettingsControls.Icon { name:"drive-harddisk-symbolic"; Layout.preferredWidth: 42; Layout.preferredHeight: 42 } ColumnLayout { Layout.fillWidth: true; SettingsControls.Title { text: qsTr("Sistem diski") } SettingsControls.Caption { text: SettingsData.volumes.length ? qsTr("Toplam %1 · Kullanılan %2 · Boş %3").arg(SettingsData.volumes[0].totalText).arg(SettingsData.volumes[0].usedText).arg(SettingsData.volumes[0].freeText) : qsTr("Depolama bilgisi alınamıyor") } Rectangle { Layout.fillWidth: true; implicitHeight: 10; radius: 5; color: Controller.darkTheme ? "#304B4B" : "#BCD3C5"; Rectangle { width: parent.width*(SettingsData.volumes.length ? SettingsData.volumes[0].percent/100 : 0); height: 10; radius: 5; color: Controller.accentColor } } } SettingsControls.Label { Layout.fillWidth: false; text: SettingsData.volumes.length ? Math.round(SettingsData.volumes[0].percent)+"%" : "—" } }
+                RowLayout { Layout.fillWidth: true; spacing: 14; SettingsControls.Icon { name:"drive-harddisk-symbolic"; Layout.preferredWidth: 42; Layout.preferredHeight: 42 } ColumnLayout { Layout.fillWidth: true; SettingsControls.Title { text: qsTr("Sistem diski") } SettingsControls.Caption { text: SettingsData.volumes.length ? qsTr("Toplam %1 · Kullanılan %2 · Boş %3").arg(SettingsData.volumes[0].totalText).arg(SettingsData.volumes[0].usedText).arg(SettingsData.volumes[0].freeText) : qsTr("Depolama bilgisi alınamıyor") } Rectangle { Layout.fillWidth: true; implicitHeight: 10; radius: 5; color: Controller.darkTheme ? Controller.themeColor("#304B4B", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BCD3C5", Controller.themeMode, Controller.darkTheme); Rectangle { width: parent.width*(SettingsData.volumes.length ? SettingsData.volumes[0].percent/100 : 0); height: 10; radius: 5; color: Controller.accentColor } } } SettingsControls.Label { Layout.fillWidth: false; text: SettingsData.volumes.length ? Math.round(SettingsData.volumes[0].percent)+"%" : "—" } }
             }
             SettingsControls.Title { text: qsTr("Bölümler ve bağlı sürücüler") }
             SettingsControls.Card {
@@ -71,7 +71,7 @@ Item {
                 SettingsControls.Caption { text: qsTr("Debian ve açık kaynak topluluğuyla geliştirildi."); horizontalAlignment: Text.AlignHCenter }
             }
         }
-        SettingsControls.Caption { visible: SettingsData.actionError.length>0; text: SettingsData.actionError; color: Controller.darkTheme ? "#FFB3A3" : "#A43138" }
+        SettingsControls.Caption { visible: SettingsData.actionError.length>0; text: SettingsData.actionError; color: Controller.darkTheme ? Controller.themeColor("#FFB3A3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#A43138", Controller.themeMode, Controller.darkTheme) }
     }
     Dialog {
         id: recoveryDialog; anchors.centerIn: parent; width: Math.max(280, Math.min(420, root.width - 20)); modal: true
@@ -104,7 +104,7 @@ Item {
             SettingsControls.Button { visible:root.sheet === "backup" && SettingsData.toolAvailable("backup"); text:qsTr("Yedekleme ve geri yüklemeyi aç"); onClicked:SettingsData.openTool("backup") }
             SettingsControls.Button { visible:root.sheet === "storageTools" || (root.sheet === "backup" && !SettingsData.toolAvailable("backup")); text:qsTr("Uygulama mağazasını aç"); onClicked:Controller.openSoftwareCenter() }
             ColumnLayout { visible:root.sheet === "advanced"; Layout.fillWidth:true; SettingsControls.Button { text:qsTr("Depolama"); onClicked:{ root.navigate("Storage") } } SettingsControls.Button { text:qsTr("Klavye ve fare"); onClicked:{ root.navigate("Keyboard & Mouse") } } SettingsControls.Button { text:qsTr("Gizlilik"); onClicked:{ root.navigate("Privacy") } } SettingsControls.Button { text:qsTr("Görev yöneticisi"); onClicked:Controller.openTaskManager() } }
-            SettingsControls.Caption { visible:SettingsData.actionError.length>0; text:SettingsData.actionError; color:"#EAA495" }
-            SettingsControls.Card { visible:root.sheet === "licenses"; SettingsControls.Title { text:"GNU GPL v3 · Project Fidan" } TextArea { Layout.fillWidth:true; implicitHeight:500; text:SettingsData.licenseText; readOnly:true; wrapMode:TextEdit.Wrap; selectByMouse:true; color:Controller.darkTheme ? "#F2F7F4" : "#18261F"; background:Item {} } }
+            SettingsControls.Caption { visible:SettingsData.actionError.length>0; text:SettingsData.actionError; color:Controller.themeColor("#EAA495", Controller.themeMode, Controller.darkTheme) }
+            SettingsControls.Card { visible:root.sheet === "licenses"; SettingsControls.Title { text:"GNU GPL v3 · Project Fidan" } TextArea { Layout.fillWidth:true; implicitHeight:500; text:SettingsData.licenseText; readOnly:true; wrapMode:TextEdit.Wrap; selectByMouse:true; color:Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme); background:Item {} } }
         }
 }

@@ -1,5 +1,6 @@
 import QtQml
 QtObject {
+    function themeColor(value,mode,dark) {return value}
     property bool darkTheme: true
     property string themeMode: "dark"
     onThemeModeChanged: darkTheme = themeMode !== "light"

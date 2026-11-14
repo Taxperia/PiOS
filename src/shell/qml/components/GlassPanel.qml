@@ -18,7 +18,7 @@ Rectangle {
         radius: Math.max(0, parent.radius - 1)
         color: "transparent"
         border.width: panel.raised ? 1 : 0
-        border.color: Controller.darkTheme ? "#203A4841" : "#30FFFFFF"
+        border.color: Controller.darkTheme ? Controller.themeColor("#203A4841", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#30FFFFFF", Controller.themeMode, Controller.darkTheme)
     }
 }
 

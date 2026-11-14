@@ -18,9 +18,9 @@ ApplicationWindow {
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint
 
-    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark)
-    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark)
-    readonly property color secondary: UiStyle.color("#9FB2A8", UiStyle.dark)
+    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark, UiStyle.mode)
+    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
+    readonly property color secondary: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode)
     readonly property bool maximized: visibility === Window.Maximized
     property int menuIndex: -1
     property var selectedRows: []
@@ -93,7 +93,7 @@ ApplicationWindow {
         property bool danger: false
         signal invoked
         width: 46; height: 42
-        color: mouse.containsMouse ? (danger ? UiStyle.color("#C74646", UiStyle.dark) : UiStyle.color("#304039", UiStyle.dark)) : "transparent"
+        color: mouse.containsMouse ? (danger ? UiStyle.color("#C74646", UiStyle.dark, UiStyle.mode) : UiStyle.color("#304039", UiStyle.dark, UiStyle.mode)) : "transparent"
         Text { anchors.centerIn: parent; text: button.symbol; color: button.danger && mouse.containsMouse ? "white" : root.foreground; font.pixelSize: 14 }
         MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: button.invoked() }
     }
@@ -107,7 +107,7 @@ ApplicationWindow {
         signal invoked
         width: 34; height: 32; radius: 7
         opacity: enabled ? 1 : 0.4
-        color: mouse.containsMouse ? UiStyle.color("#315F46", UiStyle.dark) : UiStyle.color("#1A2823", UiStyle.dark)
+        color: mouse.containsMouse ? UiStyle.color("#315F46", UiStyle.dark, UiStyle.mode) : UiStyle.color("#1A2823", UiStyle.dark, UiStyle.mode)
         Text { anchors.centerIn: parent; visible: button.iconName.length === 0; text: button.symbol; color: root.foreground; font.pixelSize: 16 }
         Image { anchors.centerIn: parent; visible: button.iconName.length > 0; width: 18; height: 18; source: button.iconName.length ? "image://theme/" + button.iconName + (UiStyle.dark ? "?theme=dark" : "?theme=light") : ""; sourceSize: Qt.size(22, 22) }
         MouseArea { id: mouse; anchors.fill: parent; enabled: button.enabled; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: button.invoked() }
@@ -124,11 +124,11 @@ ApplicationWindow {
         implicitWidth: labelItem.implicitWidth + 28
         implicitHeight: 34
         radius: 7
-        color: danger ? (mouse.containsMouse ? UiStyle.color("#B94343", UiStyle.dark) : UiStyle.color("#8F3434", UiStyle.dark))
-                      : primary ? (mouse.containsMouse ? UiStyle.color("#397D58", UiStyle.dark) : UiStyle.color("#28533E", UiStyle.dark))
-                                : (mouse.containsMouse ? UiStyle.color("#304039", UiStyle.dark) : UiStyle.color("#1A2823", UiStyle.dark))
+        color: danger ? (mouse.containsMouse ? UiStyle.color("#B94343", UiStyle.dark, UiStyle.mode) : UiStyle.color("#8F3434", UiStyle.dark, UiStyle.mode))
+                      : primary ? (mouse.containsMouse ? UiStyle.color("#397D58", UiStyle.dark, UiStyle.mode) : UiStyle.color("#28533E", UiStyle.dark, UiStyle.mode))
+                                : (mouse.containsMouse ? UiStyle.color("#304039", UiStyle.dark, UiStyle.mode) : UiStyle.color("#1A2823", UiStyle.dark, UiStyle.mode))
         border.width: 1
-        border.color: danger ? UiStyle.color("#D25A5A", UiStyle.dark) : primary ? UiStyle.color("#347551", UiStyle.dark) : UiStyle.color("#465750", UiStyle.dark)
+        border.color: danger ? UiStyle.color("#D25A5A", UiStyle.dark, UiStyle.mode) : primary ? UiStyle.color("#347551", UiStyle.dark, UiStyle.mode) : UiStyle.color("#465750", UiStyle.dark, UiStyle.mode)
         Text { id: labelItem; anchors.centerIn: parent; text: button.label; color: button.danger ? "white" : root.foreground; font.family: "Inter"; font.pixelSize: 12; font.weight: Font.DemiBold }
         MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: button.invoked() }
     }
@@ -138,22 +138,22 @@ ApplicationWindow {
         height: 38
         leftPadding: 13
         rightPadding: 13
-        contentItem: Text { text: item.text; color: item.enabled ? root.foreground : UiStyle.color("#68776F", UiStyle.dark); font.family: "Inter"; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
-        background: Rectangle { radius: 6; color: item.highlighted ? UiStyle.color("#28533E", UiStyle.dark) : "transparent" }
+        contentItem: Text { text: item.text; color: item.enabled ? root.foreground : UiStyle.color("#68776F", UiStyle.dark, UiStyle.mode); font.family: "Inter"; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
+        background: Rectangle { radius: 6; color: item.highlighted ? UiStyle.color("#28533E", UiStyle.dark, UiStyle.mode) : "transparent" }
     }
 
     background: Rectangle {
         radius: root.maximized ? 0 : 13
-        color: UiStyle.color("#0E1715", UiStyle.dark)
+        color: UiStyle.color("#0E1715", UiStyle.dark, UiStyle.mode)
         border.width: root.maximized ? 0 : 1
-        border.color: UiStyle.color("#465750", UiStyle.dark)
+        border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode)
         clip: true
     }
 
     Rectangle {
         id: titleBar
         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-        height: 42; color: UiStyle.color("#101A17", UiStyle.dark)
+        height: 42; color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode)
         MouseArea {
             anchors.left: parent.left; anchors.right: controls.left; anchors.top: parent.top; anchors.bottom: parent.bottom
             cursorShape: root.maximized ? Qt.ArrowCursor : Qt.SizeAllCursor
@@ -177,7 +177,7 @@ ApplicationWindow {
     Rectangle {
         id: toolbar
         anchors.left: parent.left; anchors.right: parent.right; anchors.top: titleBar.bottom
-        height: 52; color: UiStyle.color("#111C19", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#2B3A35", UiStyle.dark)
+        height: 52; color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#2B3A35", UiStyle.dark, UiStyle.mode)
         RowLayout {
             anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 7
             ToolButton { symbol: "‹"; tip: qsTr("Back"); enabled: filesBackend.canGoBack; onInvoked: filesBackend.back() }
@@ -185,8 +185,8 @@ ApplicationWindow {
             ToolButton { symbol: "↑"; tip: qsTr("Up"); onInvoked: filesBackend.up() }
             ToolButton { symbol: "⌂"; tip: qsTr("Home"); onInvoked: filesBackend.home() }
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 34; radius: 7; color: UiStyle.color("#17221F", UiStyle.dark)
-                border.width: 1; border.color: pathField.activeFocus ? root.accent : UiStyle.color("#34473F", UiStyle.dark)
+                Layout.fillWidth: true; Layout.preferredHeight: 34; radius: 7; color: UiStyle.color("#17221F", UiStyle.dark, UiStyle.mode)
+                border.width: 1; border.color: pathField.activeFocus ? root.accent : UiStyle.color("#34473F", UiStyle.dark, UiStyle.mode)
                 TextField {
                     id: pathField
                     objectName: "folderPath"
@@ -208,7 +208,7 @@ ApplicationWindow {
     Rectangle {
         id: sidebar
         anchors.left: parent.left; anchors.top: toolbar.bottom; anchors.bottom: status.top
-        width: 178; color: UiStyle.color("#111C19", UiStyle.dark)
+        width: 178; color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode)
         Column {
             anchors.fill: parent; anchors.margins: 10; spacing: 5
             Text { leftPadding: 9; bottomPadding: 5; text: qsTr("Places"); color: root.secondary; font.family: "Inter"; font.pixelSize: 11; font.weight: Font.DemiBold }
@@ -227,7 +227,7 @@ ApplicationWindow {
                 Rectangle {
                     required property var modelData
                     width: parent.width; height: 36; radius: 7
-                    color: filesBackend.path === filesBackend.placePath(modelData.p) ? UiStyle.color("#315F46", UiStyle.dark) : (placeMouse.containsMouse ? UiStyle.color("#23332D", UiStyle.dark) : "transparent")
+                    color: filesBackend.path === filesBackend.placePath(modelData.p) ? UiStyle.color("#315F46", UiStyle.dark, UiStyle.mode) : (placeMouse.containsMouse ? UiStyle.color("#23332D", UiStyle.dark, UiStyle.mode) : "transparent")
                     Row {
                         anchors.left: parent.left; anchors.leftMargin: 9; anchors.verticalCenter: parent.verticalCenter; spacing: 9
                         Image { width: 17; height: 17; source: "image://theme/" + encodeURIComponent(modelData.i) + (UiStyle.dark ? "?theme=dark" : "?theme=light"); sourceSize: Qt.size(20, 20) }
@@ -245,7 +245,7 @@ ApplicationWindow {
     Rectangle {
         id: browser
         anchors.left: sidebar.right; anchors.right: parent.right; anchors.top: toolbar.bottom; anchors.bottom: status.top
-        color: UiStyle.color("#0B1412", UiStyle.dark)
+        color: UiStyle.color("#0B1412", UiStyle.dark, UiStyle.mode)
         ColumnLayout {
             anchors.fill: parent; anchors.margins: 14; spacing: 10
             RowLayout {
@@ -256,15 +256,15 @@ ApplicationWindow {
                     id: search
                     objectName: "folderSearch"
                     Layout.preferredWidth: 220; Layout.preferredHeight: 34
-                    placeholderText: qsTr("Search this folder…"); color: root.foreground; placeholderTextColor: UiStyle.color("#71847A", UiStyle.dark)
+                    placeholderText: qsTr("Search this folder…"); color: root.foreground; placeholderTextColor: UiStyle.color("#71847A", UiStyle.dark, UiStyle.mode)
                     font.family: "Inter"; font.pixelSize: 12
                     onTextChanged: filesBackend.filter = text
                     onAccepted: grid.forceActiveFocus()
                     Connections { target: filesBackend; function onFilterChanged() { search.text = filesBackend.filter } }
-                    background: Rectangle { radius: 7; color: UiStyle.color("#17221F", UiStyle.dark); border.width: search.activeFocus ? 1 : 0; border.color: root.accent }
+                    background: Rectangle { radius: 7; color: UiStyle.color("#17221F", UiStyle.dark, UiStyle.mode); border.width: search.activeFocus ? 1 : 0; border.color: root.accent }
                 }
             }
-            Text { Layout.fillWidth: true; visible: filesBackend.errorText.length > 0; text: filesBackend.errorText; wrapMode: Text.Wrap; color: UiStyle.color("#FF9292", UiStyle.dark); font.family: "Inter"; font.pixelSize: 10 }
+            Text { Layout.fillWidth: true; visible: filesBackend.errorText.length > 0; text: filesBackend.errorText; wrapMode: Text.Wrap; color: UiStyle.color("#FF9292", UiStyle.dark, UiStyle.mode); font.family: "Inter"; font.pixelSize: 10 }
             RowLayout {
                 visible: filesBackend.inTrash; Layout.fillWidth: true
                 Text { Layout.fillWidth: true; text: qsTr("Restore selected items to their original location."); color: root.secondary; font.pixelSize: 12 }
@@ -308,7 +308,7 @@ ApplicationWindow {
                     required property string sizeLabel
                     required property string iconName
                     width: grid.cellWidth - 14; height: 100; radius: 7
-                    color: root.selectedRows.indexOf(index) >= 0 || GridView.isCurrentItem ? UiStyle.color("#263F30", UiStyle.dark) : (itemMouse.containsMouse ? UiStyle.color("#23332D", UiStyle.dark) : UiStyle.color("#1B2421", UiStyle.dark))
+                    color: root.selectedRows.indexOf(index) >= 0 || GridView.isCurrentItem ? UiStyle.color("#263F30", UiStyle.dark, UiStyle.mode) : (itemMouse.containsMouse ? UiStyle.color("#23332D", UiStyle.dark, UiStyle.mode) : UiStyle.color("#1B2421", UiStyle.dark, UiStyle.mode))
                     border.width: root.selectedRows.indexOf(index) >= 0 || GridView.isCurrentItem ? 1 : 0; border.color: root.accent
                     DropArea {
                         anchors.fill: parent; enabled: fileItem.directory && !filesBackend.busy && !filesBackend.inTrash
@@ -372,7 +372,7 @@ ApplicationWindow {
     Rectangle {
         id: status
         anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
-        height: 34; color: UiStyle.color("#101A17", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#2B3A35", UiStyle.dark)
+        height: 34; color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#2B3A35", UiStyle.dark, UiStyle.mode)
         Text { anchors.left: parent.left; anchors.leftMargin: 190; anchors.verticalCenter: parent.verticalCenter; text: filesBackend.busy ? filesBackend.operationStatus : qsTr("%1 items · %2 selected").arg(grid.count).arg(root.selectedRows.length); color: root.secondary; font.family: "Inter"; font.pixelSize: 11 }
         Text { visible: !filesBackend.canCancel; anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: grid.currentItem ? grid.currentItem.name : ""; color: root.secondary; font.family: "Inter"; font.pixelSize: 11 }
         Button { objectName: "cancelTransfer"; visible: filesBackend.canCancel; anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; height: 28; text: qsTr("Cancel transfer"); onClicked: filesBackend.cancelOperation() }
@@ -383,7 +383,7 @@ ApplicationWindow {
         y: toolbar.y + toolbar.height
         x: root.width - 190
         width: 170
-        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         DarkMenuItem { text: qsTr("New Folder"); onTriggered: { createDialog.kind = "folder"; createDialog.open() } }
         DarkMenuItem { text: qsTr("New File"); onTriggered: { createDialog.kind = "file"; createDialog.open() } }
     }
@@ -391,13 +391,13 @@ ApplicationWindow {
     Menu {
         id: itemMenu
         width: 190
-        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         DarkMenuItem { text: qsTr("Open"); onTriggered: filesBackend.activate(root.menuIndex) }
         DarkMenuItem { text: qsTr("Copy"); enabled: !filesBackend.inTrash && !filesBackend.busy; onTriggered: filesBackend.copyEntries(root.selection(), false) }
         DarkMenuItem { text: qsTr("Cut"); enabled: !filesBackend.inTrash && !filesBackend.busy; onTriggered: filesBackend.copyEntries(root.selection(), true) }
         DarkMenuItem { text: qsTr("Restore"); visible: filesBackend.inTrash; enabled: !filesBackend.busy; onTriggered: filesBackend.restoreEntries(root.selection()) }
         DarkMenuItem { text: qsTr("Rename"); enabled: !filesBackend.inTrash && !filesBackend.busy; onTriggered: root.openRename(root.menuIndex) }
-        MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: UiStyle.color("#34473F", UiStyle.dark) } }
+        MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: UiStyle.color("#34473F", UiStyle.dark, UiStyle.mode) } }
         DarkMenuItem { text: qsTr("Move to Trash"); enabled: !filesBackend.inTrash && !filesBackend.busy; onTriggered: filesBackend.trashEntries(root.selection()) }
         DarkMenuItem { text: qsTr("Delete Permanently…"); enabled: !filesBackend.busy; onTriggered: root.openDelete(root.menuIndex) }
         DarkMenuItem { text: qsTr("Properties…"); onTriggered: root.openProperties(root.menuIndex) }
@@ -406,10 +406,10 @@ ApplicationWindow {
     Menu {
         id: folderMenu
         width: 190
-        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         DarkMenuItem { text: qsTr("New Folder"); onTriggered: { createDialog.kind = "folder"; createDialog.open() } }
         DarkMenuItem { text: qsTr("New File"); onTriggered: { createDialog.kind = "file"; createDialog.open() } }
-        MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: UiStyle.color("#34473F", UiStyle.dark) } }
+        MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: UiStyle.color("#34473F", UiStyle.dark, UiStyle.mode) } }
         DarkMenuItem { text: qsTr("Paste"); enabled: filesBackend.canPaste && !filesBackend.busy; onTriggered: filesBackend.paste() }
         DarkMenuItem { text: qsTr("Open in Terminal"); onTriggered: filesBackend.openTerminalHere() }
         DarkMenuItem { text: qsTr("Refresh"); onTriggered: filesBackend.refresh() }
@@ -426,12 +426,12 @@ ApplicationWindow {
         header: null
         standardButtons: Dialog.NoButton
         onOpened: { entryName.clear(); entryName.forceActiveFocus() }
-        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: createDialog.title; color: root.foreground; font.family: "Inter"; font.pixelSize: 14; font.weight: Font.Bold }
-            TextField { id: entryName; objectName: "newEntryName"; Layout.fillWidth: true; placeholderText: createDialog.kind === "folder" ? qsTr("Folder name") : qsTr("File name"); color: root.foreground; selectByMouse: true; onAccepted: root.createEntry(); background: Rectangle { radius: 7; color: UiStyle.color("#0E1715", UiStyle.dark); border.width: 1; border.color: root.accent } }
-            Text { Layout.fillWidth: true; visible: filesBackend.errorText.length > 0; text: filesBackend.errorText; wrapMode: Text.Wrap; color: UiStyle.color("#FF9292", UiStyle.dark); font.pixelSize: 12 }
+            TextField { id: entryName; objectName: "newEntryName"; Layout.fillWidth: true; placeholderText: createDialog.kind === "folder" ? qsTr("Folder name") : qsTr("File name"); color: root.foreground; selectByMouse: true; onAccepted: root.createEntry(); background: Rectangle { radius: 7; color: UiStyle.color("#0E1715", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: root.accent } }
+            Text { Layout.fillWidth: true; visible: filesBackend.errorText.length > 0; text: filesBackend.errorText; wrapMode: Text.Wrap; color: UiStyle.color("#FF9292", UiStyle.dark, UiStyle.mode); font.pixelSize: 12 }
             RowLayout {
                 Item { Layout.fillWidth: true }
                 ActionButton { label: qsTr("Cancel"); onInvoked: createDialog.close() }
@@ -444,12 +444,12 @@ ApplicationWindow {
         id: renameDialog
         anchors.centerIn: parent; width: 360; modal: true
         standardButtons: Dialog.NoButton
-        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: qsTr("Rename"); color: root.foreground; font.family: "Inter"; font.pixelSize: 14; font.weight: Font.Bold }
-            TextField { id: renameName; objectName: "renameEntryName"; Layout.fillWidth: true; color: root.foreground; selectByMouse: true; onAccepted: root.renameEntry(); background: Rectangle { radius: 7; color: UiStyle.color("#0E1715", UiStyle.dark); border.width: 1; border.color: root.accent } }
-            Text { Layout.fillWidth: true; visible: filesBackend.errorText.length > 0; text: filesBackend.errorText; wrapMode: Text.Wrap; color: UiStyle.color("#FF9292", UiStyle.dark); font.pixelSize: 12 }
+            TextField { id: renameName; objectName: "renameEntryName"; Layout.fillWidth: true; color: root.foreground; selectByMouse: true; onAccepted: root.renameEntry(); background: Rectangle { radius: 7; color: UiStyle.color("#0E1715", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: root.accent } }
+            Text { Layout.fillWidth: true; visible: filesBackend.errorText.length > 0; text: filesBackend.errorText; wrapMode: Text.Wrap; color: UiStyle.color("#FF9292", UiStyle.dark, UiStyle.mode); font.pixelSize: 12 }
             RowLayout {
                 Item { Layout.fillWidth: true }
                 ActionButton { label: qsTr("Cancel"); onInvoked: renameDialog.close() }
@@ -462,7 +462,7 @@ ApplicationWindow {
         id: deleteDialog
         anchors.centerIn: parent; width: 390; modal: true
         standardButtons: Dialog.NoButton
-        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#6D4545", UiStyle.dark) }
+        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#6D4545", UiStyle.dark, UiStyle.mode) }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: qsTr("Delete permanently?"); color: root.foreground; font.family: "Inter"; font.pixelSize: 14; font.weight: Font.Bold }
@@ -481,7 +481,7 @@ ApplicationWindow {
 
     Menu {
         id: viewMenu; x: root.width - width - 12; y: toolbar.y + toolbar.height; width: 230
-        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 9; color: UiStyle.color("#15211D", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         DarkMenuItem { text: qsTr("Sort: Name"); onTriggered: filesBackend.sortBy = "name" }
         DarkMenuItem { text: qsTr("Sort: Size"); onTriggered: filesBackend.sortBy = "size" }
         DarkMenuItem { text: qsTr("Sort: Modified"); onTriggered: filesBackend.sortBy = "modified" }
@@ -489,7 +489,7 @@ ApplicationWindow {
     }
     Dialog {
         id: propertiesDialog; objectName: "propertiesDialog"; anchors.centerIn: parent; width: Math.min(480, root.width - 32); modal: true; header: null
-        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: qsTr("Properties"); color: root.foreground; font.pixelSize: 16; font.bold: true }
@@ -501,7 +501,7 @@ ApplicationWindow {
     }
     Dialog {
         id: operationDialog; anchors.centerIn: parent; modal: true; header: null; width: 340
-        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark) }
+        background: Rectangle { radius: 11; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode) }
         contentItem: ColumnLayout {
             Text { Layout.fillWidth: true; text: qsTr("Wait for the file operation to finish before closing this window."); wrapMode: Text.Wrap; color: root.foreground }
             ActionButton { label: qsTr("OK"); onInvoked: operationDialog.close() }

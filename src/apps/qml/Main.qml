@@ -17,17 +17,17 @@ ApplicationWindow {
     font.family: "Inter"
     readonly property bool maximized: visibility === Window.Maximized || visibility === Window.FullScreen
     function toggleMaximized() { maximized ? showNormal() : showMaximized() }
-    palette.window: UiStyle.color("#0E1715",UiStyle.dark)
-    palette.windowText: UiStyle.color("#F2F7F4",UiStyle.dark)
-    palette.text: UiStyle.color("#F2F7F4",UiStyle.dark)
-    palette.base: UiStyle.color("#17231F",UiStyle.dark)
-    palette.button: UiStyle.color("#1A2823",UiStyle.dark)
-    palette.buttonText: UiStyle.color("#F2F7F4",UiStyle.dark)
+    palette.window: UiStyle.color("#0E1715", UiStyle.dark, UiStyle.mode)
+    palette.windowText: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
+    palette.text: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
+    palette.base: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode)
+    palette.button: UiStyle.color("#1A2823", UiStyle.dark, UiStyle.mode)
+    palette.buttonText: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
     palette.highlight: UiStyle.accent
     palette.highlightedText: "#082C17"
-    background: Rectangle { radius: root.maximized ? 0 : 12; color: UiStyle.color("#0E1715",UiStyle.dark); border.color: UiStyle.color("#465750",UiStyle.dark) }
+    background: Rectangle { radius: root.maximized ? 0 : 12; color: UiStyle.color("#0E1715", UiStyle.dark, UiStyle.mode); border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
     header: Rectangle {
-        height: 46; color: UiStyle.color("#101A17",UiStyle.dark)
+        height: 46; color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode)
         MouseArea { anchors.fill: parent; anchors.rightMargin: 138; onPressed: root.startSystemMove(); onDoubleClicked: root.toggleMaximized() }
         Row {
             anchors.left: parent.left; anchors.leftMargin: 16; anchors.verticalCenter: parent.verticalCenter; spacing: 10
@@ -45,7 +45,7 @@ ApplicationWindow {
                     width: 46; height: 46
                     Accessible.name: index === 0 ? "Küçült" : index === 1 ? "Büyüt / geri al" : "Kapat"
                     contentItem: Text { text: windowButton.modelData; color: windowButton.hovered && windowButton.index === 2 ? "white" : root.palette.text; font.pixelSize: 17; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: windowButton.hovered ? windowButton.index === 2 ? "#C74646" : UiStyle.color("#304039",UiStyle.dark) : "transparent" }
+                    background: Rectangle { color: windowButton.hovered ? windowButton.index === 2 ? "#C74646" : UiStyle.color("#304039", UiStyle.dark, UiStyle.mode) : "transparent" }
                     onClicked: index === 0 ? root.showMinimized() : index === 1 ? root.toggleMaximized() : root.close()
                 }
             }

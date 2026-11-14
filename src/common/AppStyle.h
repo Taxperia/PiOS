@@ -5,6 +5,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTimer>
+#include "Appearance.h"
 
 // Shared palette for standalone Fidan applications. Preferences are refreshed
 // while a window is open, so Settings changes apply without restarting apps.
@@ -13,6 +14,7 @@ class AppStyle final : public QObject
     Q_OBJECT
     Q_PROPERTY(bool dark READ dark NOTIFY changed)
     Q_PROPERTY(QColor accent READ accent NOTIFY changed)
+    Q_PROPERTY(QString mode READ mode NOTIFY changed)
 public:
     explicit AppStyle(QObject *parent = nullptr) : QObject(parent) {
         refresh();
@@ -22,11 +24,13 @@ public:
     }
     bool dark() const { return m_dark; }
     QColor accent() const { return m_accent; }
-    Q_INVOKABLE QColor color(const QString &value, bool dark) const {
+    QString mode() const {return m_mode;}
+    QColor color(const QString &value,bool dark) const {return color(value,dark,m_mode);}
+    Q_INVOKABLE QColor color(const QString &value, bool dark,const QString &mode) const {
         const auto key = value.toUpper();
         if (key == "#63DE8A" || key == "#63DE87" || key == "#2BA85B") return dark ? m_accent : m_accent.darker(150);
         if (key == "#28533E" || key == "#315F46" || key == "#397D58") return dark ? m_accent.darker(220) : m_accent.lighter(150);
-        if (dark) return QColor(value);
+        if (dark) return FidanAppearance::color(value,mode,true);
         static const QHash<QString, QString> light {
             {"#0E1715", "#EFF5F1"}, {"#0B1412", "#F8FBF9"}, {"#101A17", "#E5EEE8"},
             {"#111C19", "#EAF1ED"}, {"#17221F", "#FFFFFF"}, {"#17231F", "#F4F8F5"},
@@ -49,11 +53,13 @@ private:
     void refresh() {
         QSettings settings(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation)
             + QStringLiteral("/fidan/shell.conf"), QSettings::IniFormat);
-        const bool value = settings.value(QStringLiteral("appearance/darkTheme"), true).toBool();
+        const QString mode=FidanAppearance::mode(settings);
+        const bool value=FidanAppearance::dark(mode);
         QColor accent(settings.value("appearance/accentColor", "#63de8a").toString());
         if (!accent.isValid()) accent = QColor("#63de8a");
-        if (value != m_dark || accent != m_accent) { m_dark = value; m_accent = accent; emit changed(); }
+        if (value != m_dark || accent != m_accent || mode!=m_mode) { m_dark = value; m_accent = accent;m_mode=mode; emit changed(); }
     }
     bool m_dark = true;
     QColor m_accent = QColor("#63de8a");
+    QString m_mode=QStringLiteral("green");
 };

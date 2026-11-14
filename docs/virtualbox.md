@@ -1,7 +1,37 @@
 # VirtualBox ile PiOS'u sıfırdan denemek
 
-PiOS şu anda Debian 13 üzerinde çalışan masaüstü paketleri olarak dağıtılıyor.
-GitHub Releases'te VirtualBox'a takılabilecek bir PiOS ISO/OVA dosyası yok.
+## Hazır OVA dosyası
+
+`PiOS-0.1.0-alpha.7-VirtualBox-amd64.ova`, Intel/AMD bilgisayarlar için ayrı
+Debian 13 sanal makinesidir. Windows'ta VirtualBox → **Dosya → Sanal cihazı içe
+aktar** ile açılır. Yanındaki SHA256 dosyasıyla indirme/kopyalama bütünlüğü kontrol
+edilebilir. OVA'nın SHA256 dosyası, paket güncelleme manifestinin GPG imzasından ayrıdır.
+
+Varsayılan donanım: 2 işlemci, 4 GB RAM, 24 GiB dinamik disk, BIOS, VMSVGA,
+128 MB görüntü belleği, 3D kapalı ve NAT ağı. RAM/disk ana bilgisayarında yer
+kaplar. İlk açılışta PiOS karşılama ekranı gelir; kendi kullanıcı adını ve parolanı
+orada oluşturursun. Hazır kullanıcı veya ortak parola içermez. Türkçe Q klavye
+varsayılandır, ilk kurulumda değiştirilebilir.
+
+Bu dosya Raspberry Pi'ye yazılmaz. OVA'nın açılışı QEMU'da; içe aktarma yapısı
+Oracle VBoxManage ile kontrol edilir. Windows VirtualBox üzerindeki gerçek
+görüntü ve aygıt davranışı ayrıca denenmelidir. Yazılımsal çizim, 3D kapalı
+VirtualBox kurulumlarıyla uyumluluk için yalnızca bu VM'de seçilmiştir.
+
+NAT ile uygulamalar internete çıkar. Bilgisayarın tarayıcısından VM'ye erişmek
+istersen önce kurulumda tarayıcı erişimini aç; sonra kapalı VM'nin Ağ → NAT →
+Port yönlendirme ekranında ana makine **127.0.0.1:8443**, misafir **443** kuralı
+ekle. Ardından `https://localhost:8443` kullanılır. Sertifika VM'ye ait yerel
+sertifikadır. SSH için kurulumda SSH'ı açıp benzer şekilde yalnızca
+127.0.0.1:2222 → misafir 22 yönlendirmesi ve `ssh -p 2222 kullanicin@localhost`
+kullanılabilir.
+
+İlk kurulumdan önce VirtualBox anlık görüntüsü alarak sıfırdan denemelere
+dönebilirsin. Kod düzenlemek için [Türkçe rehbere](kod-duzenleme.md) bak.
+
+## Debian üzerine elle kurulum alternatifi
+
+PiOS ayrıca Debian 13 masaüstü paketleri olarak dağıtılır.
 `image/` altındaki imaj tarifi Raspberry Pi 5 içindir; PC sanal makinesinde
 başlatılmaz. Windows bilgisayarında **Debian 13 amd64** sanal makinesi oluşturup
 PiOS'u onun içine kurabilirsin. Mevcut Windows ve WSL dosyaların bu kurulumdan
@@ -58,9 +88,7 @@ find dist -maxdepth 1 -type f -name '*.deb' ! -name '*-dbgsym_*' \
 ```
 
 Bu yol GitHub'a gönderilmiş kaynak sürümünü derler. Yerel geliştirmede eklenmiş
-ama henüz GitHub'a gönderilmemiş uygulamalar klonlanan sürümde bulunmaz. Son
-yayımlanmış alpha.3 sürümü PDF/hesap makinesi/saat/takvim eklenmeden önceki sürümdür.
-Yeni uygulamaları denemek için bu değişiklikleri içeren kaynak/paketler gerekir.
+ama henüz GitHub'a gönderilmemiş değişiklikler klonlanan sürümde bulunmaz.
 
 Alternatif olarak [GitHub Releases](https://github.com/Taxperia/PiOS/releases)
 sayfasından aynı sürümün **tüm `_amd64.deb` ve `_all.deb` paketlerini** indirip
@@ -78,6 +106,7 @@ kendiliğinden değiştirmez. Yukarıdaki gibi masaüstüsüz Debian kurduysan:
 sudo install -m 0644 /etc/greetd/fidan.toml /etc/greetd/config.toml
 sudo mkdir -p /var/lib/fidan
 sudo systemctl disable greetd.service
+sudo systemctl mask getty@tty1.service
 sudo systemctl enable fidan-firstbootd.service fidan-firstboot-session.service
 sudo systemctl set-default graphical.target
 sudo reboot

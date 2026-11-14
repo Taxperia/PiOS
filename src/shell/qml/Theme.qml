@@ -5,18 +5,18 @@ import QtQuick
 QtObject {
     readonly property color accent: Controller.accentColor
     readonly property color accentStrong: Qt.darker(accent, 1.35)
-    readonly property color darkBackground: "#091210"
-    readonly property color darkSurface: "#D20D1714"
-    readonly property color darkSurfaceRaised: "#EB111B18"
-    readonly property color darkBorder: "#6674827B"
-    readonly property color darkText: "#F5F8F6"
-    readonly property color darkTextMuted: "#AEBBB5"
-    readonly property color lightBackground: "#E7EFEA"
-    readonly property color lightSurface: "#EAF8FBF9"
-    readonly property color lightSurfaceRaised: "#FAFFFFFF"
-    readonly property color lightBorder: "#554E6258"
-    readonly property color lightText: "#14201B"
-    readonly property color lightTextMuted: "#54645C"
+    readonly property color darkBackground: Controller.themeColor("#091210", Controller.themeMode, Controller.darkTheme)
+    readonly property color darkSurface: Controller.themeColor("#D20D1714", Controller.themeMode, Controller.darkTheme)
+    readonly property color darkSurfaceRaised: Controller.themeColor("#EB111B18", Controller.themeMode, Controller.darkTheme)
+    readonly property color darkBorder: Controller.themeColor("#6674827B", Controller.themeMode, Controller.darkTheme)
+    readonly property color darkText: Controller.themeColor("#F5F8F6", Controller.themeMode, Controller.darkTheme)
+    readonly property color darkTextMuted: Controller.themeColor("#AEBBB5", Controller.themeMode, Controller.darkTheme)
+    readonly property color lightBackground: Controller.themeColor("#E7EFEA", Controller.themeMode, Controller.darkTheme)
+    readonly property color lightSurface: Controller.themeColor("#EAF8FBF9", Controller.themeMode, Controller.darkTheme)
+    readonly property color lightSurfaceRaised: Controller.themeColor("#FAFFFFFF", Controller.themeMode, Controller.darkTheme)
+    readonly property color lightBorder: Controller.themeColor("#554E6258", Controller.themeMode, Controller.darkTheme)
+    readonly property color lightText: Controller.themeColor("#14201B", Controller.themeMode, Controller.darkTheme)
+    readonly property color lightTextMuted: Controller.themeColor("#54645C", Controller.themeMode, Controller.darkTheme)
     readonly property int radiusSmall: 8
     readonly property int radiusMedium: 12
     readonly property int radiusLarge: 18

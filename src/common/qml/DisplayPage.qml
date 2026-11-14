@@ -8,10 +8,10 @@ import QtQuick.Window
 Item {
     id: root
     implicitHeight: layout.implicitHeight
-    property color foreground: Controller.darkTheme ? "#F2F7F4" : "#18261F"
-    property color secondary: Controller.darkTheme ? "#AEBBB5" : "#586B60"
-    property color borderColor: Controller.darkTheme ? "#40594D" : "#BCCFC2"
-    readonly property color accent: Controller.darkTheme ? "#63DE8A" : "#207243"
+    property color foreground: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme)
+    property color secondary: Controller.darkTheme ? Controller.themeColor("#AEBBB5", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#586B60", Controller.themeMode, Controller.darkTheme)
+    property color borderColor: Controller.darkTheme ? Controller.themeColor("#40594D", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BCCFC2", Controller.themeMode, Controller.darkTheme)
+    readonly property color accent: Controller.darkTheme ? Controller.themeColor("#63DE8A", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#207243", Controller.themeMode, Controller.darkTheme)
     readonly property var output: Displays.currentOutput
     property int draftWidth: 0
     property int draftHeight: 0
@@ -50,7 +50,7 @@ Item {
         default property alias contents: body.data
         Layout.fillWidth: true
         implicitHeight: body.implicitHeight + 24
-        radius: 10; color: Controller.darkTheme ? "#C1182521" : "#EBF9FCFA"
+        radius: 10; color: Controller.darkTheme ? Controller.themeColor("#C1182521", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#EBF9FCFA", Controller.themeMode, Controller.darkTheme)
         border.width: 1; border.color: root.borderColor
         ColumnLayout { id: body; x: 12; y: 12; width: parent.width - 24; spacing: 9 }
     }
@@ -68,23 +68,23 @@ Item {
         font.family: "Inter"; font.pixelSize: 11; implicitHeight: 33; horizontalPadding: 14
         opacity: enabled ? 1 : 0.4
         contentItem: Text { text: action.text; color: root.foreground; font: action.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-        background: Rectangle { radius: 7; color: action.primary ? (Controller.darkTheme ? "#28533E" : "#C7E5D3") : (Controller.darkTheme ? "#25332E" : "#DFEAE3"); border.width: 1; border.color: action.primary ? "#347551" : root.borderColor; opacity: action.hovered ? 1 : 0.85 }
+        background: Rectangle { radius: 7; color: action.primary ? (Controller.darkTheme ? Controller.themeColor("#28533E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C7E5D3", Controller.themeMode, Controller.darkTheme)) : (Controller.darkTheme ? Controller.themeColor("#25332E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#DFEAE3", Controller.themeMode, Controller.darkTheme)); border.width: 1; border.color: action.primary ? Controller.themeColor("#347551", Controller.themeMode, Controller.darkTheme) : root.borderColor; opacity: action.hovered ? 1 : 0.85 }
     }
     component Choice: ComboBox {
         id: choice; implicitHeight: 34; font.family: "Inter"; font.pixelSize: 11
         leftPadding: 10; rightPadding: 26; opacity: enabled ? 1 : 0.45
         contentItem: Text { text: choice.displayText; color: root.foreground; font: choice.font; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         indicator: Text { anchors.right: parent.right; anchors.rightMargin: 11; anchors.verticalCenter: parent.verticalCenter; text: "⌄"; color: root.secondary; font.pixelSize: 16 }
-        background: Rectangle { radius: 7; color: Controller.darkTheme ? "#5423372D" : "#F5FAF7"; border.width: 1; border.color: choice.activeFocus ? root.accent : root.borderColor }
+        background: Rectangle { radius: 7; color: Controller.darkTheme ? Controller.themeColor("#5423372D", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F5FAF7", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: choice.activeFocus ? root.accent : root.borderColor }
         delegate: ItemDelegate {
             width: choice.width; height: 36; highlighted: choice.highlightedIndex === index
             contentItem: Text { text: modelData; color: root.foreground; font: choice.font; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-            background: Rectangle { color: highlighted ? (Controller.darkTheme ? "#315F46" : "#C7E5D3") : "transparent"; radius: 5 }
+            background: Rectangle { color: highlighted ? (Controller.darkTheme ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C7E5D3", Controller.themeMode, Controller.darkTheme)) : "transparent"; radius: 5 }
         }
         popup: Popup {
             y: choice.height + 4; width: choice.width; padding: 4
             implicitHeight: Math.min(240, contentItem.implicitHeight + 8)
-            background: Rectangle { color: Controller.darkTheme ? "#17231F" : "#F5FAF7"; radius: 8; border.width: 1; border.color: root.borderColor }
+            background: Rectangle { color: Controller.darkTheme ? Controller.themeColor("#17231F", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F5FAF7", Controller.themeMode, Controller.darkTheme); radius: 8; border.width: 1; border.color: root.borderColor }
             contentItem: ListView { clip: true; implicitHeight: contentHeight; model: choice.popup.visible ? choice.delegateModel : null; currentIndex: choice.highlightedIndex; ScrollIndicator.vertical: ScrollIndicator {} }
         }
     }
@@ -92,10 +92,10 @@ Item {
         id: slider; implicitHeight: 25; Layout.fillWidth: true; opacity: enabled ? 1 : 0.4
         background: Rectangle {
             x: slider.leftPadding; y: slider.topPadding + slider.availableHeight / 2 - 3
-            width: slider.availableWidth; height: 6; radius: 3; color: Controller.darkTheme ? "#3C4C45" : "#C2D6C9"
-            Rectangle { width: slider.visualPosition * parent.width; height: parent.height; radius: 3; color: "#54DA81" }
+            width: slider.availableWidth; height: 6; radius: 3; color: Controller.darkTheme ? Controller.themeColor("#3C4C45", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C2D6C9", Controller.themeMode, Controller.darkTheme)
+            Rectangle { width: slider.visualPosition * parent.width; height: parent.height; radius: 3; color: Controller.themeColor("#54DA81", Controller.themeMode, Controller.darkTheme) }
         }
-        handle: Rectangle { width: 17; height: 17; radius: 9; x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width); y: slider.topPadding + slider.availableHeight / 2 - height / 2; color: "#74DEA1"; border.width: 1; border.color: "#D4F8DD" }
+        handle: Rectangle { width: 17; height: 17; radius: 9; x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width); y: slider.topPadding + slider.availableHeight / 2 - height / 2; color: Controller.themeColor("#74DEA1", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: Controller.themeColor("#D4F8DD", Controller.themeMode, Controller.darkTheme) }
     }
     component SettingRow: RowLayout {
         property string label
@@ -114,7 +114,7 @@ Item {
         Caption { text: qsTr("Configure your monitors, resolution, scaling, and visual settings") }
         Rectangle {
             Layout.fillWidth: true; implicitHeight: 170; radius: 10
-            color: Controller.darkTheme ? "#80101D18" : "#CFF5FAF7"; border.width: 1; border.color: root.borderColor
+            color: Controller.darkTheme ? Controller.themeColor("#80101D18", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#CFF5FAF7", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: root.borderColor
             Flickable {
                 id: monitors; anchors.fill: parent; anchors.margins: 14; anchors.rightMargin: root.width > 650 ? 150 : 14
                 contentWidth: Math.max(width, Displays.outputs.length * 208 - 16); contentHeight: height; clip: true
@@ -130,12 +130,12 @@ Item {
                             Rectangle {
                                 width: 192; height: 106; radius: 7; clip: true
                                 border.width: Displays.selectedName === thumbnail.modelData.name ? 2 : 1
-                                border.color: Displays.selectedName === thumbnail.modelData.name ? "#63DE8A" : root.borderColor
-                                color: "#17231F"
+                                border.color: Displays.selectedName === thumbnail.modelData.name ? Controller.themeColor("#63DE8A", Controller.themeMode, Controller.darkTheme) : root.borderColor
+                                color: Controller.themeColor("#17231F", Controller.themeMode, Controller.darkTheme)
                                 Image { anchors.fill: parent; anchors.margins: 3; source: Controller.wallpaperUrl.length ? Controller.wallpaperUrl : Product.wallpaperUrl; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(400, 240) }
                                 Rectangle {
                                     anchors.horizontalCenter: parent.horizontalCenter; y: 9; width: 29; height: 29; radius: 15
-                                    color: Displays.selectedName === thumbnail.modelData.name ? "#D52B6842" : "#C14B5650"; border.width: 1; border.color: "#10291C"
+                                    color: Displays.selectedName === thumbnail.modelData.name ? Controller.themeColor("#D52B6842", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C14B5650", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: Controller.themeColor("#10291C", Controller.themeMode, Controller.darkTheme)
                                     Text { anchors.centerIn: parent; text: thumbnail.modelData.number; color: "white"; font.pixelSize: 14; font.bold: true }
                                 }
                                 MouseArea { anchors.fill: parent; enabled: !Displays.busy && !Displays.confirmationPending; onClicked: Displays.selectedName = thumbnail.modelData.name; cursorShape: Qt.PointingHandCursor }
@@ -148,7 +148,7 @@ Item {
             }
             Action { anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 12; visible: root.width > 650; text: qsTr("Identify Displays"); onClicked: Displays.identify() }
         }
-        Caption { visible: Displays.errorText.length > 0; text: Displays.errorText; color: Controller.darkTheme ? "#FFAD9E" : "#A32D39" }
+        Caption { visible: Displays.errorText.length > 0; text: Displays.errorText; color: Controller.darkTheme ? Controller.themeColor("#FFAD9E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#A32D39", Controller.themeMode, Controller.darkTheme) }
         GridLayout {
             Layout.fillWidth: true; columns: root.width >= 760 ? 2 : 1; columnSpacing: 12; rowSpacing: 12
             ColumnLayout {
@@ -211,8 +211,8 @@ Item {
                             delegate: Rectangle {
                                 required property var modelData
                                 Layout.preferredWidth: Math.max(56, (root.width * 0.57 - 130) / 4); implicitHeight: 57; radius: 7
-                                color: root.draftTransform === modelData.value ? (Controller.darkTheme ? "#28533E" : "#C7E5D3") : (Controller.darkTheme ? "#26332D" : "#E2ECE6")
-                                border.width: 1; border.color: root.draftTransform === modelData.value ? "#45BA6B" : root.borderColor
+                                color: root.draftTransform === modelData.value ? (Controller.darkTheme ? Controller.themeColor("#28533E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C7E5D3", Controller.themeMode, Controller.darkTheme)) : (Controller.darkTheme ? Controller.themeColor("#26332D", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E2ECE6", Controller.themeMode, Controller.darkTheme))
+                                border.width: 1; border.color: root.draftTransform === modelData.value ? Controller.themeColor("#45BA6B", Controller.themeMode, Controller.darkTheme) : root.borderColor
                                 opacity: Displays.available ? 1 : 0.4
                                 Column {
                                     anchors.centerIn: parent; spacing: 7
@@ -268,8 +268,8 @@ Item {
                             onToggled: Displays.setNightLight(checked, Displays.temperature)
                             indicator: Rectangle {
                                 implicitWidth: 36; implicitHeight: 21; radius: 11; x: nightSwitch.leftPadding; y: nightSwitch.topPadding + nightSwitch.availableHeight / 2 - height / 2
-                                color: nightSwitch.checked ? "#43C773" : (Controller.darkTheme ? "#42514A" : "#BFD1C5"); opacity: nightSwitch.enabled ? 1 : 0.4
-                                Rectangle { width: 17; height: 17; radius: 9; x: nightSwitch.checked ? 17 : 2; y: 2; color: "#EDF8F0" }
+                                color: nightSwitch.checked ? Controller.themeColor("#43C773", Controller.themeMode, Controller.darkTheme) : (Controller.darkTheme ? Controller.themeColor("#42514A", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BFD1C5", Controller.themeMode, Controller.darkTheme)); opacity: nightSwitch.enabled ? 1 : 0.4
+                                Rectangle { width: 17; height: 17; radius: 9; x: nightSwitch.checked ? 17 : 2; y: 2; color: Controller.themeColor("#EDF8F0", Controller.themeMode, Controller.darkTheme) }
                             }
                         }
                     }
@@ -288,7 +288,7 @@ Item {
                                     onMoved: colorDebounce.restart()
                                     background: Rectangle {
                                         x: temperature.leftPadding; y: temperature.topPadding + temperature.availableHeight / 2 - 3; width: temperature.availableWidth; height: 6; radius: 3
-                                        gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: "#FF9E5C" } GradientStop { position: 0.5; color: "#F7F0CA" } GradientStop { position: 1; color: "#A7DBF9" } }
+                                        gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: Controller.themeColor("#FF9E5C", Controller.themeMode, Controller.darkTheme) } GradientStop { position: 0.5; color: Controller.themeColor("#F7F0CA", Controller.themeMode, Controller.darkTheme) } GradientStop { position: 1; color: Controller.themeColor("#A7DBF9", Controller.themeMode, Controller.darkTheme) } }
                                     }
                                 }
                                 Caption { Layout.fillWidth: false; text: (Displays.nightLightEnabled ? Math.round(temperature.value) : 6500) + "K" }
@@ -317,7 +317,7 @@ Item {
     Dialog {
         id: confirmation; objectName: "displayConfirmation"; parent: Overlay.overlay; anchors.centerIn: parent; width: 410; modal: true; header: null; closePolicy: Popup.CloseOnEscape
         onRejected: Displays.revert()
-        background: Rectangle { radius: 12; color: Controller.darkTheme ? "#17231F" : "#F5FAF7"; border.width: 1; border.color: root.borderColor }
+        background: Rectangle { radius: 12; color: Controller.darkTheme ? Controller.themeColor("#17231F", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F5FAF7", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: root.borderColor }
         contentItem: ColumnLayout {
             spacing: 14
             Heading { text: qsTr("Keep these display settings?") }
@@ -327,7 +327,7 @@ Item {
     }
     Dialog {
         id: advanced; parent: Overlay.overlay; anchors.centerIn: parent; width: 460; modal: true; header: null
-        background: Rectangle { radius: 12; color: Controller.darkTheme ? "#17231F" : "#F5FAF7"; border.width: 1; border.color: root.borderColor }
+        background: Rectangle { radius: 12; color: Controller.darkTheme ? Controller.themeColor("#17231F", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F5FAF7", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: root.borderColor }
         contentItem: ColumnLayout {
             spacing: 12
             Heading { text: qsTr("Advanced Display Settings") }
@@ -346,8 +346,8 @@ Item {
             screen: modelData
             width: 170; height: 128; x: screen.virtualX + (screen.width - width) / 2; y: screen.virtualY + (screen.height - height) / 2
             visible: Displays.identifying; flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput
-            color: "#E5183526"
-            Text { anchors.centerIn: parent; text: { const output = Displays.outputs.find(function(item) { return item.name === modelData.name }); return output ? output.number : "1" } color: "#63DE8A"; font.pixelSize: 62; font.bold: true }
+            color: Controller.themeColor("#E5183526", Controller.themeMode, Controller.darkTheme)
+            Text { anchors.centerIn: parent; text: { const output = Displays.outputs.find(function(item) { return item.name === modelData.name }); return output ? output.number : "1" } color: Controller.themeColor("#63DE8A", Controller.themeMode, Controller.darkTheme); font.pixelSize: 62; font.bold: true }
         }
     }
 }

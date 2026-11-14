@@ -62,6 +62,6 @@ Item {
             SettingsControls.Card { visible: !(root.state.vpns || []).length; SettingsControls.Caption { text: qsTr("Kayıtlı VPN profili yok.") } }
             SettingsControls.Button { text: qsTr("VPN ekle veya içe aktar…"); enabled: SettingsData.toolAvailable("network"); onClicked: SettingsData.openTool("network") }
         }
-        SettingsControls.Caption { visible: hub.error.length > 0; text: hub.error; color: Controller.darkTheme ? "#FFB3A3" : "#A43138" }
+        SettingsControls.Caption { visible: hub.error.length > 0; text: hub.error; color: Controller.darkTheme ? Controller.themeColor("#FFB3A3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#A43138", Controller.themeMode, Controller.darkTheme) }
     }
 }

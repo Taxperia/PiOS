@@ -1,3 +1,12 @@
+fidan-desktop (0.1.0~alpha7-1) unstable; urgency=medium
+
+  * Add a black Dark palette and retain the original appearance as Green.
+  * Migrate existing appearance preferences without changing their look.
+  * Normalize local account casing and show bounded login cooldowns.
+  * Document source editing, testing and installation on the device.
+
+ -- Project Fidan Maintainers <maintainers@project-fidan.invalid>  Sun, 15 Nov 2026 03:40:00 +0300
+
 fidan-desktop (0.1.0~alpha6-1) unstable; urgency=medium
 
   * Renew active browser sessions instead of disconnecting every twenty minutes.

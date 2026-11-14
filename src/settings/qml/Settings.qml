@@ -23,18 +23,18 @@ ApplicationWindow {
     title: qsTr("Fidan Ayarları")
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint
-    palette.window: Controller.darkTheme ? "#132A27" : "#F5FAF7"
-    palette.base: Controller.darkTheme ? "#102420" : "#FFFFFF"
-    palette.text: Controller.darkTheme ? "#F2F7F4" : "#18261F"
-    palette.windowText: Controller.darkTheme ? "#F2F7F4" : "#18261F"
-    palette.buttonText: Controller.darkTheme ? "#F2F7F4" : "#18261F"
-    palette.button: Controller.darkTheme ? "#254238" : "#E1ECE5"
+    palette.window: Controller.darkTheme ? Controller.themeColor("#132A27", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F5FAF7", Controller.themeMode, Controller.darkTheme)
+    palette.base: Controller.darkTheme ? Controller.themeColor("#102420", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#FFFFFF", Controller.themeMode, Controller.darkTheme)
+    palette.text: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme)
+    palette.windowText: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme)
+    palette.buttonText: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme)
+    palette.button: Controller.darkTheme ? Controller.themeColor("#254238", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E1ECE5", Controller.themeMode, Controller.darkTheme)
     palette.highlight: Controller.accentColor
-    palette.highlightedText: "#071910"
+    palette.highlightedText: Controller.themeColor("#071910", Controller.themeMode, Controller.darkTheme)
 
-    readonly property color accent: "#63DE8A"
-    readonly property color foreground: Controller.darkTheme ? "#F2F7F4" : "#18261F"
-    readonly property color secondary: Controller.darkTheme ? "#9FB2A8" : "#586B60"
+    readonly property color accent: Controller.themeColor("#63DE8A", Controller.themeMode, Controller.darkTheme)
+    readonly property color foreground: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme)
+    readonly property color secondary: Controller.darkTheme ? Controller.themeColor("#9FB2A8", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#586B60", Controller.themeMode, Controller.darkTheme)
     readonly property bool maximized: visibility === Window.Maximized
     property int page: 0
     readonly property var pages: [
@@ -55,7 +55,7 @@ ApplicationWindow {
         property bool destructive: false
         signal invoked
         width: 46; height: 42
-        color: mouse.containsMouse ? (destructive ? "#C74646" : (Controller.darkTheme ? "#304039" : "#CEE1D5")) : "transparent"
+        color: mouse.containsMouse ? (destructive ? Controller.themeColor("#C74646", Controller.themeMode, Controller.darkTheme) : (Controller.darkTheme ? Controller.themeColor("#304039", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#CEE1D5", Controller.themeMode, Controller.darkTheme))) : "transparent"
         Text { anchors.centerIn: parent; text: wc.symbol; color: wc.destructive && mouse.containsMouse ? "white" : root.foreground; font.pixelSize: 14 }
         MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: wc.invoked() }
     }
@@ -69,24 +69,24 @@ ApplicationWindow {
         implicitHeight: 34
         radius: 7
         opacity: enabled ? 1 : 0.45
-        color: buttonMouse.containsMouse && enabled ? "#397D58" : "#28533E"
-        border.width: 1; border.color: "#347551"
+        color: buttonMouse.containsMouse && enabled ? Controller.themeColor("#397D58", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#28533E", Controller.themeMode, Controller.darkTheme)
+        border.width: 1; border.color: Controller.themeColor("#347551", Controller.themeMode, Controller.darkTheme)
         Text { id: buttonLabel; anchors.centerIn: parent; text: button.label; color: root.foreground; font.family: "Inter"; font.pixelSize: 10; font.weight: Font.DemiBold }
         MouseArea { id: buttonMouse; anchors.fill: parent; enabled: button.enabled; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: button.invoked() }
     }
 
     background: Rectangle {
         radius: root.maximized ? 0 : 13
-        color: Controller.darkTheme ? "#0E1715" : "#EFF5F1"
+        color: Controller.darkTheme ? Controller.themeColor("#0E1715", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#EFF5F1", Controller.themeMode, Controller.darkTheme)
         border.width: root.maximized ? 0 : 1
-        border.color: Controller.darkTheme ? "#465750" : "#D1DFD6"
+        border.color: Controller.darkTheme ? Controller.themeColor("#465750", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#D1DFD6", Controller.themeMode, Controller.darkTheme)
         clip: true
     }
 
     Rectangle {
         id: titleBar
         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-        height: 42; color: Controller.darkTheme ? "#101A17" : "#E5EEE8"
+        height: 42; color: Controller.darkTheme ? Controller.themeColor("#101A17", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E5EEE8", Controller.themeMode, Controller.darkTheme)
         MouseArea {
             anchors.left: parent.left; anchors.right: controls.left; anchors.top: parent.top; anchors.bottom: parent.bottom
             cursorShape: root.maximized ? Qt.ArrowCursor : Qt.SizeAllCursor

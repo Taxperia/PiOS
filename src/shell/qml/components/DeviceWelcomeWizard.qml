@@ -9,20 +9,20 @@ Control {
     property int step: 0
     property bool restored: false
     property bool finished: false
-    readonly property color ink: Controller.darkTheme ? "#F1F3FA" : "#202638"
-    readonly property color muted: Controller.darkTheme ? "#A5ADC3" : "#626C83"
-    readonly property color accent: "#A8B8FF"
+    readonly property color ink: Controller.darkTheme ? Controller.themeColor("#F1F3FA", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#202638", Controller.themeMode, Controller.darkTheme)
+    readonly property color muted: Controller.darkTheme ? Controller.themeColor("#A5ADC3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#626C83", Controller.themeMode, Controller.darkTheme)
+    readonly property color accent: Controller.themeColor("#A8B8FF", Controller.themeMode, Controller.darkTheme)
     readonly property bool wide: width >= 780
     readonly property var titles: [qsTr("Welcome to PiOS"),qsTr("Language and region"),qsTr("Create your account"),qsTr("Connect to a network"),qsTr("Make it yours"),qsTr("Privacy and access"),qsTr("Stay up to date"),qsTr("Your desktop is ready")]
     readonly property bool accountValid: /^[a-z][a-z0-9_-]{1,30}$/.test(username.text) && displayName.text.length <= 80
         && ((DeviceSetup.state.accountReady && password.text.length === 0 && displayName.text === DeviceSetup.state.displayName)
             || (password.text.length >= 8 && password.text === confirmation.text))
-    palette.window: Controller.darkTheme ? "#1C2133" : "#F7F8FC"
+    palette.window: Controller.darkTheme ? Controller.themeColor("#1C2133", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F7F8FC", Controller.themeMode, Controller.darkTheme)
     palette.windowText: ink; palette.text: ink; palette.buttonText: ink
-    palette.button: Controller.darkTheme ? "#2B3249" : "#E8ECF6"
-    palette.base: Controller.darkTheme ? "#242A3F" : "white"
+    palette.button: Controller.darkTheme ? Controller.themeColor("#2B3249", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E8ECF6", Controller.themeMode, Controller.darkTheme)
+    palette.base: Controller.darkTheme ? Controller.themeColor("#242A3F", Controller.themeMode, Controller.darkTheme) : "white"
     palette.highlight: accent; palette.placeholderText: muted
-    background: Rectangle { radius: 22; color: root.palette.window; border.color: Controller.darkTheme ? "#41485E" : "#D9DEEA" }
+    background: Rectangle { radius: 22; color: root.palette.window; border.color: Controller.darkTheme ? Controller.themeColor("#41485E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#D9DEEA", Controller.themeMode, Controller.darkTheme) }
     function preferences() {
         return {themeMode:Controller.themeMode,accentColor:Controller.accentColor,dockPosition:Controller.dockPosition,
             panelPosition:Controller.panelPosition,panelStyle:Controller.panelStyle,dateFormat:Controller.dateFormat,
@@ -73,7 +73,7 @@ Control {
     }
     Rectangle {
         visible: root.wide; anchors.left:parent.left;anchors.top:parent.top;anchors.bottom:parent.bottom;anchors.margins:1
-        width:235;radius:21;color:Controller.darkTheme?"#252D46":"#EDF0F9"
+        width:235;radius:21;color:Controller.darkTheme?Controller.themeColor("#252D46", Controller.themeMode, Controller.darkTheme):Controller.themeColor("#EDF0F9", Controller.themeMode, Controller.darkTheme)
         ColumnLayout {
             anchors.fill:parent;anchors.margins:26;spacing:12
             Label {text:"PiOS";color:root.ink;font.pixelSize:27;font.bold:true;Layout.bottomMargin:16}
@@ -83,7 +83,7 @@ Control {
                     required property string modelData
                     Layout.fillWidth:true;spacing:10
                     Rectangle {width:25;height:25;radius:13;color:index===root.step?root.accent:"transparent";border.color:index===root.step?root.accent:root.muted
-                        Label {anchors.centerIn:parent;text:index<root.step?"✓":String(index+1);font.pixelSize:11;color:index===root.step?"#1D2947":root.muted}
+                        Label {anchors.centerIn:parent;text:index<root.step?"✓":String(index+1);font.pixelSize:11;color:index===root.step?Controller.themeColor("#1D2947", Controller.themeMode, Controller.darkTheme):root.muted}
                     }
                     Label {Layout.fillWidth:true;text:modelData;color:root.ink;wrapMode:Text.WordWrap;font.pixelSize:12}
                 }
@@ -137,7 +137,7 @@ Control {
                 ColumnLayout {
                     spacing:10
                     Label {text:qsTr("Theme");color:root.ink}
-                    RowLayout {Repeater {model:[{id:"light",name:qsTr("Light")},{id:"dark",name:qsTr("Dark")},{id:"auto",name:qsTr("Automatic")}]
+                    RowLayout {Repeater {model:[{id:"light",name:qsTr("Light")},{id:"dark",name:"Dark"},{id:"green",name:"Green"},{id:"auto",name:qsTr("Automatic")}]
                         Button {required property var modelData;text:modelData.name;checkable:true;checked:Controller.themeMode===modelData.id;onClicked:Controller.themeMode=modelData.id}
                     }}
                     Label {text:qsTr("Accent color");color:root.ink}
@@ -173,13 +173,13 @@ Control {
                 }
             }
         }
-        Label {objectName:"deviceSetupError";Layout.fillWidth:true;visible:DeviceSetup.error.length>0;text:DeviceSetup.error;color:"#D65C52";wrapMode:Text.WordWrap}
+        Label {objectName:"deviceSetupError";Layout.fillWidth:true;visible:DeviceSetup.error.length>0;text:DeviceSetup.error;color:Controller.themeColor("#D65C52", Controller.themeMode, Controller.darkTheme);wrapMode:Text.WordWrap}
         RowLayout {
             Layout.fillWidth:true
             Button {text:qsTr("Back");visible:root.step>0&&!root.finished;enabled:!DeviceSetup.busy;onClicked:root.step--}
             BusyIndicator {running:DeviceSetup.busy;visible:running;Layout.preferredWidth:28;Layout.preferredHeight:28}
             Item {Layout.fillWidth:true}
-            Button {objectName:"deviceWelcomeNext";text:root.step===7?qsTr("Finish and restart"):qsTr("Next");font.bold:true;palette.button:root.accent;palette.buttonText:"#1D2947"
+            Button {objectName:"deviceWelcomeNext";text:root.step===7?qsTr("Finish and restart"):qsTr("Next");font.bold:true;palette.button:root.accent;palette.buttonText:Controller.themeColor("#1D2947", Controller.themeMode, Controller.darkTheme)
                 enabled:!DeviceSetup.busy&&!root.finished&&(root.step!==2||root.accountValid)&&(root.step!==6||!!DeviceSetup.state.updateDone)
                 onClicked:root.next()
             }

@@ -6,18 +6,18 @@ import QtQuick.Layouts
 Control {
     id: root
     objectName: "welcomeWizard"
-    background: Rectangle { radius: 22; color: Controller.darkTheme ? "#1C2133" : "#F7F8FC"; border.color: Controller.darkTheme ? "#41485E" : "#D9DEEA" }
-    readonly property color ink: Controller.darkTheme ? "#F1F3FA" : "#202638"
-    readonly property color muted: Controller.darkTheme ? "#A5ADC3" : "#626C83"
-    readonly property color setupAccent: "#A8B8FF"
+    background: Rectangle { radius: 22; color: Controller.darkTheme ? Controller.themeColor("#1C2133", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F7F8FC", Controller.themeMode, Controller.darkTheme); border.color: Controller.darkTheme ? Controller.themeColor("#41485E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#D9DEEA", Controller.themeMode, Controller.darkTheme) }
+    readonly property color ink: Controller.darkTheme ? Controller.themeColor("#F1F3FA", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#202638", Controller.themeMode, Controller.darkTheme)
+    readonly property color muted: Controller.darkTheme ? Controller.themeColor("#A5ADC3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#626C83", Controller.themeMode, Controller.darkTheme)
+    readonly property color setupAccent: Controller.themeColor("#A8B8FF", Controller.themeMode, Controller.darkTheme)
     readonly property bool wide: root.width >= 780
-    palette.window: Controller.darkTheme ? "#1C2133" : "#F7F8FC"
+    palette.window: Controller.darkTheme ? Controller.themeColor("#1C2133", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F7F8FC", Controller.themeMode, Controller.darkTheme)
     palette.windowText: root.ink
     palette.text: root.ink
     palette.buttonText: root.ink
-    palette.button: Controller.darkTheme ? "#2B3249" : "#E8ECF6"
-    palette.base: Controller.darkTheme ? "#242A3F" : "white"
-    palette.highlight: Controller.darkTheme ? "#A8B8FF" : "#5268BD"
+    palette.button: Controller.darkTheme ? Controller.themeColor("#2B3249", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E8ECF6", Controller.themeMode, Controller.darkTheme)
+    palette.base: Controller.darkTheme ? Controller.themeColor("#242A3F", Controller.themeMode, Controller.darkTheme) : "white"
+    palette.highlight: Controller.darkTheme ? Controller.themeColor("#A8B8FF", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#5268BD", Controller.themeMode, Controller.darkTheme)
     readonly property var titles: [qsTr("Welcome to PiOS"), qsTr("Language and region"), qsTr("Make it yours"), qsTr("Privacy and access"), qsTr("Stay up to date"), qsTr("Your desktop is ready")]
     readonly property int step: Controller.welcomeStep
     readonly property var accents: ["#63de8a", "#2589ff", "#ac55ef", "#ed449a", "#ff9546", "#ffd35d", "#ff575e", "#24c5cc"]
@@ -25,7 +25,7 @@ Control {
     function openSettings(page) { Controller.dismissWelcome(); Controller.openSettingsPage(page) }
     Rectangle {
         visible: root.wide; anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.margins: 1
-        width: 235; radius: 21; color: Controller.darkTheme ? "#252D46" : "#EDF0F9"
+        width: 235; radius: 21; color: Controller.darkTheme ? Controller.themeColor("#252D46", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#EDF0F9", Controller.themeMode, Controller.darkTheme)
         ColumnLayout {
             anchors.fill: parent; anchors.margins: 26; spacing: 12
             Label { text: "PiOS"; color: root.ink; font.pixelSize: 27; font.bold: true; Layout.bottomMargin: 20 }
@@ -39,7 +39,7 @@ Control {
                         width: 25; height: 25; radius: 13
                         color: index === root.step ? root.setupAccent : "transparent"
                         border.color: index === root.step ? root.setupAccent : root.muted
-                        Label { anchors.centerIn: parent; text: index < root.step ? "✓" : String(index + 1); color: index === root.step ? "#1D2947" : root.muted; font.pixelSize: 11 }
+                        Label { anchors.centerIn: parent; text: index < root.step ? "✓" : String(index + 1); color: index === root.step ? Controller.themeColor("#1D2947", Controller.themeMode, Controller.darkTheme) : root.muted; font.pixelSize: 11 }
                     }
                     Label { Layout.fillWidth: true; text: modelData; wrapMode: Text.WordWrap; font.pixelSize: 12; color: index === root.step ? root.ink : root.muted }
                 }
@@ -83,14 +83,14 @@ Control {
                         TextField { id: timezone; Layout.fillWidth: true; text: SettingsData.info.timezone || "UTC"; placeholderText: "Europe/Istanbul"; Accessible.name: qsTr("Time zone"); maximumLength: 100 }
                         Button { text: qsTr("Apply"); enabled: !SettingsData.actionBusy && !Controller.mockMode; onClicked: SettingsData.setTimezone(timezone.text) }
                     }
-                    Label { Layout.fillWidth: true; text: SettingsData.actionError; color: "#D65C52"; wrapMode: Text.WordWrap; visible: text.length > 0 }
+                    Label { Layout.fillWidth: true; text: SettingsData.actionError; color: Controller.themeColor("#D65C52", Controller.themeMode, Controller.darkTheme); wrapMode: Text.WordWrap; visible: text.length > 0 }
                     Button { text: qsTr("Date and time settings"); onClicked: root.openSettings("System/date") }
                 }
                 ColumnLayout {
                     spacing: 10
                     Label { text: qsTr("Theme"); color: root.ink }
                     RowLayout {
-                        Repeater { model: [{id:"light",name:qsTr("Light")},{id:"dark",name:qsTr("Dark")},{id:"auto",name:qsTr("Automatic")}]
+                        Repeater { model: [{id:"light",name:qsTr("Light")},{id:"dark",name:"Dark"},{id:"green",name:"Green"},{id:"auto",name:qsTr("Automatic")}]
                             Button { required property var modelData; text: modelData.name; checkable: true; checked: Controller.themeMode === modelData.id; onClicked: Controller.themeMode = modelData.id }
                         }
                     }
@@ -123,7 +123,7 @@ Control {
                     Button { text: qsTr("Review location and application permissions"); onClicked: root.openSettings("Privacy/Data") }
                     CheckBox { text: qsTr("Share diagnostic reports (not available yet)"); checked: false; enabled: false }
                     Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: root.muted; text: qsTr("PiOS has no diagnostic upload service. No consent is recorded for a future service.") }
-                    Label { Layout.fillWidth: true; visible: SettingsData.actionError.length > 0; text: SettingsData.actionError; wrapMode: Text.WordWrap; color: "#D65C52" }
+                    Label { Layout.fillWidth: true; visible: SettingsData.actionError.length > 0; text: SettingsData.actionError; wrapMode: Text.WordWrap; color: Controller.themeColor("#D65C52", Controller.themeMode, Controller.darkTheme) }
                 }
                 ColumnLayout {
                     spacing: 15
@@ -140,13 +140,13 @@ Control {
                 }
             }
         }
-        Label { visible: root.saveError.length > 0; text: root.saveError; color: "#D65C52"; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+        Label { visible: root.saveError.length > 0; text: root.saveError; color: Controller.themeColor("#D65C52", Controller.themeMode, Controller.darkTheme); Layout.fillWidth: true; wrapMode: Text.WordWrap }
         RowLayout {
             Layout.fillWidth: true
             Button { objectName: "welcomeBack"; text: qsTr("Back"); visible: root.step > 0; onClicked: Controller.welcomeStep = root.step - 1 }
             Item { Layout.fillWidth: true }
             Button { objectName: "welcomeNext"; text: root.step === 5 ? qsTr("Open desktop") : qsTr("Next"); enabled: !SettingsData.actionBusy && !Updates.busy
-                palette.button: root.setupAccent; palette.buttonText: "#1D2947"; font.bold: true
+                palette.button: root.setupAccent; palette.buttonText: Controller.themeColor("#1D2947", Controller.themeMode, Controller.darkTheme); font.bold: true
                 onClicked: { if (root.step < 5) Controller.welcomeStep = root.step + 1; else if (!Controller.finishWelcome()) root.saveError = qsTr("Preferences could not be saved. Check free disk space and retry.") }
             }
         }

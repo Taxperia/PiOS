@@ -42,6 +42,14 @@ try{
     await fetch('/__test/reset',{method:'POST',body:JSON.stringify({mode:'desktop'})});
     $('screen').dispatchEvent(new Event('test-disconnect'));await phase('login');
     assert($('done').hidden&&!$('username-label').hidden,'Completed setup returns to normal sign-in without the legacy completion screen');
+    await reset({mode:'desktop',cooldown:true});await phase('login');
+    fill('login-user','  Maker  ');await signIn();await until(()=>!$('error').hidden);
+    assert($('sign-in').disabled&&$('sign-in').textContent.includes('2'),'Rate limit shows a disabled countdown');
+    assert((await counters()).username==='maker','Login canonicalizes account casing and whitespace');
+    $('login-form').dispatchEvent(new Event('submit',{cancelable:true}));await sleep(200);
+    assert((await counters()).loginRequests===1,'Cooldown never resubmits credentials');
+    await until(()=>!$('sign-in').disabled);assert((await counters()).loginRequests===1,'Countdown expiry does not automatically retry');
+    await signIn();await phase('desktop');assert(true,'Login recovers after cooldown');
     await reset({mode:'desktop'});await phase('login');assert(!$('username-label').hidden&&$('login-user').required,'Installed device requires local username');fill('login-user','maker');await signIn();await phase('desktop');
     assert($('screen').children.length>0,'Regular login also connects RFB');
     await fetch('/__test/reset',{method:'POST',body:JSON.stringify({mode:'desktop'})});$('screen').dispatchEvent(new Event('test-disconnect'));await phase('login');assert(!$('error').hidden,'Expired session returns to sign-in instead of retrying credentials');

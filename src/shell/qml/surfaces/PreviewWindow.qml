@@ -77,14 +77,14 @@ Window {
             width: 330
             height: 28
             radius: 8
-            color: "#D90B1310"
+            color: Controller.themeColor("#D90B1310", Controller.themeMode, Controller.darkTheme)
             border.width: 1
-            border.color: "#52675D"
+            border.color: Controller.themeColor("#52675D", Controller.themeMode, Controller.darkTheme)
             z: 12
             Text {
                 anchors.centerIn: parent
                 text: qsTr("VISUAL PREVIEW — system actions are simulated")
-                color: "#D8E8DF"
+                color: Controller.themeColor("#D8E8DF", Controller.themeMode, Controller.darkTheme)
                 font.family: Theme.fontFamily
                 font.pixelSize: 9
                 font.weight: Font.DemiBold
@@ -213,12 +213,12 @@ Window {
             Button { visible: Controller.softwareCenterVisible; text: qsTr("Software Center"); onClicked: { root.softwareMinimized = false; root.activeWindow = 1 } }
         }
         Rectangle {
-            anchors.fill: parent; color: "#08110E"; visible: root.booting; z: 120
+            anchors.fill: parent; color: Controller.themeColor("#08110E", Controller.themeMode, Controller.darkTheme); visible: root.booting; z: 120
             Column {
                 anchors.centerIn: parent; spacing: 25
-                Text { anchors.horizontalCenter: parent.horizontalCenter; text: Product.name; color: "#63DE8A"; font.family: Theme.fontFamily; font.pixelSize: 38; font.weight: Font.Bold }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: Product.name; color: Controller.themeColor("#63DE8A", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 38; font.weight: Font.Bold }
                 BusyIndicator { anchors.horizontalCenter: parent.horizontalCenter; running: root.booting }
-                Text { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("Starting desktop…"); color: "#9FB2A8"; font.pixelSize: 13 }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("Starting desktop…"); color: Controller.themeColor("#9FB2A8", Controller.themeMode, Controller.darkTheme); font.pixelSize: 13 }
             }
         }
         LockScreenPreview {

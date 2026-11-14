@@ -12,7 +12,7 @@ Item {
     }
     Rectangle {
         anchors.fill: parent
-        color: Controller.darkTheme ? "#18050D0A" : "#08FFFFFF"
+        color: Controller.darkTheme ? Controller.themeColor("#18050D0A", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#08FFFFFF", Controller.themeMode, Controller.darkTheme)
         Behavior on color { ColorAnimation { duration: Theme.motionNormal } }
     }
 }

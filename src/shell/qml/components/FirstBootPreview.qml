@@ -12,8 +12,8 @@ Item {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0; color: "#173027" }
-            GradientStop { position: 1; color: "#07100D" }
+            GradientStop { position: 0; color: Controller.themeColor("#173027", Controller.themeMode, Controller.darkTheme) }
+            GradientStop { position: 1; color: Controller.themeColor("#07100D", Controller.themeMode, Controller.darkTheme) }
         }
     }
 
@@ -26,7 +26,7 @@ Item {
             Rectangle {
                 required property int index
                 width: index === root.step ? 32 : 9; height: 9; radius: 5
-                color: index <= root.step ? Theme.accent : "#41534B"
+                color: index <= root.step ? Theme.accent : Controller.themeColor("#41534B", Controller.themeMode, Controller.darkTheme)
                 Behavior on width { NumberAnimation { duration: Theme.motionNormal } }
             }
         }
@@ -36,7 +36,7 @@ Item {
         anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 24
         text: qsTr("Skip preview")
         onClicked: Controller.completeFirstBootPreview()
-        background: Rectangle { radius: 8; color: "#253A312D"; border.color: "#53675D" }
+        background: Rectangle { radius: 8; color: Controller.themeColor("#253A312D", Controller.themeMode, Controller.darkTheme); border.color: Controller.themeColor("#53675D", Controller.themeMode, Controller.darkTheme) }
         contentItem: Text { text: parent.text; color: Theme.muted(true); font.family: Theme.fontFamily; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
     }
 
@@ -48,13 +48,13 @@ Item {
         width: 290
         height: 34
         radius: 8
-        color: "#D925352F"
+        color: Controller.themeColor("#D925352F", Controller.themeMode, Controller.darkTheme)
         border.width: 1
-        border.color: "#52705F"
+        border.color: Controller.themeColor("#52705F", Controller.themeMode, Controller.darkTheme)
         Text {
             anchors.centerIn: parent
             text: qsTr("VISUAL PREVIEW — no account is created")
-            color: "#D8E8DF"
+            color: Controller.themeColor("#D8E8DF", Controller.themeMode, Controller.darkTheme)
             font.family: Theme.fontFamily
             font.pixelSize: 10
             font.weight: Font.DemiBold
@@ -127,13 +127,13 @@ Item {
             }
             Item {
                 Column { anchors.centerIn: parent; spacing: 12
-                    Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 72; height: 72; radius: 36; color: "#28583F"; SystemIcon { anchors.centerIn: parent; width: 38; height: 38; name: "home"; color: Theme.accent } }
+                    Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 72; height: 72; radius: 36; color: Controller.themeColor("#28583F", Controller.themeMode, Controller.darkTheme); SystemIcon { anchors.centerIn: parent; width: 38; height: 38; name: "home"; color: Theme.accent } }
                     Text { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("Project Fidan is configured"); color: Theme.text(true); font.family: Theme.fontFamily; font.pixelSize: 15; font.weight: Font.DemiBold }
                 }
             }
         }
 
-        Text { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.validationError; color: "#FF9D9D"; font.family: Theme.fontFamily; font.pixelSize: 10 }
+        Text { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.validationError; color: Controller.themeColor("#FF9D9D", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10 }
 
         RowLayout {
             Layout.fillWidth: true
@@ -147,7 +147,7 @@ Item {
                 text: root.step === 5 ? qsTr("Open desktop") : qsTr("Continue")
                 onClicked: root.advance()
                 background: Rectangle { radius: 10; color: Theme.accent }
-                contentItem: Text { text: parent.text; color: "#07110B"; font.family: Theme.fontFamily; font.pixelSize: 12; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                contentItem: Text { text: parent.text; color: Controller.themeColor("#07110B", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 12; font.weight: Font.Bold; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
         }
     }

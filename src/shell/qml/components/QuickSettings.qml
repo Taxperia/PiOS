@@ -27,11 +27,11 @@ GlassPanel {
         height: 62
         radius: 11
         opacity: available ? 1.0 : 0.46
-        color: checked ? "#315E46" : Controller.darkTheme
+        color: checked ? Controller.themeColor("#315E46", Controller.themeMode, Controller.darkTheme) : Controller.darkTheme
             ? (tileMouse.containsMouse ? "#34413C" : "#A6222D29")
             : (tileMouse.containsMouse ? "#D3E4DA" : "#E1EBE6")
         border.width: 1
-        border.color: checked ? "#4D8968" : Theme.border(Controller.darkTheme)
+        border.color: checked ? Controller.themeColor("#4D8968", Controller.themeMode, Controller.darkTheme) : Theme.border(Controller.darkTheme)
 
         Row {
             anchors.fill: parent
@@ -40,7 +40,7 @@ GlassPanel {
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 34; height: 34; radius: 9
-                color: tile.checked ? "#3A7857" : (Controller.darkTheme ? "#33423D" : "#CBDCD1")
+                color: tile.checked ? Controller.themeColor("#3A7857", Controller.themeMode, Controller.darkTheme) : (Controller.darkTheme ? Controller.themeColor("#33423D", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#CBDCD1", Controller.themeMode, Controller.darkTheme))
                 SystemIcon { anchors.centerIn: parent; width: 19; height: 19; name: tile.iconName; color: tile.checked ? "white" : Theme.text(Controller.darkTheme) }
             }
             Column {
@@ -48,7 +48,7 @@ GlassPanel {
                 width: 78
                 spacing: 3
                 Text { width: parent.width; text: tile.title; elide: Text.ElideRight; color: tile.checked ? "white" : Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10; font.weight: Font.DemiBold }
-                Text { width: parent.width; text: tile.subtitle; elide: Text.ElideRight; color: tile.checked ? "#D5F0DF" : Theme.muted(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 8 }
+                Text { width: parent.width; text: tile.subtitle; elide: Text.ElideRight; color: tile.checked ? Controller.themeColor("#D5F0DF", Controller.themeMode, Controller.darkTheme) : Theme.muted(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 8 }
             }
         }
         MouseArea { id: tileMouse; anchors.fill: parent; enabled: tile.available; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: tile.clicked() }
@@ -69,7 +69,7 @@ GlassPanel {
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             width: 28; height: 28; radius: 7
-            color: sliderIconMouse.containsMouse ? "#34433E" : "transparent"
+            color: sliderIconMouse.containsMouse ? Controller.themeColor("#34433E", Controller.themeMode, Controller.darkTheme) : "transparent"
             SystemIcon { anchors.centerIn: parent; width: 17; height: 17; name: setting.iconName; color: setting.muted ? Theme.muted(Controller.darkTheme) : Theme.text(Controller.darkTheme) }
             MouseArea { id: sliderIconMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: setting.iconClicked() }
         }
@@ -87,16 +87,16 @@ GlassPanel {
                 width: slider.availableWidth
                 height: 6
                 radius: 3
-                color: Controller.darkTheme ? "#394640" : "#CDDAD2"
-                Rectangle { width: slider.visualPosition * parent.width; height: parent.height; radius: 3; color: setting.muted ? "#718079" : Theme.accent }
+                color: Controller.darkTheme ? Controller.themeColor("#394640", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#CDDAD2", Controller.themeMode, Controller.darkTheme)
+                Rectangle { width: slider.visualPosition * parent.width; height: parent.height; radius: 3; color: setting.muted ? Controller.themeColor("#718079", Controller.themeMode, Controller.darkTheme) : Theme.accent }
             }
             handle: Rectangle {
                 x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
                 y: slider.topPadding + slider.availableHeight / 2 - height / 2
                 width: 15; height: 15; radius: 8
-                color: setting.muted ? "#A0ACA6" : Theme.accent
+                color: setting.muted ? Controller.themeColor("#A0ACA6", Controller.themeMode, Controller.darkTheme) : Theme.accent
                 border.width: 2
-                border.color: "#DDFBE5"
+                border.color: Controller.themeColor("#DDFBE5", Controller.themeMode, Controller.darkTheme)
             }
         }
         Text {
@@ -191,7 +191,7 @@ GlassPanel {
         Row {
             width: parent.width; height: 30; spacing: 7
             visible: DesktopServices.batteryAvailable
-            SystemIcon { anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; name: DesktopServices.pluggedIn ? "bolt" : "battery"; color: DesktopServices.batteryPercent <= 20 && !DesktopServices.pluggedIn ? "#EBA165" : Theme.accent }
+            SystemIcon { anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; name: DesktopServices.pluggedIn ? "bolt" : "battery"; color: DesktopServices.batteryPercent <= 20 && !DesktopServices.pluggedIn ? Controller.themeColor("#EBA165", Controller.themeMode, Controller.darkTheme) : Theme.accent }
             Text { anchors.verticalCenter: parent.verticalCenter; text: DesktopServices.batteryPercent + "% · " + (DesktopServices.charging ? qsTr("Charging") : DesktopServices.pluggedIn ? qsTr("External power") : qsTr("On battery")); color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 11 }
         }
         Button {
@@ -256,7 +256,7 @@ GlassPanel {
         visible: root.pendingPowerAction.length > 0
         z: 20
         radius: root.radius
-        color: Controller.darkTheme ? "#F20B1311" : "#FAF8FBF9"
+        color: Controller.darkTheme ? Controller.themeColor("#F20B1311", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#FAF8FBF9", Controller.themeMode, Controller.darkTheme)
 
         Column {
             anchors.centerIn: parent
@@ -265,7 +265,7 @@ GlassPanel {
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: 54; height: 54; radius: 16
-                color: "#2C4038"
+                color: Controller.themeColor("#2C4038", Controller.themeMode, Controller.darkTheme)
                 SystemIcon { anchors.centerIn: parent; width: 27; height: 27; name: root.pendingPowerAction === "restart" ? "restart" : "power"; color: Theme.accent }
             }
             Text {
@@ -290,12 +290,12 @@ GlassPanel {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 10
                 Rectangle {
-                    width: 105; height: 36; radius: 8; color: Controller.darkTheme ? (cancelMouse.containsMouse ? "#35443F" : "#26332F") : (cancelMouse.containsMouse ? "#D3E4DA" : "#E1EBE6"); border.width: 1; border.color: Theme.border(Controller.darkTheme)
+                    width: 105; height: 36; radius: 8; color: Controller.darkTheme ? (cancelMouse.containsMouse ? Controller.themeColor("#35443F", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#26332F", Controller.themeMode, Controller.darkTheme)) : (cancelMouse.containsMouse ? Controller.themeColor("#D3E4DA", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E1EBE6", Controller.themeMode, Controller.darkTheme)); border.width: 1; border.color: Theme.border(Controller.darkTheme)
                     Text { anchors.centerIn: parent; text: qsTr("Cancel"); color: Theme.text(Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10 }
                     MouseArea { id: cancelMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.pendingPowerAction = "" }
                 }
                 Rectangle {
-                    width: 105; height: 36; radius: 8; color: confirmMouse.containsMouse ? "#D85A5A" : "#B84343"
+                    width: 105; height: 36; radius: 8; color: confirmMouse.containsMouse ? Controller.themeColor("#D85A5A", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#B84343", Controller.themeMode, Controller.darkTheme)
                     Text { anchors.centerIn: parent; text: root.pendingPowerAction === "restart" ? qsTr("Restart") : qsTr("Shut Down"); color: "white"; font.family: Theme.fontFamily; font.pixelSize: 10; font.weight: Font.DemiBold }
                     MouseArea {
                         id: confirmMouse

@@ -10,7 +10,7 @@ Rectangle {
     readonly property bool available: DesktopServices.mediaService.length > 0
     implicitHeight: content.implicitHeight + 24
     radius: 12
-    color: Controller.darkTheme ? "#24352D" : "#E1EBE6"
+    color: Controller.darkTheme ? Controller.themeColor("#24352D", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E1EBE6", Controller.themeMode, Controller.darkTheme)
     ColumnLayout {
         id: content
         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top

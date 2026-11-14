@@ -16,7 +16,7 @@ GlassPanel {
         spacing: 6
         Text {
             width: parent.width - 26; text: Notifications.appName; textFormat: Text.PlainText
-            color: Controller.darkTheme ? Theme.accent : "#207243"; font.family: Theme.fontFamily
+            color: Controller.darkTheme ? Theme.accent : Controller.themeColor("#207243", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily
             font.pixelSize: 10; elide: Text.ElideRight
         }
         Text {
@@ -39,7 +39,7 @@ GlassPanel {
                     text: modelData.label || qsTr("Open")
                     onClicked: Notifications.invokeCurrentAction(modelData.key)
                     contentItem: Text { text: action.text; color: Theme.text(Controller.darkTheme); font.pixelSize: 11 }
-                    background: Rectangle { radius: 5; color: Controller.darkTheme ? "#315F46" : "#C7E5D3" }
+                    background: Rectangle { radius: 5; color: Controller.darkTheme ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C7E5D3", Controller.themeMode, Controller.darkTheme) }
                 }
             }
         }

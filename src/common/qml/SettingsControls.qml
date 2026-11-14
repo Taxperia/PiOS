@@ -12,26 +12,26 @@ Item {
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignTop
         implicitHeight: body.implicitHeight + 28
-        radius: 11; color: Controller.darkTheme ? "#C10F2423" : "#ECF7FCF9"
-        border.width: 1; border.color: Controller.darkTheme ? "#3B5650" : "#BDCEC4"
+        radius: 11; color: Controller.darkTheme ? Controller.themeColor("#C10F2423", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#ECF7FCF9", Controller.themeMode, Controller.darkTheme)
+        border.width: 1; border.color: Controller.darkTheme ? Controller.themeColor("#3B5650", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BDCEC4", Controller.themeMode, Controller.darkTheme)
         ColumnLayout { id: body; x: 14; y: 14; width: parent.width - 28; spacing: card.contentSpacing }
     }
     component Label: Text {
         textFormat: Text.PlainText
         Layout.fillWidth: true; wrapMode: Text.Wrap
-        color: Controller.darkTheme ? "#F2F7F4" : "#18261F"
+        color: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme)
         font.family: "Inter"; font.pixelSize: 12
     }
     component Caption: Text {
         textFormat: Text.PlainText
         Layout.fillWidth: true; wrapMode: Text.Wrap
-        color: Controller.darkTheme ? "#9FB6B3" : "#586B60"
+        color: Controller.darkTheme ? Controller.themeColor("#9FB6B3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#586B60", Controller.themeMode, Controller.darkTheme)
         font.family: "Inter"; font.pixelSize: 11
     }
     component Title: Text {
         textFormat: Text.PlainText
         Layout.fillWidth: true; wrapMode: Text.Wrap
-        color: Controller.darkTheme ? "#F2F7F4" : "#18261F"
+        color: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme)
         font.family: "Inter"; font.pixelSize: 15; font.weight: Font.DemiBold
     }
     component Icon: Image {
@@ -44,11 +44,11 @@ Item {
         id: button; property bool primary: false
         implicitHeight: 35; leftPadding: 14; rightPadding: 14
         font.family: "Inter"; font.pixelSize: 11; opacity: enabled ? 1 : 0.4
-        contentItem: Text { text: button.text; color: Controller.darkTheme ? "#F2F7F4" : "#18261F"; font: button.font; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+        contentItem: Text { text: button.text; color: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme); font: button.font; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         background: Rectangle {
             radius: 7; border.width: 1
-            border.color: button.primary ? Controller.accentColor : (Controller.darkTheme ? "#3B5650" : "#BDCEC4")
-            color: button.primary ? Qt.alpha(Controller.accentColor, button.hovered ? 0.4 : 0.22) : (Controller.darkTheme ? (button.hovered ? "#334E49" : "#213A37") : (button.hovered ? "#D2E5D9" : "#E4EEE8"))
+            border.color: button.primary ? Controller.accentColor : (Controller.darkTheme ? Controller.themeColor("#3B5650", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BDCEC4", Controller.themeMode, Controller.darkTheme))
+            color: button.primary ? Qt.alpha(Controller.accentColor, button.hovered ? 0.4 : 0.22) : (Controller.darkTheme ? (button.hovered ? Controller.themeColor("#334E49", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#213A37", Controller.themeMode, Controller.darkTheme)) : (button.hovered ? Controller.themeColor("#D2E5D9", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E4EEE8", Controller.themeMode, Controller.darkTheme)))
         }
     }
     component Option: QQC.Button {
@@ -59,11 +59,11 @@ Item {
             Item {
                 anchors.horizontalCenter: parent.horizontalCenter; width:22; height:22; visible: option.iconName.length>0 || option.dockSide.length>0
                 Image { anchors.fill:parent; visible:option.dockSide.length===0; source:option.iconName.length ? "image://theme/"+option.iconName+(Controller.darkTheme?"?theme=dark":"?theme=light") : "" }
-                Rectangle { anchors.fill:parent; visible:option.dockSide.length>0; radius:2; color:"transparent"; border.width:1; border.color:Controller.darkTheme?"#F2F7F4":"#18261F"; Rectangle { x:option.dockSide==="right"?15:3; y:option.dockSide==="bottom"?15:3; width:option.dockSide==="bottom"?16:4; height:option.dockSide==="bottom"?4:16; radius:1; color:Controller.darkTheme?"#F2F7F4":"#18261F" } }
+                Rectangle { anchors.fill:parent; visible:option.dockSide.length>0; radius:2; color:"transparent"; border.width:1; border.color:Controller.darkTheme?Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme):Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme); Rectangle { x:option.dockSide==="right"?15:3; y:option.dockSide==="bottom"?15:3; width:option.dockSide==="bottom"?16:4; height:option.dockSide==="bottom"?4:16; radius:1; color:Controller.darkTheme?Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme):Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme) } }
             }
-            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: option.text; color: Controller.darkTheme ? "#F2F7F4" : "#18261F"; font.family: "Inter"; font.pixelSize: 11 }
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: option.text; color: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme); font.family: "Inter"; font.pixelSize: 11 }
         }
-        background: Rectangle { radius: 8; color: option.selected ? Qt.alpha(Controller.accentColor, 0.2) : (Controller.darkTheme ? "#263C39" : "#E3EEE7"); border.width: option.selected ? 2 : 1; border.color: option.selected ? Controller.accentColor : (Controller.darkTheme ? "#3B5650" : "#BDCEC4") }
+        background: Rectangle { radius: 8; color: option.selected ? Qt.alpha(Controller.accentColor, 0.2) : (Controller.darkTheme ? Controller.themeColor("#263C39", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E3EEE7", Controller.themeMode, Controller.darkTheme)); border.width: option.selected ? 2 : 1; border.color: option.selected ? Controller.accentColor : (Controller.darkTheme ? Controller.themeColor("#3B5650", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BDCEC4", Controller.themeMode, Controller.darkTheme)) }
     }
     component Toggle: RowLayout {
         id: row; property string label; property string hint: ""; property bool checked: false
@@ -73,20 +73,20 @@ Item {
         Switch {
             id: toggle; checked: row.checked; onToggled: row.toggled(checked)
             opacity: enabled ? 1 : 0.4
-            indicator: Rectangle { implicitWidth: 38; implicitHeight: 22; x: toggle.leftPadding; y: toggle.topPadding + toggle.availableHeight/2-height/2; radius: 11; color: toggle.checked ? Controller.accentColor : (Controller.darkTheme ? "#4C625C" : "#BACFC1"); Rectangle { width: 18; height: 18; x: toggle.checked ? 18 : 2; y: 2; radius: 9; color: "#F4FBF7" } }
+            indicator: Rectangle { implicitWidth: 38; implicitHeight: 22; x: toggle.leftPadding; y: toggle.topPadding + toggle.availableHeight/2-height/2; radius: 11; color: toggle.checked ? Controller.accentColor : (Controller.darkTheme ? Controller.themeColor("#4C625C", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BACFC1", Controller.themeMode, Controller.darkTheme)); Rectangle { width: 18; height: 18; x: toggle.checked ? 18 : 2; y: 2; radius: 9; color: Controller.themeColor("#F4FBF7", Controller.themeMode, Controller.darkTheme) } }
         }
     }
     component Slider: QQC.Slider {
         id: slider; Layout.fillWidth: true; implicitHeight: 28; opacity: enabled ? 1 : 0.4
-        background: Rectangle { x: slider.leftPadding; y: slider.topPadding + slider.availableHeight/2-3; width: slider.availableWidth; height: 6; radius: 3; color: Controller.darkTheme ? "#3A5350" : "#BFD2C6"; Rectangle { width: slider.visualPosition*parent.width; height: 6; radius: 3; color: Controller.accentColor } }
-        handle: Rectangle { x: slider.leftPadding + slider.visualPosition*(slider.availableWidth-width); y: slider.topPadding + slider.availableHeight/2-height/2; width: 17; height: 17; radius: 9; color: Controller.accentColor; border.width: 1; border.color: "#D1EBDD" }
+        background: Rectangle { x: slider.leftPadding; y: slider.topPadding + slider.availableHeight/2-3; width: slider.availableWidth; height: 6; radius: 3; color: Controller.darkTheme ? Controller.themeColor("#3A5350", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BFD2C6", Controller.themeMode, Controller.darkTheme); Rectangle { width: slider.visualPosition*parent.width; height: 6; radius: 3; color: Controller.accentColor } }
+        handle: Rectangle { x: slider.leftPadding + slider.visualPosition*(slider.availableWidth-width); y: slider.topPadding + slider.availableHeight/2-height/2; width: 17; height: 17; radius: 9; color: Controller.accentColor; border.width: 1; border.color: Controller.themeColor("#D1EBDD", Controller.themeMode, Controller.darkTheme) }
     }
     component Combo: SettingsCombo { }
     component Link: Rectangle {
         id: link; property string label; property string hint: ""; property string value: ""; property string iconName: "go-next-symbolic"
         signal triggered()
         Layout.fillWidth: true; implicitHeight: (Controller.interfaceScale > 1.25 ? 82 : Controller.interfaceScale < 1.25 ? 64 : 74)
-        radius: 10; color: hover.containsMouse ? Qt.alpha(Controller.accentColor,0.14) : (Controller.darkTheme ? "#B40E2324" : "#EAF9FCFA"); border.width: 1; border.color: Controller.darkTheme ? "#354F4B" : "#BDCEC4"
+        radius: 10; color: hover.containsMouse ? Qt.alpha(Controller.accentColor,0.14) : (Controller.darkTheme ? Controller.themeColor("#B40E2324", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#EAF9FCFA", Controller.themeMode, Controller.darkTheme)); border.width: 1; border.color: Controller.darkTheme ? Controller.themeColor("#354F4B", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BDCEC4", Controller.themeMode, Controller.darkTheme)
         activeFocusOnTab: enabled; opacity: enabled ? 1 : 0.45
         Accessible.role: Accessible.Button; Accessible.name: label
         RowLayout {
@@ -102,6 +102,6 @@ Item {
     component InfoRow: Item {
         id: row; property string label; property string value; property string iconName: ""; Layout.fillWidth: true; implicitHeight: 30
         RowLayout { anchors.fill: parent; spacing: 10; Icon { name: row.iconName; visible: row.iconName.length > 0; Layout.preferredWidth: 16; Layout.preferredHeight: 16 } Caption { text: row.label; Layout.preferredWidth: parent.width*0.38 } Label { text: row.value || "—"; horizontalAlignment: Text.AlignRight; font.pixelSize: 11; elide: Text.ElideRight; maximumLineCount: 2 } }
-        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Controller.darkTheme ? "#243D39" : "#D8E5DD" }
+        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Controller.darkTheme ? Controller.themeColor("#243D39", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#D8E5DD", Controller.themeMode, Controller.darkTheme) }
     }
 }

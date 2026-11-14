@@ -10,7 +10,7 @@ import re
 import sys
 import tempfile
 
-CHOICES={'themeMode':('appearance','themeMode',('light','dark','auto')),
+CHOICES={'themeMode':('appearance','themeMode',('light','dark','green','auto')),
          'dockPosition':('dock','position',('left','bottom','right')),
          'panelPosition':('panel','position',('top','bottom')),
          'panelStyle':('panel','style',('detailed','compact')),
@@ -37,6 +37,7 @@ def save(home, values):
         config.set(group,key,str(value))
     for key,(group,name,_) in CHOICES.items(): put(group,name,values[key])
     put('appearance','accentColor',values['accentColor'].lower())
+    put('appearance','themeSchema','2')
     put('appearance','darkTheme','false' if values['themeMode']=='light' else 'true')
     put('accessibility','reducedMotion',str(values['reducedMotion']).lower())
     put('welcome','completed','true');put('welcome','step','5')

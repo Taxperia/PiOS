@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ShellController.h"
+#include "../common/Appearance.h"
 
 #include <QCoreApplication>
 #include <QDate>
@@ -229,10 +230,11 @@ void ShellController::setDarkTheme(bool darkTheme)
 }
 
 void ShellController::setThemeMode(const QString &value) {
-    if (!QStringList{"light", "dark", "auto"}.contains(value)) return;
+    if (!QStringList{"light", "dark", "green", "auto"}.contains(value)) return;
     QSettings settings(settingsPath(), QSettings::IniFormat);
-    settings.setValue("appearance/themeMode", value); settings.sync(); reloadPreferences();
+    settings.setValue("appearance/themeMode", value);settings.setValue("appearance/themeSchema",2); settings.sync(); reloadPreferences();
 }
+QColor ShellController::themeColor(const QString &value,const QString &mode,bool dark) const {return FidanAppearance::color(value,mode,dark);}
 void ShellController::setAccentColor(const QString &value) {
     const QColor color(value);
     if (!color.isValid() || color.alpha() != 255) return;
@@ -1031,9 +1033,9 @@ void ShellController::reloadPreferences()
         m_welcomeStep = welcome; m_dateFormat = date; m_sessionLanguage = language; m_panelPosition = panel; m_panelStyle = style;
         emit preferencesChanged(); emit clockChanged();
     }
-    QString mode = settings.value("appearance/themeMode", settings.value("appearance/darkTheme", true).toBool() ? "dark" : "light").toString();
-    if (!QStringList{"light", "dark", "auto"}.contains(mode)) mode = "dark";
-    const bool dark = mode == "dark" || (mode == "auto" && (QTime::currentTime().hour() < 8 || QTime::currentTime().hour() >= 19));
+    const QString mode=FidanAppearance::mode(settings);
+    if(settings.value("appearance/themeSchema",0).toInt()<2){settings.setValue("appearance/themeMode",mode);settings.setValue("appearance/themeSchema",2);}
+    const bool dark=FidanAppearance::dark(mode);
     const QColor storedAccent(settings.value("appearance/accentColor", "#63de8a").toString());
     const QString accent = storedAccent.isValid() && storedAccent.alpha() == 255 ? storedAccent.name() : "#63de8a";
     QString dock = settings.value("dock/position", "left").toString();

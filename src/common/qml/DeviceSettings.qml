@@ -78,6 +78,6 @@ Item {
                 SettingsControls.Caption { text: qsTr("Kişisel Labwc profiline kaydedilir. İç içe WSL oturumunda fare hızı gibi donanım davranışını Windows belirleyebilir.") }
             }
         }
-        SettingsControls.Caption { visible: root.hub.error.length>0; text: root.hub.error; color: Controller.darkTheme ? "#FFB3A3" : "#A43138" }
+        SettingsControls.Caption { visible: root.hub.error.length>0; text: root.hub.error; color: Controller.darkTheme ? Controller.themeColor("#FFB3A3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#A43138", Controller.themeMode, Controller.darkTheme) }
     }
 }

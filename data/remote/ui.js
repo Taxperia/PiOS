@@ -6,6 +6,7 @@ tr.connectionReport='Bağlantı raporunu indir';
 let language=navigator.language.startsWith('tr')?'tr':'en';
 let mode='setup',role='',csrf='',booting=true,connecting=false,signingIn=false,completed=false,rfb=null,connectionTimer=null,desktopConnected=false;
 let reconnecting=false,retryAttempt=0,retryTimer=null,generation=0,connectedSince=0,lastActivity=Date.now(),renewalSupported=false;
+let loginCooldownUntil=0;
 // Retained for explicit legacy previews; the normal flow returns to account sign-in.
 const legacyCompletionScreen=document.documentElement.dataset.legacyCompletionScreen==='true';
 const text=(en,turkish)=>language==='tr'?turkish:en;
@@ -23,7 +24,8 @@ function render(){
     $('login-title').textContent=mode==='setup'?text('Welcome to PiOS','PiOS’a hoş geldiniz'):text('Your PiOS desktop','PiOS masaüstünüz');
     $('login-help').textContent=mode==='setup'?text('Enter your one-time setup password to open the desktop and set up this device.','Masaüstünü açıp cihazı kurmak için tek kullanımlık kurulum parolanızı girin.'):text('Sign in with your local account.','Yerel kullanıcı hesabınızla giriş yapın.');
     $('username-label').hidden=mode==='setup';$('login-user').required=mode!=='setup';$('login-user').disabled=mode==='setup'||signingIn;
-    $('sign-in').disabled=signingIn;$('sign-in').textContent=signingIn?text('Signing in…','Giriş yapılıyor…'):text('Continue','Devam et');
+    const cooldown=Math.max(0,Math.ceil((loginCooldownUntil-Date.now())/1000));
+    $('sign-in').disabled=signingIn||cooldown>0;$('sign-in').textContent=cooldown?text(`Try again in ${cooldown}s`,`${cooldown} sn sonra tekrar dene`):signingIn?text('Signing in…','Giriş yapılıyor…'):text('Continue','Devam et');
     $('connection-panel').hidden=!role||completed||desktopConnected||booting||(connecting&&!reconnecting);
     $('reconnect').hidden=reconnecting;
     if(!role)status();
@@ -31,7 +33,7 @@ function render(){
 async function api(path,body){
     const response=await fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json','X-CSRF-Token':csrf}:{},body:body?JSON.stringify(body):undefined,credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(20000)});
     const result=await response.json();
-    if(!response.ok){const message=result.error==='Sign-in failed'?text('Sign-in failed. Check your username and password.','Giriş başarısız. Kullanıcı adınızı ve parolanızı kontrol edin.'):result.error==='Sign in again'?text('Your session expired. Sign in again.','Oturumunuz sona erdi. Tekrar giriş yapın.'):result.error;const failure=new Error(message||text('Request failed. Retry shortly.','İşlem başarısız. Biraz sonra tekrar deneyin.'));failure.status=response.status;throw failure;}
+    if(!response.ok){const message=response.status===429?text('Too many attempts. Wait for the countdown, then try again.','Çok fazla deneme yapıldı. Geri sayım bitince tekrar deneyin.'):result.error==='Sign-in failed'?text('Sign-in failed. Check your username and password.','Giriş başarısız. Kullanıcı adınızı ve parolanızı kontrol edin.'):result.error==='Sign in again'?text('Your session expired. Sign in again.','Oturumunuz sona erdi. Tekrar giriş yapın.'):result.error;const failure=new Error(message||text('Request failed. Retry shortly.','İşlem başarısız. Biraz sonra tekrar deneyin.'));failure.status=response.status;failure.retryAfter=Math.max(1,Math.min(60,Number(result.retryAfter)||60));throw failure;}
     return result;
 }
 async function refresh(){const result=await api('/api/state');role=result.role;csrf=result.csrf;mode=result.mode||mode;renewalSupported=!!result.sessionRenewal;render();}
@@ -81,8 +83,13 @@ async function connectDesktop(recovery=false){
 }
 function handle(operation){return async event=>{event?.preventDefault();error();try{await operation();}catch(e){if(role&&(e.status===401||e.status===403))signedOut();error(e.message||text('The connection changed. Reconnect to the device and retry.','Bağlantı değişti. Cihaza yeniden bağlanıp tekrar deneyin.'));}};}
 async function signIn(){
-    if(signingIn)return;signingIn=true;render();
-    try{const result=await api('/api/login',{username:$('login-user').value,password:$('login-password').value});$('login-password').value='';role=result.role;csrf=result.csrf;await refresh();await connectDesktop();}finally{signingIn=false;render();}
+    if(signingIn||loginCooldownUntil>Date.now())return;
+    const username=$('login-user').value.trim().toLowerCase();
+    if(mode!=='setup'&&!/^[a-z][a-z0-9_-]{1,30}$/.test(username))throw new Error(text('Use your account name, for example taxperia.','Hesap adını kullanın; örneğin taxperia.'));
+    $('login-user').value=username;signingIn=true;render();
+    try{const result=await api('/api/login',{username,password:$('login-password').value});$('login-password').value='';role=result.role;csrf=result.csrf;await refresh();await connectDesktop();}
+    catch(e){if(e.status===429)loginCooldownUntil=Date.now()+e.retryAfter*1000;throw e;}
+    finally{signingIn=false;render();}
 }
 const signOut=handle(async()=>{try{await api('/api/logout',{});}catch(e){if(e.status!==401&&e.status!==403)throw e;}signedOut();location.reload();});
 $('login-form').addEventListener('submit',handle(signIn));
@@ -105,4 +112,4 @@ async function start(){
     try{mode=(await api('/api/mode')).mode;try{await refresh();}catch(e){if(e.status!==401)throw e;role='';}booting=false;render();if(role)await connectDesktop();else $(mode==='setup'?'login-password':'login-user').focus();}
     catch(e){error(e.message);$('retry-start').hidden=false;}
 }
-$('retry-start').addEventListener('click',start);setInterval(updateClock,1000);start();
+$('retry-start').addEventListener('click',start);setInterval(()=>{updateClock();if(loginCooldownUntil){if(loginCooldownUntil<=Date.now()){loginCooldownUntil=0;error();}render();}},1000);start();

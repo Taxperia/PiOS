@@ -34,9 +34,9 @@ Item {
                         delegate: Rectangle {
                             id: tile; required property var modelData
                             Layout.fillWidth: true; implicitHeight: Math.max(68, width*0.66); radius: 8; clip: true
-                            color: "#142D2A"; border.width: 2; border.color: root.wallpaper === modelData.url.toString() ? Controller.accentColor : (Controller.darkTheme ? "#49615A" : "#BFD1C5")
+                            color: Controller.themeColor("#142D2A", Controller.themeMode, Controller.darkTheme); border.width: 2; border.color: root.wallpaper === modelData.url.toString() ? Controller.accentColor : (Controller.darkTheme ? Controller.themeColor("#49615A", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BFD1C5", Controller.themeMode, Controller.darkTheme))
                             Image { anchors.fill: parent; anchors.margins: 3; source: tile.modelData.url; sourceSize: Qt.size(300,180); fillMode: Image.PreserveAspectCrop; asynchronous: true }
-                            Rectangle { visible: root.wallpaper === tile.modelData.url.toString(); anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 7; width: 22; height: 22; radius: 11; color: Controller.accentColor; Text { anchors.centerIn: parent; text: "✓"; color: "#062014"; font.bold: true } }
+                            Rectangle { visible: root.wallpaper === tile.modelData.url.toString(); anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 7; width: 22; height: 22; radius: 11; color: Controller.accentColor; Text { anchors.centerIn: parent; text: "✓"; color: Controller.themeColor("#062014", Controller.themeMode, Controller.darkTheme); font.bold: true } }
                             MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: Controller.wallpaperUrl = tile.modelData.url.toString(); cursorShape: Qt.PointingHandCursor; ToolTip.visible: containsMouse; ToolTip.text: tile.modelData.name }
                         }
                     }
@@ -47,21 +47,21 @@ Item {
                 SettingsControls.Title { text: qsTr("Canlı önizleme") }
                 SettingsControls.Caption { text: qsTr("Seçimlerin masaüstünde hemen uygulanır") }
                 Rectangle {
-                    Layout.fillWidth: true; implicitHeight: Math.max(150,width*0.56); radius: 8; clip: true; color: "#18362C"
+                    Layout.fillWidth: true; implicitHeight: Math.max(150,width*0.56); radius: 8; clip: true; color: Controller.themeColor("#18362C", Controller.themeMode, Controller.darkTheme)
                     Image { anchors.fill: parent; source: root.wallpaper; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(600,400) }
                     Rectangle {
                         id: previewDock; property bool horizontal: Controller.dockPosition === "bottom"
                         x: horizontal ? (parent.width-width)/2 : Controller.dockPosition === "right" ? parent.width-width-5 : 5
                         y: horizontal ? parent.height-height-22 : 24
-                        width: horizontal ? 130 : 22; height: horizontal ? 22 : 130; radius: 5; color: "#E41A2A25"
+                        width: horizontal ? 130 : 22; height: horizontal ? 22 : 130; radius: 5; color: Controller.themeColor("#E41A2A25", Controller.themeMode, Controller.darkTheme)
                         Grid { anchors.centerIn: parent; columns: previewDock.horizontal ? 6 : 1; spacing: 3; Repeater { model: ["user-home-symbolic","utilities-terminal-symbolic","folder-symbolic","web-browser-symbolic","system-software-install-symbolic","preferences-system-symbolic"]; Image { required property string modelData; width: 17; height: 17; source: "image://theme/"+modelData+"?theme=dark" } } }
                     }
                     Rectangle {
-                        x: parent.width*0.22; y: parent.height*0.2; width: parent.width*0.64; height: parent.height*0.56; radius: 6; color: Controller.darkTheme ? "#14231E" : "#ECF5EF"; border.width: 1; border.color: "#537163"
+                        x: parent.width*0.22; y: parent.height*0.2; width: parent.width*0.64; height: parent.height*0.56; radius: 6; color: Controller.darkTheme ? Controller.themeColor("#14231E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#ECF5EF", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: Controller.themeColor("#537163", Controller.themeMode, Controller.darkTheme)
                         Rectangle { x: 6; y: 6; width: 5; height: 5; radius: 3; color: Controller.accentColor }
                         Row { x: 8; y: parent.height*0.4; spacing: 9; Repeater { model: 3; Rectangle { width: 30; height: 27; radius: 4; color: Qt.alpha(Controller.accentColor,0.25); Image { anchors.centerIn: parent; width: 22; height: 22; source: "image://theme/folder" } } } }
                     }
-                    Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 20; color: "#E4162B25"; Row { x: 8; spacing: 12; Text { text: "1"; color: Controller.accentColor; font.bold: true } Text { text: "2   3"; color: "white"; font.pixelSize: 10 } } Text { anchors.right: parent.right; anchors.rightMargin: 8; text: Controller.clockText; color: "white"; font.pixelSize: 10 } }
+                    Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 20; color: Controller.themeColor("#E4162B25", Controller.themeMode, Controller.darkTheme); Row { x: 8; spacing: 12; Text { text: "1"; color: Controller.accentColor; font.bold: true } Text { text: "2   3"; color: "white"; font.pixelSize: 10 } } Text { anchors.right: parent.right; anchors.rightMargin: 8; text: Controller.clockText; color: "white"; font.pixelSize: 10 } }
                 }
             }
         }
@@ -69,8 +69,8 @@ Item {
             Layout.fillWidth: true; columns: root.width >= 760 ? 2 : 1; columnSpacing: 12; rowSpacing: 12
             SettingsControls.Card {
                 SettingsControls.Title { text: qsTr("Görünüm modu") }
-                SettingsControls.Caption { text: Controller.themeMode === "auto" ? qsTr("Otomatik: 08.00–19.00 açık, diğer saatlerde koyu") : qsTr("Açık, koyu veya saate göre otomatik tema") }
-                RowLayout { Layout.fillWidth: true; spacing: 8; Repeater { model: [{id:"light",name:qsTr("Açık"),icon:"weather-clear-symbolic"},{id:"dark",name:qsTr("Koyu"),icon:"weather-clear-night-symbolic"},{id:"auto",name:qsTr("Otomatik"),icon:"display-brightness-symbolic"}]; SettingsControls.Option { required property var modelData; objectName: "theme-"+modelData.id; text: modelData.name; iconName: modelData.icon; selected: Controller.themeMode === modelData.id; onClicked: Controller.themeMode = modelData.id } } }
+                SettingsControls.Caption { text: Controller.themeMode === "auto" ? qsTr("Otomatik: 08.00–19.00 açık, diğer saatlerde koyu") : qsTr("Dark: siyah yüzeyler · Green: mevcut yeşil görünüm") }
+                RowLayout { Layout.fillWidth: true; spacing: 8; Repeater { model: [{id:"light",name:qsTr("Açık"),icon:"weather-clear-symbolic"},{id:"dark",name:"Dark",icon:"weather-clear-night-symbolic"},{id:"green",name:"Green",icon:"org.fidan.Shell"},{id:"auto",name:qsTr("Otomatik"),icon:"display-brightness-symbolic"}]; SettingsControls.Option { required property var modelData; objectName: "theme-"+modelData.id; text: modelData.name; iconName: modelData.icon; selected: Controller.themeMode === modelData.id; onClicked: Controller.themeMode = modelData.id } } }
             }
             SettingsControls.Card {
                 SettingsControls.Title { text: qsTr("Vurgu rengi") }

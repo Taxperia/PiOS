@@ -16,8 +16,8 @@ ApplicationWindow {
     property real zoom: 1
     property string message: ""
     readonly property bool maximized: visibility === Window.Maximized || visibility === Window.FullScreen
-    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark)
-    readonly property color secondary: UiStyle.color("#9FB2A8", UiStyle.dark)
+    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
+    readonly property color secondary: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode)
     readonly property bool turned: PhotoLibrary.rotation === 90 || PhotoLibrary.rotation === 270
     readonly property real imageWidth: turned ? PhotoLibrary.pixelHeight : PhotoLibrary.pixelWidth
     readonly property real imageHeight: turned ? PhotoLibrary.pixelWidth : PhotoLibrary.pixelHeight
@@ -61,12 +61,12 @@ ApplicationWindow {
             Image { anchors.centerIn: parent; width: 18; height: 18; visible: button.iconName.length > 0; source: visible ? "image://theme/" + button.iconName + (UiStyle.dark ? "?theme=dark" : "?theme=light") : "" }
             Text { id: label; anchors.centerIn: parent; visible: !button.iconName.length; text: button.text; color: root.foreground; font.family: "Inter"; font.pixelSize: 12 }
         }
-        background: Rectangle { radius: 7; color: button.hovered ? UiStyle.color("#304039", UiStyle.dark) : UiStyle.color("#1A2823", UiStyle.dark) }
+        background: Rectangle { radius: 7; color: button.hovered ? UiStyle.color("#304039", UiStyle.dark, UiStyle.mode) : UiStyle.color("#1A2823", UiStyle.dark, UiStyle.mode) }
         ToolTip.visible: hovered; ToolTip.text: tip; ToolTip.delay: 500
     }
-    background: Rectangle { radius: root.maximized ? 0 : 12; color: UiStyle.color("#0E1715", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+    background: Rectangle { radius: root.maximized ? 0 : 12; color: UiStyle.color("#0E1715", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
     Rectangle {
-        id: titleBar; height: 42; anchors.left: parent.left; anchors.right: parent.right; color: UiStyle.color("#101A17", UiStyle.dark)
+        id: titleBar; height: 42; anchors.left: parent.left; anchors.right: parent.right; color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode)
         MouseArea { anchors.fill: parent; anchors.rightMargin: 138; onPressed: root.startSystemMove(); onDoubleClicked: root.toggleMaximized() }
         Row {
             anchors.left: parent.left; anchors.leftMargin: 14; anchors.verticalCenter: parent.verticalCenter; spacing: 8
@@ -80,7 +80,7 @@ ApplicationWindow {
                 delegate: Rectangle {
                     required property int index; required property string modelData
                     width: 46; height: 42
-                    color: control.containsMouse ? (index === 2 ? "#C74646" : UiStyle.color("#304039", UiStyle.dark)) : "transparent"
+                    color: control.containsMouse ? (index === 2 ? "#C74646" : UiStyle.color("#304039", UiStyle.dark, UiStyle.mode)) : "transparent"
                     Text { anchors.centerIn: parent; text: modelData; color: index === 2 && control.containsMouse ? "white" : root.foreground; font.pixelSize: 14 }
                     MouseArea { id: control; anchors.fill: parent; hoverEnabled: true; onClicked: index === 0 ? root.showMinimized() : index === 1 ? root.toggleMaximized() : root.close() }
                 }
@@ -89,7 +89,7 @@ ApplicationWindow {
     }
     Rectangle {
         id: toolbar; anchors.left: parent.left; anchors.right: parent.right; anchors.top: titleBar.bottom; height: 52
-        color: UiStyle.color("#111C19", UiStyle.dark)
+        color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode)
         RowLayout {
             anchors.fill: parent; anchors.margins: 9; spacing: 6
             Action { text: qsTr("Open…"); tip: qsTr("Open photo (Ctrl+O)"); onClicked: picker.open() }
@@ -138,7 +138,7 @@ ApplicationWindow {
     DropArea { anchors.fill: canvas; onDropped: function(drop) { if (drop.hasUrls && drop.urls.length) { PhotoLibrary.open(drop.urls[0]); drop.acceptProposedAction() } } }
     Rectangle {
         id: status; height: 34; anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
-        color: UiStyle.color("#101A17", UiStyle.dark)
+        color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode)
         RowLayout {
             anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 14
             Text { Layout.fillWidth: true; text: root.message.length ? root.message : PhotoLibrary.details; color: root.secondary; font.pixelSize: 11; elide: Text.ElideRight }
@@ -147,7 +147,7 @@ ApplicationWindow {
     }
     Menu {
         id: more; x: root.width - width - 10; y: toolbar.y + toolbar.height; width: 210
-        background: Rectangle { radius: 8; color: UiStyle.color("#17231F", UiStyle.dark); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark) }
+        background: Rectangle { radius: 8; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); border.width: 1; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
         Repeater {
             model: [qsTr("Copy image (Ctrl+C)"), qsTr("Rotate left"), qsTr("Set as wallpaper")]
             delegate: MenuItem {
@@ -155,7 +155,7 @@ ApplicationWindow {
                 enabled: PhotoLibrary.url.toString().length > 0 && !PhotoLibrary.copying
                 text: modelData; height: 38
                 contentItem: Text { text: item.text; color: root.foreground; font.pixelSize: 12 }
-                background: Rectangle { radius: 5; color: item.highlighted ? UiStyle.color("#315F46", UiStyle.dark) : "transparent" }
+                background: Rectangle { radius: 5; color: item.highlighted ? UiStyle.color("#315F46", UiStyle.dark, UiStyle.mode) : "transparent" }
                 onTriggered: index === 0 ? PhotoLibrary.copyImage() : index === 1 ? PhotoLibrary.rotate(-1) : PhotoLibrary.useAsWallpaper()
             }
         }

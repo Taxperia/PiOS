@@ -15,6 +15,7 @@
 #include <QDropEvent>
 #include <QMimeData>
 #include <QTimer>
+#include <QColor>
 
 class DesktopController final : public QObject {
     Q_OBJECT
@@ -22,6 +23,7 @@ class DesktopController final : public QObject {
     Q_PROPERTY(double interfaceScale MEMBER scale NOTIFY changed)
     Q_PROPERTY(bool desktopIconsVisible READ iconsVisible CONSTANT)
     Q_PROPERTY(bool darkTheme READ darkTheme CONSTANT)
+    Q_PROPERTY(QString themeMode READ themeMode CONSTANT)
     Q_PROPERTY(QString accentColor READ accentColor CONSTANT)
     Q_PROPERTY(bool reducedMotion READ reducedMotion CONSTANT)
 public:
@@ -29,6 +31,8 @@ public:
     bool previewMode() const { return false; }
     bool iconsVisible() const { return true; }
     bool darkTheme() const { return true; }
+    QString themeMode() const {return "green";}
+    Q_INVOKABLE QColor themeColor(const QString &value,const QString &,bool) const {return QColor(value);}
     QString accentColor() const { return "#63de8a"; }
     bool reducedMotion() const { return true; }
 signals:

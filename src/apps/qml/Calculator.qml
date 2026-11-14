@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Item {
     id: root
     objectName: "calculatorPage"
-    readonly property color foreground: UiStyle.color("#F2F7F4",UiStyle.dark)
+    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
     property bool solved: false
     function enter(key) {
         Calc.clearError()
@@ -23,12 +23,12 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
             Text { text: "Hesap Makinesi"; color: root.foreground; font.pixelSize: 27; font.weight: Font.DemiBold }
-            Text { text: "Günlük işlemler, parantezler ve yüzde hesabı"; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 12 }
+            Text { text: "Günlük işlemler, parantezler ve yüzde hesabı"; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 12 }
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 122; radius: 12; color: UiStyle.color("#17231F",UiStyle.dark); border.color: UiStyle.color("#465750",UiStyle.dark)
+                Layout.fillWidth: true; Layout.preferredHeight: 122; radius: 12; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode)
                 ColumnLayout {
                     anchors.fill: parent; anchors.margins: 16
-                    Text { text: Calc.error.length ? Calc.error : "STANDART"; color: Calc.error.length ? UiStyle.color("#FF9292",UiStyle.dark) : UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    Text { text: Calc.error.length ? Calc.error : "STANDART"; color: Calc.error.length ? UiStyle.color("#FF9292", UiStyle.dark, UiStyle.mode) : UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.Wrap }
                     TextField { id: expression; objectName: "calculatorExpression"; Layout.fillWidth: true; maximumLength: 512; placeholderText: "0"; horizontalAlignment: Text.AlignRight; font.pixelSize: 30; selectByMouse: true; background: Item {} onAccepted: root.enter("="); Accessible.name: "İşlem"; onTextEdited: root.solved=false }
                 }
             }
@@ -38,7 +38,7 @@ Item {
                     model: ["MC","MR","MS","M+"]
                     delegate: AppButton { required property string modelData; text: modelData; Layout.fillWidth: true; onClicked: modelData === "MC" ? Calc.clearMemory() : modelData === "MR" ? expression.text=Calc.memory : Calc.setMemory(expression.text,modelData === "M+") }
                 }
-                Text { text: "M: " + Calc.memory; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 10; elide: Text.ElideRight; Layout.maximumWidth: 90 }
+                Text { text: "M: " + Calc.memory; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 10; elide: Text.ElideRight; Layout.maximumWidth: 90 }
             }
             GridLayout {
                 columns: 4; columnSpacing: 7; rowSpacing: 7; Layout.fillWidth: true; Layout.fillHeight: true
@@ -47,20 +47,20 @@ Item {
                     delegate: AppButton { required property string modelData; objectName: "calcKey"+modelData; text: modelData; font.pixelSize: 21; accent: modelData === "="; Layout.fillWidth: true; Layout.fillHeight: true; onClicked: root.enter(modelData) }
                 }
             }
-            Text { text: "Yüzde: 50% = 0,5  ·  Kopyala: Ctrl+C"; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 10 }
+            Text { text: "Yüzde: 50% = 0,5  ·  Kopyala: Ctrl+C"; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 10 }
         }
         Rectangle {
-            Layout.preferredWidth: 200; Layout.fillHeight: true; visible: root.width >= 650; radius: 12; color: UiStyle.color("#111C19",UiStyle.dark)
+            Layout.preferredWidth: 200; Layout.fillHeight: true; visible: root.width >= 650; radius: 12; color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode)
             ColumnLayout {
                 anchors.fill: parent; anchors.margins: 14; spacing: 12
                 Text { text: "Geçmiş"; color: root.foreground; font.pixelSize: 17; font.weight: Font.DemiBold }
-                Text { visible: Calc.history.length === 0; Layout.fillWidth: true; text: "İşlemlerin burada görünecek."; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 12; wrapMode: Text.Wrap }
+                Text { visible: Calc.history.length === 0; Layout.fillWidth: true; text: "İşlemlerin burada görünecek."; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 12; wrapMode: Text.Wrap }
                 ListView {
                     Layout.fillWidth: true; Layout.fillHeight: true; clip: true; model: Calc.history; spacing: 6
                     delegate: ItemDelegate {
                         id: entry; required property var modelData; width: ListView.view.width; height: 66
-                        background: Rectangle { radius: 7; color: entry.hovered ? UiStyle.color("#304039",UiStyle.dark) : "transparent" }
-                        contentItem: Column { spacing: 6; Text { width: parent.width; text: entry.modelData.expression+" ="; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 11; elide: Text.ElideLeft } Text { width: parent.width; text: entry.modelData.result; color: UiStyle.color("#63DE8A",UiStyle.dark); font.pixelSize: 19; elide: Text.ElideLeft } }
+                        background: Rectangle { radius: 7; color: entry.hovered ? UiStyle.color("#304039", UiStyle.dark, UiStyle.mode) : "transparent" }
+                        contentItem: Column { spacing: 6; Text { width: parent.width; text: entry.modelData.expression+" ="; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 11; elide: Text.ElideLeft } Text { width: parent.width; text: entry.modelData.result; color: UiStyle.color("#63DE8A", UiStyle.dark, UiStyle.mode); font.pixelSize: 19; elide: Text.ElideLeft } }
                         onClicked: { expression.text=modelData.result; root.solved=true }
                     }
                     ScrollBar.vertical: ScrollBar {}

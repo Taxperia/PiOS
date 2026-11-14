@@ -18,7 +18,7 @@ ApplicationWindow {
     readonly property color line: UiStyle.dark ? "#2b3a34" : "#dce5df"
     readonly property color ink: UiStyle.dark ? "#edf5ef" : "#192b21"
     readonly property color muted: UiStyle.dark ? "#95aaa0" : "#65796d"
-    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark)
+    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark, UiStyle.mode)
     readonly property color blue: UiStyle.dark ? "#79b7ff" : "#246cc0"
     property string page: InitialTaskPage
     property bool paused: false

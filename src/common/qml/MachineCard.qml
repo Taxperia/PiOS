@@ -6,9 +6,9 @@ SettingsControls.Card {
     contentSpacing: 0
     property bool detailed: false
     Rectangle {
-        Layout.fillWidth: true; implicitHeight: 72; radius: 8; clip: true; color: "#102E25"
+        Layout.fillWidth: true; implicitHeight: 72; radius: 8; clip: true; color: Controller.themeColor("#102E25", Controller.themeMode, Controller.darkTheme)
         Image { anchors.fill: parent; source: Product.wallpaperUrl; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(700,180); opacity: 0.45 }
-        RowLayout { anchors.fill: parent; anchors.margins: 12; spacing: 12; Image { Layout.preferredWidth: 42; Layout.preferredHeight: 42; source: "image://theme/org.fidan.Shell" } ColumnLayout { Layout.fillWidth: true; SettingsControls.Title { text: Product.name; color: "#F2F7F4"; font.pixelSize: 21 } SettingsControls.Caption { text: qsTr("Hafif, açık kaynaklı Debian masaüstü"); color: "#CADCD4" } } }
+        RowLayout { anchors.fill: parent; anchors.margins: 12; spacing: 12; Image { Layout.preferredWidth: 42; Layout.preferredHeight: 42; source: "image://theme/org.fidan.Shell" } ColumnLayout { Layout.fillWidth: true; SettingsControls.Title { text: Product.name; color: Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme); font.pixelSize: 21 } SettingsControls.Caption { text: qsTr("Hafif, açık kaynaklı Debian masaüstü"); color: Controller.themeColor("#CADCD4", Controller.themeMode, Controller.darkTheme) } } }
     }
     Repeater {
         model: [

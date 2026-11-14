@@ -32,7 +32,7 @@ Column {
         width: root.width
         height: 6
         radius: 3
-        color: Controller.darkTheme ? "#394640" : "#CBD7D0"
+        color: Controller.darkTheme ? Controller.themeColor("#394640", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#CBD7D0", Controller.themeMode, Controller.darkTheme)
         Rectangle {
             width: parent.width * Math.max(0, Math.min(100, root.value)) / 100
             height: parent.height

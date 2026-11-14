@@ -18,12 +18,12 @@ ApplicationWindow {
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint
 
-    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark)
-    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark)
-    readonly property color secondary: UiStyle.color("#9FB2A8", UiStyle.dark)
+    readonly property color accent: UiStyle.color("#63DE8A", UiStyle.dark, UiStyle.mode)
+    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
+    readonly property color secondary: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode)
     readonly property bool maximized: visibility === Window.Maximized
-    readonly property color panel: UiStyle.color("#17231F", UiStyle.dark)
-    readonly property color line: UiStyle.color("#2B3A35", UiStyle.dark)
+    readonly property color panel: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode)
+    readonly property color line: UiStyle.color("#2B3A35", UiStyle.dark, UiStyle.mode)
     readonly property var app: storeBackend.selectedApp
     readonly property bool detailVisible: !!app.identifier
     property string selectedCategory: "Featured"
@@ -90,7 +90,7 @@ ApplicationWindow {
         width: 46
         height: 42
         color: controlMouse.containsMouse
-               ? (destructive ? UiStyle.color("#C74646", UiStyle.dark) : UiStyle.color("#304039", UiStyle.dark)) : "transparent"
+               ? (destructive ? UiStyle.color("#C74646", UiStyle.dark, UiStyle.mode) : UiStyle.color("#304039", UiStyle.dark, UiStyle.mode)) : "transparent"
 
         Text {
             anchors.centerIn: parent
@@ -119,7 +119,7 @@ ApplicationWindow {
         height: 36
         radius: 7
         color: root.selectedCategory === label
-               ? UiStyle.color("#315F46", UiStyle.dark) : (sidebarMouse.containsMouse ? UiStyle.color("#23332D", UiStyle.dark) : "transparent")
+               ? UiStyle.color("#315F46", UiStyle.dark, UiStyle.mode) : (sidebarMouse.containsMouse ? UiStyle.color("#23332D", UiStyle.dark, UiStyle.mode) : "transparent")
 
         Row {
             anchors.left: parent.left
@@ -131,7 +131,7 @@ ApplicationWindow {
                 width: 18
                 height: 18
                 radius: 5
-                color: root.selectedCategory === sidebarItem.label ? UiStyle.color("#28543D", UiStyle.dark) : UiStyle.color("#1B2924", UiStyle.dark)
+                color: root.selectedCategory === sidebarItem.label ? UiStyle.color("#28543D", UiStyle.dark, UiStyle.mode) : UiStyle.color("#1B2924", UiStyle.dark, UiStyle.mode)
 
                 Image {
                     anchors.centerIn: parent
@@ -164,9 +164,9 @@ ApplicationWindow {
 
     background: Rectangle {
         radius: root.maximized ? 0 : 13
-        color: UiStyle.color("#0E1715", UiStyle.dark)
+        color: UiStyle.color("#0E1715", UiStyle.dark, UiStyle.mode)
         border.width: root.maximized ? 0 : 1
-        border.color: UiStyle.color("#465750", UiStyle.dark)
+        border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode)
         clip: true
     }
 
@@ -176,7 +176,7 @@ ApplicationWindow {
         anchors.right: parent.right
         anchors.top: parent.top
         height: 42
-        color: UiStyle.color("#101A17", UiStyle.dark)
+        color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode)
 
         MouseArea {
             anchors.left: parent.left
@@ -234,7 +234,7 @@ ApplicationWindow {
         Rectangle {
             Layout.preferredWidth: 174
             Layout.fillHeight: true
-            color: UiStyle.color("#111C19", UiStyle.dark)
+            color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode)
 
             ColumnLayout {
                 anchors.fill: parent
@@ -284,7 +284,7 @@ ApplicationWindow {
                     Layout.preferredHeight: 1
                     Layout.topMargin: 5
                     Layout.bottomMargin: 5
-                    color: UiStyle.color("#2B3A35", UiStyle.dark)
+                    color: UiStyle.color("#2B3A35", UiStyle.dark, UiStyle.mode)
                 }
 
                 SidebarItem {
@@ -317,7 +317,7 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: UiStyle.color("#0B1412", UiStyle.dark)
+            color: UiStyle.color("#0B1412", UiStyle.dark, UiStyle.mode)
 
             ColumnLayout {
                 anchors.fill: parent
@@ -338,7 +338,7 @@ ApplicationWindow {
                     leftPadding: 36
                     rightPadding: 12
                     placeholderText: qsTr("Search apps, tools, and more…")
-                    placeholderTextColor: UiStyle.color("#71847A", UiStyle.dark)
+                    placeholderTextColor: UiStyle.color("#71847A", UiStyle.dark, UiStyle.mode)
                     color: root.foreground
                     selectByMouse: true
                     font.family: "Inter"
@@ -347,7 +347,7 @@ ApplicationWindow {
 
                     background: Rectangle {
                         radius: 7
-                        color: UiStyle.color("#17221F", UiStyle.dark)
+                        color: UiStyle.color("#17221F", UiStyle.dark, UiStyle.mode)
                         border.width: searchField.activeFocus ? 1 : 0
                         border.color: root.accent
                     }
@@ -369,9 +369,9 @@ ApplicationWindow {
                     Layout.preferredHeight: 132
                     visible: !root.detailVisible && root.selectedCategory !== "Downloads" && root.selectedCategory === "Featured" && searchField.text.length === 0
                     radius: 11
-                    color: UiStyle.color("#153D2D", UiStyle.dark)
+                    color: UiStyle.color("#153D2D", UiStyle.dark, UiStyle.mode)
                     border.width: 1
-                    border.color: UiStyle.color("#2F684D", UiStyle.dark)
+                    border.color: UiStyle.color("#2F684D", UiStyle.dark, UiStyle.mode)
                     clip: true
 
                     Rectangle {
@@ -380,7 +380,7 @@ ApplicationWindow {
                         width: 270
                         height: 270
                         radius: 135
-                        color: UiStyle.color("#194934", UiStyle.dark)
+                        color: UiStyle.color("#194934", UiStyle.dark, UiStyle.mode)
                     }
                     Rectangle {
                         x: parent.width * 0.78
@@ -388,7 +388,7 @@ ApplicationWindow {
                         width: 180
                         height: 180
                         radius: 90
-                        color: UiStyle.color("#20563E", UiStyle.dark)
+                        color: UiStyle.color("#20563E", UiStyle.dark, UiStyle.mode)
                     }
 
                     Column {
@@ -408,7 +408,7 @@ ApplicationWindow {
                         Text {
                             width: parent.width
                             text: qsTr("Apps for coding, making, learning and more on Raspberry Pi.")
-                            color: UiStyle.color("#D2E3DA", UiStyle.dark)
+                            color: UiStyle.color("#D2E3DA", UiStyle.dark, UiStyle.mode)
                             font.family: "Inter"
                             font.pixelSize: 10
                             wrapMode: Text.Wrap
@@ -417,11 +417,11 @@ ApplicationWindow {
                             width: 102
                             height: 29
                             radius: 6
-                            color: browseMouse.containsMouse ? UiStyle.color("#82E9A2", UiStyle.dark) : root.accent
+                            color: browseMouse.containsMouse ? UiStyle.color("#82E9A2", UiStyle.dark, UiStyle.mode) : root.accent
                             Text {
                                 anchors.centerIn: parent
                                 text: qsTr("Browse Apps")
-                                color: UiStyle.color("#0B2415", UiStyle.dark)
+                                color: UiStyle.color("#0B2415", UiStyle.dark, UiStyle.mode)
                                 font.family: "Inter"
                                 font.pixelSize: 10
                                 font.weight: Font.DemiBold
@@ -502,9 +502,9 @@ ApplicationWindow {
                         width: appGrid.cellWidth - 9
                         height: 106
                         radius: 9
-                        color: cardHover.containsMouse ? UiStyle.color("#25352F", UiStyle.dark) : UiStyle.color("#1A2823", UiStyle.dark)
+                        color: cardHover.containsMouse ? UiStyle.color("#25352F", UiStyle.dark, UiStyle.mode) : UiStyle.color("#1A2823", UiStyle.dark, UiStyle.mode)
                         border.width: 1
-                        border.color: cardHover.containsMouse ? UiStyle.color("#4A685A", UiStyle.dark) : UiStyle.color("#34473F", UiStyle.dark)
+                        border.color: cardHover.containsMouse ? UiStyle.color("#4A685A", UiStyle.dark, UiStyle.mode) : UiStyle.color("#34473F", UiStyle.dark, UiStyle.mode)
 
                         ToolTip {
                             id: appDetails
@@ -514,7 +514,7 @@ ApplicationWindow {
                             text: appCard.name + "\n" + appCard.summary
                             width: Math.min(320, appGrid.width - 16)
                             contentItem: Text { text: appDetails.text; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.foreground; font.pixelSize: 12 }
-                            background: Rectangle { color: UiStyle.color("#17231F", UiStyle.dark); radius: 7; border.color: UiStyle.color("#465750", UiStyle.dark) }
+                            background: Rectangle { color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); radius: 7; border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode) }
                         }
 
                         Row {
@@ -528,7 +528,7 @@ ApplicationWindow {
                                 width: 40
                                 height: 40
                                 radius: 9
-                                color: UiStyle.color("#315F46", UiStyle.dark)
+                                color: UiStyle.color("#315F46", UiStyle.dark, UiStyle.mode)
 
                                 Image {
                                     id: appIcon
@@ -573,7 +573,7 @@ ApplicationWindow {
                                 Text {
                                     width: parent.width
                                     text: appCard.category + "  •  " + appCard.source.toUpperCase()
-                                    color: UiStyle.color("#709682", UiStyle.dark)
+                                    color: UiStyle.color("#709682", UiStyle.dark, UiStyle.mode)
                                     elide: Text.ElideRight
                                     font.family: "Inter"
                                     font.pixelSize: 10
@@ -591,9 +591,9 @@ ApplicationWindow {
                             height: 28
                             radius: 5
                             opacity: appCard.installed && !appCard.launchable && root.selectedCategory !== "Updates" ? 0.5 : 1
-                            color: actionMouse.containsMouse ? UiStyle.color("#397D58", UiStyle.dark) : (appCard.installed ? UiStyle.color("#2A3933", UiStyle.dark) : UiStyle.color("#28533E", UiStyle.dark))
+                            color: actionMouse.containsMouse ? UiStyle.color("#397D58", UiStyle.dark, UiStyle.mode) : (appCard.installed ? UiStyle.color("#2A3933", UiStyle.dark, UiStyle.mode) : UiStyle.color("#28533E", UiStyle.dark, UiStyle.mode))
                             border.width: 1
-                            border.color: appCard.installed ? UiStyle.color("#43554C", UiStyle.dark) : UiStyle.color("#347551", UiStyle.dark)
+                            border.color: appCard.installed ? UiStyle.color("#43554C", UiStyle.dark, UiStyle.mode) : UiStyle.color("#347551", UiStyle.dark, UiStyle.mode)
 
                             Text {
                                 anchors.centerIn: parent
@@ -616,8 +616,8 @@ ApplicationWindow {
                         Rectangle {
                             visible: appCard.installed; width: 66; height: 28
                             anchors.right: parent.right; anchors.rightMargin: 11; anchors.bottom: parent.bottom; anchors.bottomMargin: 9
-                            radius: 5; color: removeMouse.containsMouse ? UiStyle.color("#304039", UiStyle.dark) : UiStyle.color("#2A3933", UiStyle.dark)
-                            border.width: 1; border.color: UiStyle.color("#43554C", UiStyle.dark)
+                            radius: 5; color: removeMouse.containsMouse ? UiStyle.color("#304039", UiStyle.dark, UiStyle.mode) : UiStyle.color("#2A3933", UiStyle.dark, UiStyle.mode)
+                            border.width: 1; border.color: UiStyle.color("#43554C", UiStyle.dark, UiStyle.mode)
                             Text { anchors.centerIn: parent; text: qsTr("Remove"); color: root.foreground; font.pixelSize: 11 }
                             MouseArea { id: removeMouse; anchors.fill: parent; hoverEnabled: true; enabled: !storeBackend.busy; onClicked: { root.removeIdentifier = appCard.identifier; root.removeName = appCard.name; removeDialog.open() } }
                         }
@@ -675,9 +675,9 @@ ApplicationWindow {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 34
-        color: UiStyle.color("#101A17", UiStyle.dark)
+        color: UiStyle.color("#101A17", UiStyle.dark, UiStyle.mode)
         border.width: 1
-        border.color: UiStyle.color("#2B3A35", UiStyle.dark)
+        border.color: UiStyle.color("#2B3A35", UiStyle.dark, UiStyle.mode)
 
         RowLayout {
             anchors.fill: parent
@@ -688,7 +688,7 @@ ApplicationWindow {
             Text {
                 Layout.fillWidth: true
                 text: storeBackend.errorText.length > 0 ? storeBackend.errorText : storeBackend.statusText
-                color: storeBackend.errorText.length > 0 ? UiStyle.color("#FF9292", UiStyle.dark) : root.secondary
+                color: storeBackend.errorText.length > 0 ? UiStyle.color("#FF9292", UiStyle.dark, UiStyle.mode) : root.secondary
                 elide: Text.ElideRight
                 font.family: "Inter"
                 font.pixelSize: 11

@@ -9,8 +9,8 @@ Rectangle {
     objectName: "appLauncher"
     implicitWidth: 800; implicitHeight: 720
     radius: 14; antialiasing: true
-    color: Controller.darkTheme ? "#F2101A1D" : "#F6F3F8F5"
-    border.color: Controller.darkTheme ? "#66869B99" : "#8BABB6AC"
+    color: Controller.darkTheme ? Controller.themeColor("#F2101A1D", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F6F3F8F5", Controller.themeMode, Controller.darkTheme)
+    border.color: Controller.darkTheme ? Controller.themeColor("#66869B99", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#8BABB6AC", Controller.themeMode, Controller.darkTheme)
     property string page: "home"
     property string pendingPowerAction: ""
     readonly property bool searching: search.text.trim().length > 0
@@ -18,7 +18,7 @@ Rectangle {
     readonly property color foreground: Theme.text(Controller.darkTheme)
     readonly property color muted: Theme.muted(Controller.darkTheme)
     readonly property color linkColor: Controller.darkTheme ? Theme.accent : Qt.darker(Theme.accent, 1.8)
-    readonly property color hairline: Controller.darkTheme ? "#253E4545" : "#26405B49"
+    readonly property color hairline: Controller.darkTheme ? Controller.themeColor("#253E4545", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#26405B49", Controller.themeMode, Controller.darkTheme)
     readonly property var matchingFiles: Applications.recentFiles.filter(file => !searching || (file.name + " " + file.folder).toLowerCase().includes(search.text.trim().toLowerCase()))
 
     function failed() {
@@ -69,7 +69,7 @@ Rectangle {
         hoverEnabled: true; leftPadding: 16; rightPadding: 12
         background: Rectangle {
             radius: 8
-            color: navigation.selected ? (Controller.darkTheme ? "#CC234D38" : "#C9E8D6") : navigation.hovered || navigation.activeFocus ? (Controller.darkTheme ? "#304D6156" : "#DCEAE2") : "transparent"
+            color: navigation.selected ? (Controller.darkTheme ? Controller.themeColor("#CC234D38", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C9E8D6", Controller.themeMode, Controller.darkTheme)) : navigation.hovered || navigation.activeFocus ? (Controller.darkTheme ? Controller.themeColor("#304D6156", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#DCEAE2", Controller.themeMode, Controller.darkTheme)) : "transparent"
             border.color: navigation.activeFocus ? Theme.accent : "transparent"
             Rectangle { visible: navigation.selected; width: 2; height: 26; radius: 1; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; color: Theme.accent }
         }
@@ -96,8 +96,8 @@ Rectangle {
         background: Rectangle {
             radius: 9
             gradient: Gradient {
-                GradientStop { position: 0; color: Controller.darkTheme ? (tile.hovered ? "#D52B3D3C" : "#AA233031") : (tile.hovered ? "#F5FFFFFF" : "#EDF5F0") }
-                GradientStop { position: 1; color: Controller.darkTheme ? (tile.hovered ? "#C620302C" : "#99172323") : (tile.hovered ? "#E1F0E7" : "#E6EEE9") }
+                GradientStop { position: 0; color: Controller.darkTheme ? (tile.hovered ? Controller.themeColor("#D52B3D3C", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#AA233031", Controller.themeMode, Controller.darkTheme)) : (tile.hovered ? Controller.themeColor("#F5FFFFFF", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#EDF5F0", Controller.themeMode, Controller.darkTheme)) }
+                GradientStop { position: 1; color: Controller.darkTheme ? (tile.hovered ? Controller.themeColor("#C620302C", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#99172323", Controller.themeMode, Controller.darkTheme)) : (tile.hovered ? Controller.themeColor("#E1F0E7", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E6EEE9", Controller.themeMode, Controller.darkTheme)) }
             }
             border.color: tile.activeFocus ? Theme.accent : root.hairline; border.width: tile.activeFocus ? 2 : 1
         }
@@ -135,40 +135,40 @@ Rectangle {
             id: headingAction
             visible: heading.actionText.length > 0; text: heading.actionText + "  →"; flat: true; padding: 0
             contentItem: LabelText { text: headingAction.text; color: root.linkColor; font.pixelSize: 11; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { radius: 4; color: headingAction.hovered || headingAction.activeFocus ? "#224FAE72" : "transparent" }
+            background: Rectangle { radius: 4; color: headingAction.hovered || headingAction.activeFocus ? Controller.themeColor("#224FAE72", Controller.themeMode, Controller.darkTheme) : "transparent" }
             onClicked: heading.activated()
         }
     }
     component LauncherMenu: Menu {
-        palette.window: Controller.darkTheme ? "#182724" : "#F4F8F5"
-        palette.base: Controller.darkTheme ? "#182724" : "#F4F8F5"
+        palette.window: Controller.darkTheme ? Controller.themeColor("#182724", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F4F8F5", Controller.themeMode, Controller.darkTheme)
+        palette.base: Controller.darkTheme ? Controller.themeColor("#182724", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F4F8F5", Controller.themeMode, Controller.darkTheme)
         palette.text: root.foreground
         palette.windowText: root.foreground
         palette.buttonText: root.foreground
         palette.highlight: Theme.accentStrong
-        background: Rectangle { radius: 9; color: Controller.darkTheme ? "#182724" : "#F4F8F5"; border.color: root.hairline }
+        background: Rectangle { radius: 9; color: Controller.darkTheme ? Controller.themeColor("#182724", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F4F8F5", Controller.themeMode, Controller.darkTheme); border.color: root.hairline }
     }
     // Translucent tint without the cost of a continuous blur pass.
     Rectangle {
         anchors.fill: parent; anchors.margins: 1; radius: 13
         gradient: Gradient {
-            GradientStop { position: 0; color: Controller.darkTheme ? "#352D4A50" : "#30FFFFFF" }
+            GradientStop { position: 0; color: Controller.darkTheme ? Controller.themeColor("#352D4A50", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#30FFFFFF", Controller.themeMode, Controller.darkTheme) }
             GradientStop { position: 0.55; color: "transparent" }
-            GradientStop { position: 1; color: Controller.darkTheme ? "#55000805" : "#20CBE2D3" }
+            GradientStop { position: 1; color: Controller.darkTheme ? Controller.themeColor("#55000805", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#20CBE2D3", Controller.themeMode, Controller.darkTheme) }
         }
     }
     Item {
         id: sidebar
         width: 196; anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.margins: 1
-        Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 12; color: Controller.darkTheme ? "#58111A1B" : "#559BAFA2" }
+        Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 12; color: Controller.darkTheme ? Controller.themeColor("#58111A1B", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#559BAFA2", Controller.themeMode, Controller.darkTheme) }
         Rectangle { width: 1; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom; color: root.hairline }
         RowLayout {
             anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
             anchors.topMargin: 26; anchors.leftMargin: 22; anchors.rightMargin: 16; spacing: 14
             Rectangle {
                 Layout.preferredWidth: 46; Layout.preferredHeight: 46; radius: 23
-                color: Controller.darkTheme ? "#344043" : "#DFEAE4"; border.color: Controller.darkTheme ? "#A1AFAF" : "#7B9484"
-                SystemIcon { anchors.centerIn: parent; width: 35; height: 35; name: "user"; color: Controller.darkTheme ? "#D5DCDA" : "#486654" }
+                color: Controller.darkTheme ? Controller.themeColor("#344043", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#DFEAE4", Controller.themeMode, Controller.darkTheme); border.color: Controller.darkTheme ? Controller.themeColor("#A1AFAF", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#7B9484", Controller.themeMode, Controller.darkTheme)
+                SystemIcon { anchors.centerIn: parent; width: 35; height: 35; name: "user"; color: Controller.darkTheme ? Controller.themeColor("#D5DCDA", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#486654", Controller.themeMode, Controller.darkTheme) }
             }
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 3
@@ -221,7 +221,7 @@ Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: 42; leftPadding: 44; rightPadding: 34
             placeholderText: qsTr("Search apps, files, settings, and more…")
             color: root.foreground; placeholderTextColor: root.muted; font.family: Theme.fontFamily; font.pixelSize: 12; selectByMouse: true
-            background: Rectangle { radius: 10; color: Controller.darkTheme ? "#4D293739" : "#99FFFFFF"; border.color: search.activeFocus ? "#7D699388" : root.hairline }
+            background: Rectangle { radius: 10; color: Controller.darkTheme ? Controller.themeColor("#4D293739", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#99FFFFFF", Controller.themeMode, Controller.darkTheme); border.color: search.activeFocus ? Controller.themeColor("#7D699388", Controller.themeMode, Controller.darkTheme) : root.hairline }
             SystemIcon { anchors.left: parent.left; anchors.leftMargin: 14; anchors.verticalCenter: parent.verticalCenter; width: 19; height: 19; name: "search"; color: root.foreground }
             Button {
                 id: clearSearch
@@ -246,7 +246,7 @@ Rectangle {
             objectName: "launcher-preferences"; Layout.preferredWidth: 36; Layout.preferredHeight: 36; hoverEnabled: true; padding: 9
             Accessible.name: qsTr("Open settings"); ToolTip.visible: hovered; ToolTip.text: qsTr("Open settings")
             contentItem: SystemIcon { name: "preferences"; color: root.foreground }
-            background: Rectangle { radius: 8; color: preferences.hovered ? "#284D6A59" : "transparent"; border.color: root.hairline }
+            background: Rectangle { radius: 8; color: preferences.hovered ? Controller.themeColor("#284D6A59", Controller.themeMode, Controller.darkTheme) : "transparent"; border.color: root.hairline }
             onClicked: { Controller.openSettings(); Controller.launcherVisible = false }
         }
     }
@@ -293,7 +293,7 @@ Rectangle {
                             id: recommendation
                             required property var modelData
                             width: (parent.width - 20) / 3; height: 76; hoverEnabled: true; padding: 10; Accessible.name: modelData.title
-                            background: Rectangle { radius: 8; color: Controller.darkTheme ? (recommendation.hovered ? "#B02A3B35" : "#881B2827") : (recommendation.hovered ? "#FFFFFF" : "#E7EFEB"); border.color: recommendation.activeFocus ? Theme.accent : root.hairline }
+                            background: Rectangle { radius: 8; color: Controller.darkTheme ? (recommendation.hovered ? Controller.themeColor("#B02A3B35", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#881B2827", Controller.themeMode, Controller.darkTheme)) : (recommendation.hovered ? Controller.themeColor("#FFFFFF", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E7EFEB", Controller.themeMode, Controller.darkTheme)); border.color: recommendation.activeFocus ? Theme.accent : root.hairline }
                             contentItem: RowLayout {
                                 spacing: 10
                                 Rectangle {
@@ -348,7 +348,7 @@ Rectangle {
                 }
                 Rectangle {
                     width: parent.width; height: recentRows.height; radius: 8
-                    color: Controller.darkTheme ? "#661E2D29" : "#77E1EDE5"; border.color: root.hairline
+                    color: Controller.darkTheme ? Controller.themeColor("#661E2D29", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#77E1EDE5", Controller.themeMode, Controller.darkTheme); border.color: root.hairline
                     Column {
                         id: recentRows
                         width: parent.width
@@ -360,7 +360,7 @@ Rectangle {
                                 width: parent.width; height: 40; padding: 9; hoverEnabled: true
                                 objectName: "launcher-recent-file-" + modelData.row; Accessible.name: modelData.name
                                 background: Rectangle {
-                                    radius: 6; color: recent.hovered || recent.activeFocus ? "#284FAE72" : "transparent"
+                                    radius: 6; color: recent.hovered || recent.activeFocus ? Controller.themeColor("#284FAE72", Controller.themeMode, Controller.darkTheme) : "transparent"
                                     Rectangle { anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right; anchors.leftMargin: 10; anchors.rightMargin: 10; height: 1; color: root.hairline }
                                 }
                                 contentItem: RowLayout {
@@ -403,10 +403,10 @@ Rectangle {
     }
     Dialog {
         id: powerDialog
-        palette.window: Controller.darkTheme ? "#182724" : "#F4F8F5"
+        palette.window: Controller.darkTheme ? Controller.themeColor("#182724", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F4F8F5", Controller.themeMode, Controller.darkTheme)
         palette.windowText: root.foreground
         palette.text: root.foreground
-        palette.button: Controller.darkTheme ? "#294438" : "#DEEBE3"
+        palette.button: Controller.darkTheme ? Controller.themeColor("#294438", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#DEEBE3", Controller.themeMode, Controller.darkTheme)
         palette.buttonText: root.foreground
         anchors.centerIn: parent; width: 340; modal: true
         title: root.pendingPowerAction === "restart" ? qsTr("Restart this device?") : qsTr("Shut down this device?")

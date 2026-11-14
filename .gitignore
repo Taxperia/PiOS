@@ -21,6 +21,13 @@ __pycache__/
 *.py[cod]
 *.vhdx
 *.vhd
+*.ova
+*.vdi
+*.vmdk
+*.qcow2
+*.raw
+*.img
+*.iso
 *.log
 .env
 .env.*

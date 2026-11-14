@@ -29,7 +29,7 @@ GlassPanel {
     Rectangle {
         id: titleBar
         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-        height: 42; color: "#E50F1715"
+        height: 42; color: Controller.themeColor("#E50F1715", Controller.themeMode, Controller.darkTheme)
 
         MouseArea {
             anchors.left: parent.left; anchors.right: controls.left
@@ -59,7 +59,7 @@ GlassPanel {
                 property bool destructive: false
                 signal clicked
                 width: 42; height: titleBar.height
-                color: controlMouse.containsMouse ? (destructive ? "#C74646" : "#34413D") : "transparent"
+                color: controlMouse.containsMouse ? (destructive ? Controller.themeColor("#C74646", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#34413D", Controller.themeMode, Controller.darkTheme)) : "transparent"
                 Text { anchors.centerIn: parent; text: control.symbol; color: Theme.text(Controller.darkTheme); font.family: "sans-serif"; font.pixelSize: 13 }
                 MouseArea { id: controlMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: control.clicked() }
             }

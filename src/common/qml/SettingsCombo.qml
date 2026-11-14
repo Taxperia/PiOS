@@ -7,10 +7,10 @@ import QtQuick.Layouts
 QQC.ComboBox {
         id: choice; Layout.fillWidth: true; implicitHeight: 36; font.family: "Inter"; font.pixelSize: 12
         leftPadding: 11; rightPadding: 28; opacity: enabled ? 1 : 0.4
-        palette.text: Controller.darkTheme ? "#F2F7F4" : "#18261F"; palette.base: Controller.darkTheme ? "#19312E" : "#F7FCF9"
+        palette.text: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme); palette.base: Controller.darkTheme ? Controller.themeColor("#19312E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F7FCF9", Controller.themeMode, Controller.darkTheme)
         contentItem: Text { text: choice.displayText; color: choice.palette.text; font: choice.font; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         indicator: Text { anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: "⌄"; color: choice.palette.text }
-        background: Rectangle { radius: 7; color: choice.palette.base; border.width: 1; border.color: Controller.darkTheme ? "#3B5650" : "#BDCEC4" }
+        background: Rectangle { radius: 7; color: choice.palette.base; border.width: 1; border.color: Controller.darkTheme ? Controller.themeColor("#3B5650", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BDCEC4", Controller.themeMode, Controller.darkTheme) }
         // A standalone component keeps popup delegates out of Qt 6.8's nested
         // inline-component incubator, which aborts when this menu is opened.
         popup: QQC.Popup {
@@ -18,7 +18,7 @@ QQC.ComboBox {
             popupType: QQC.Popup.Item
             y: choice.height+4; width: choice.width; padding: 4
             implicitHeight: Math.min(240, options.contentHeight+8)
-            background: Rectangle { radius: 8; color: choice.palette.base; border.width: 1; border.color: Controller.darkTheme ? "#3B5650" : "#BDCEC4" }
+            background: Rectangle { radius: 8; color: choice.palette.base; border.width: 1; border.color: Controller.darkTheme ? Controller.themeColor("#3B5650", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BDCEC4", Controller.themeMode, Controller.darkTheme) }
             contentItem: ListView {
                 id: options; clip: true; implicitHeight: contentHeight
                 model: choice.model; currentIndex: choice.highlightedIndex

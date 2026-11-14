@@ -26,8 +26,8 @@ Item {
                 Layout.fillWidth: true
                 TextField {
                     id: search; objectName: "installedAppsSearch"; Layout.fillWidth: true; implicitHeight: 38
-                    placeholderText: qsTr("Ad veya paket kimliğiyle ara…"); color: Controller.darkTheme ? "#F2F7F4" : "#18261F"; placeholderTextColor: "#82998C"; selectByMouse: true
-                    background: Rectangle { radius: 8; color: Controller.darkTheme ? "#102825" : "#F4FAF6"; border.width: 1; border.color: search.activeFocus ? Controller.accentColor : (Controller.darkTheme ? "#426053" : "#BDCEC4") }
+                    placeholderText: qsTr("Ad veya paket kimliğiyle ara…"); color: Controller.darkTheme ? Controller.themeColor("#F2F7F4", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#18261F", Controller.themeMode, Controller.darkTheme); placeholderTextColor: Controller.themeColor("#82998C", Controller.themeMode, Controller.darkTheme); selectByMouse: true
+                    background: Rectangle { radius: 8; color: Controller.darkTheme ? Controller.themeColor("#102825", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#F4FAF6", Controller.themeMode, Controller.darkTheme); border.width: 1; border.color: search.activeFocus ? Controller.accentColor : (Controller.darkTheme ? Controller.themeColor("#426053", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#BDCEC4", Controller.themeMode, Controller.darkTheme)) }
                 }
                 SettingsControls.Button { text: hub.refreshing ? qsTr("Taranıyor…") : qsTr("Yenile"); enabled: !hub.refreshing; onClicked: hub.refresh() }
             }
@@ -53,6 +53,6 @@ Item {
             SettingsControls.Link { visible: (root.selected.flatpak || "").length>0; label: qsTr("Uygulama izinleri"); hint: qsTr("Flatpak erişimlerini ve portal kamera iznini yönet"); onTriggered: root.navigate("Privacy/Permissions") }
         }
         Loader { active: root.page === "Applications/Defaults"; visible: active; Layout.fillWidth: true; Layout.preferredHeight: item ? item.implicitHeight : 0; sourceComponent: Component { OtherSettingsPage { category: "Applications" } } }
-        SettingsControls.Caption { visible: hub.error.length>0; text: hub.error; color: Controller.darkTheme ? "#FFB3A3" : "#A43138" }
+        SettingsControls.Caption { visible: hub.error.length>0; text: hub.error; color: Controller.darkTheme ? Controller.themeColor("#FFB3A3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#A43138", Controller.themeMode, Controller.darkTheme) }
     }
 }

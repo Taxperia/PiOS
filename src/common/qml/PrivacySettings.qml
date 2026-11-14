@@ -99,6 +99,6 @@ Item {
             SettingsControls.Card { SettingsControls.Title { text: qsTr("Parola kasası") } SettingsControls.Caption { text: qsTr("Kurulu KeePassXC veya Seahorse ile parolalarını yönet. Kasaların içeriği bu ayarlar uygulamasına okunmaz.") } SettingsControls.Button { text: qsTr("Parola yöneticisini aç"); enabled: SettingsData.toolAvailable("credentials"); onClicked: SettingsData.openTool("credentials") } }
             SettingsControls.Card { SettingsControls.Title { text: qsTr("Geçiş anahtarları · FIDO/WebAuthn") } SettingsControls.Caption { text: qsTr("Geçiş anahtarları destekleyen tarayıcı, parola yöneticisi veya güvenlik anahtarıyla yönetilir. PiOS şu anda bütün sağlayıcıları kapsayan yerleşik bir geçiş anahtarı kasası sunmuyor.") } }
         }
-        SettingsControls.Caption { visible: hub.error.length>0; text: hub.error; color: Controller.darkTheme ? "#FFB3A3" : "#A43138" }
+        SettingsControls.Caption { visible: hub.error.length>0; text: hub.error; color: Controller.darkTheme ? Controller.themeColor("#FFB3A3", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#A43138", Controller.themeMode, Controller.darkTheme) }
     }
 }

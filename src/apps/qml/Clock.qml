@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Item {
     id: root
     objectName: "clockPage"
-    readonly property color foreground: UiStyle.color("#F2F7F4",UiStyle.dark)
+    readonly property color foreground: UiStyle.color("#F2F7F4", UiStyle.dark, UiStyle.mode)
     property int tab: 0
     property bool finished: false
     function duration(ms) { const seconds=Math.floor(ms/1000); return String(Math.floor(seconds/3600)).padStart(2,"0")+":"+String(Math.floor(seconds/60)%60).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0") }
@@ -23,16 +23,16 @@ Item {
             ColumnLayout {
                 spacing: 20
                 Rectangle {
-                    Layout.fillWidth: true; Layout.preferredHeight: 170; radius: 15; color: UiStyle.color("#17231F",UiStyle.dark); border.color: UiStyle.color("#465750",UiStyle.dark)
-                    Column { anchors.centerIn: parent; spacing: 8; Text { text: "YEREL SAAT"; color: UiStyle.color("#63DE8A",UiStyle.dark); font.pixelSize: 11; anchors.horizontalCenter: parent.horizontalCenter } Text { text: ClockData.time; color: root.foreground; font.pixelSize: 62; font.weight: Font.Light; anchors.horizontalCenter: parent.horizontalCenter } Text { text: ClockData.date; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 14; anchors.horizontalCenter: parent.horizontalCenter } }
+                    Layout.fillWidth: true; Layout.preferredHeight: 170; radius: 15; color: UiStyle.color("#17231F", UiStyle.dark, UiStyle.mode); border.color: UiStyle.color("#465750", UiStyle.dark, UiStyle.mode)
+                    Column { anchors.centerIn: parent; spacing: 8; Text { text: "YEREL SAAT"; color: UiStyle.color("#63DE8A", UiStyle.dark, UiStyle.mode); font.pixelSize: 11; anchors.horizontalCenter: parent.horizontalCenter } Text { text: ClockData.time; color: root.foreground; font.pixelSize: 62; font.weight: Font.Light; anchors.horizontalCenter: parent.horizontalCenter } Text { text: ClockData.date; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 14; anchors.horizontalCenter: parent.horizontalCenter } }
                 }
                 GridLayout {
                     columns: 3; columnSpacing: 12; rowSpacing: 12; Layout.fillWidth: true; Layout.fillHeight: true
                     Repeater {
                         model: ClockData.cities
                         delegate: Rectangle {
-                            required property var modelData; Layout.fillWidth: true; Layout.fillHeight: true; radius: 12; color: UiStyle.color("#111C19",UiStyle.dark)
-                            Column { anchors.fill: parent; anchors.margins: 18; spacing: 8; Text { text: modelData.name; color: root.foreground; font.pixelSize: 15 } Text { text: modelData.time; color: root.foreground; font.pixelSize: 32 } Text { text: modelData.date+" · "+modelData.zone; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 11 } }
+                            required property var modelData; Layout.fillWidth: true; Layout.fillHeight: true; radius: 12; color: UiStyle.color("#111C19", UiStyle.dark, UiStyle.mode)
+                            Column { anchors.fill: parent; anchors.margins: 18; spacing: 8; Text { text: modelData.name; color: root.foreground; font.pixelSize: 15 } Text { text: modelData.time; color: root.foreground; font.pixelSize: 32 } Text { text: modelData.date+" · "+modelData.zone; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 11 } }
                         }
                     }
                 }
@@ -41,7 +41,7 @@ Item {
                 spacing: 20
                 Item { Layout.fillHeight: true }
                 Text { Layout.alignment: Qt.AlignHCenter; text: root.duration(ClockData.elapsed); color: root.foreground; font.pixelSize: 68; font.weight: Font.Light }
-                Text { Layout.alignment: Qt.AlignHCenter; text: String(Math.floor(ClockData.elapsed%1000/10)).padStart(2,"0"); color: UiStyle.color("#63DE8A",UiStyle.dark); font.pixelSize: 30 }
+                Text { Layout.alignment: Qt.AlignHCenter; text: String(Math.floor(ClockData.elapsed%1000/10)).padStart(2,"0"); color: UiStyle.color("#63DE8A", UiStyle.dark, UiStyle.mode); font.pixelSize: 30 }
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter; spacing: 12
                     AppButton { text: ClockData.running ? "Duraklat" : "Başlat"; accent: true; onClicked: ClockData.toggleStopwatch() }
@@ -67,7 +67,7 @@ Item {
                     AppButton { text: ClockData.counting ? "Duraklat" : ClockData.remaining > 0 ? "Devam et" : "Başlat"; accent: true; enabled: ClockData.remaining > 0 || hours.value+minutes.value+seconds.value > 0; onClicked: { root.finished=false; if(ClockData.counting) ClockData.pauseTimer(); else if(ClockData.remaining>0) ClockData.resumeTimer(); else ClockData.startTimer(hours.value*3600+minutes.value*60+seconds.value) } }
                     AppButton { text: "İptal"; onClicked: { ClockData.cancelTimer(); root.finished=false } }
                 }
-                Text { Layout.alignment: Qt.AlignHCenter; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: "Sayaç çalışırken uygulamayı açık veya küçültülmüş tut.\nBilgisayarın uyuması bildirimi geciktirebilir."; color: UiStyle.color("#9FB2A8",UiStyle.dark); font.pixelSize: 12; wrapMode: Text.Wrap }
+                Text { Layout.alignment: Qt.AlignHCenter; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: "Sayaç çalışırken uygulamayı açık veya küçültülmüş tut.\nBilgisayarın uyuması bildirimi geciktirebilir."; color: UiStyle.color("#9FB2A8", UiStyle.dark, UiStyle.mode); font.pixelSize: 12; wrapMode: Text.Wrap }
                 Item { Layout.fillHeight: true }
             }
         }

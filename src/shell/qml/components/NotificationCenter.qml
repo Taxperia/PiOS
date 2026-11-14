@@ -39,7 +39,7 @@ GlassPanel {
                 }
                 background: Rectangle {
                     radius: 6
-                    color: clearButton.hovered ? (Controller.darkTheme ? "#315F46" : "#C7E5D3") : "transparent"
+                    color: clearButton.hovered ? (Controller.darkTheme ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C7E5D3", Controller.themeMode, Controller.darkTheme)) : "transparent"
                 }
             }
             IconButton {
@@ -65,7 +65,7 @@ GlassPanel {
                 width: historyList.width
                 height: Math.max(76, messageColumn.implicitHeight + 24)
                 radius: Theme.radiusMedium
-                color: Controller.darkTheme ? "#C1222C28" : "#E7F0EB"
+                color: Controller.darkTheme ? Controller.themeColor("#C1222C28", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#E7F0EB", Controller.themeMode, Controller.darkTheme)
                 border.width: 1
                 border.color: Theme.border(Controller.darkTheme)
 
@@ -126,7 +126,7 @@ GlassPanel {
                                 text: modelData.label || qsTr("Open")
                                 onClicked: Notifications.invokeAction(notificationCard.modelData.id, modelData.key)
                                 contentItem: Text { text: notificationAction.text; color: Theme.text(Controller.darkTheme); font.pixelSize: 11 }
-                                background: Rectangle { radius: 5; color: Controller.darkTheme ? "#315F46" : "#C7E5D3" }
+                                background: Rectangle { radius: 5; color: Controller.darkTheme ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#C7E5D3", Controller.themeMode, Controller.darkTheme) }
                             }
                         }
                     }

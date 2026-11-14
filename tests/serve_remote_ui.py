@@ -44,6 +44,9 @@ class Handler(BaseHTTPRequestHandler):
     native_socket = None
     keepalives = 0
     renewal = True
+    login_requests = 0
+    cooldown = False
+    username = ''
 
     def log_message(self, *args):
         pass
@@ -66,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
             if not Handler.role:
                 return self.reply({'error': 'Sign in again'}, 401)
             return self.reply({'role': Handler.role, 'csrf': 'test-only', 'mode': Handler.mode, 'sessionRenewal':Handler.renewal})
-        if path == '/__test/state':return self.reply({'keepalives':Handler.keepalives})
+        if path == '/__test/state':return self.reply({'keepalives':Handler.keepalives,'loginRequests':Handler.login_requests,'username':Handler.username})
         if path == '/desktop-socket' and self.native_socket and Handler.role:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as desktop:
                 desktop.connect(str(self.native_socket))
@@ -114,8 +117,13 @@ class Handler(BaseHTTPRequestHandler):
             Handler.role = body.get('role', '')
             Handler.state = body.get('state', {'step': 1})
             Handler.keepalives=0;Handler.renewal=body.get('renewal',True)
+            Handler.login_requests=0;Handler.cooldown=body.get('cooldown',False);Handler.username=''
             return self.reply({'ok': True})
         if path == '/api/login':
+            Handler.login_requests+=1;Handler.username=body.get('username','')
+            if Handler.cooldown:
+                Handler.cooldown=False
+                return self.reply({'error':'Wait a minute before trying again','retryAfter':2},429)
             time.sleep(.15)
             if body.get('password') != 'fixture-password':
                 return self.reply({'error': 'Sign-in failed'}, 401)

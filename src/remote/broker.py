@@ -22,9 +22,16 @@ SESSION_IDLE_SECONDS=20*60
 SESSION_MAX_SECONDS=8*3600
 
 
+def canonical_username(value):
+    if not isinstance(value,str) or not value.isascii():return None
+    value=value.strip().lower()
+    return value if USER.fullmatch(value) else None
+
+
 def authenticate(username, password):
     import PAM
-    if not isinstance(username, str) or not USER.fullmatch(username) or not isinstance(password, str) or not 1 <= len(password) <= 256 or '\0' in password:
+    username=canonical_username(username)
+    if username is None or not isinstance(password, str) or not 1 <= len(password) <= 256 or '\0' in password:
         return None
     try:
         account = pwd.getpwnam(username)
@@ -175,6 +182,8 @@ class Broker:
                 uid = account.pw_uid
             else:
                 if not self.paths.complete or not self.paths.enabled: raise PermissionError('Desktop access is disabled')
+                username=canonical_username(username)
+                if username is None:raise PermissionError('Sign-in failed')
                 uid = self.authenticate(username, password)
                 if uid is None or uid < 1000: raise PermissionError('Sign-in failed')
             token = secrets.token_urlsafe(32); self.sessions[token] = (uid, now+SESSION_IDLE_SECONDS, 'setup' if setup else 'desktop', now+SESSION_MAX_SECONDS)

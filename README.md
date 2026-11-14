@@ -115,6 +115,7 @@ python3 scripts/build-image --build
 ```
 
 See [development setup](docs/development.md), [architecture](docs/architecture.md),
+[Türkçe kod düzenleme rehberi](docs/kod-duzenleme.md),
 [headless management](docs/headless-management.md),
 [store catalog management](docs/store-catalog.md),
 [expanded settings and wallpaper setup](docs/settings-expanded.md),

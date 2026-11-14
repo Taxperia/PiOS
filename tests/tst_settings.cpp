@@ -62,6 +62,24 @@ private slots:
         first.setLockWallpaperUrl(QUrl::fromLocalFile(home.filePath("lock photo.png")).toString());
         QVERIFY(!first.lockWallpaperUrl().isEmpty()); const auto saved=first.lockWallpaperUrl(); first.setLockWallpaperUrl("https://invalid.example/photo.png"); QCOMPARE(first.lockWallpaperUrl(),saved);
     }
+    void originalGreenMigratesAndBlackUpdatesLiveWithoutChangingAccent() {
+        QVERIFY(QDir().mkpath(home.filePath("fidan")));
+        QSettings legacy(home.filePath("fidan/shell.conf"),QSettings::IniFormat);
+        legacy.setValue("appearance/themeMode","dark");legacy.setValue("appearance/darkTheme",true);legacy.sync();
+        ShellController controller(true,true);QCOMPARE(controller.themeMode(),"green");
+        QQmlEngine engine;engine.rootContext()->setContextProperty("Controller",&controller);
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nRectangle {color:Controller.themeColor(\"#132A27\",Controller.themeMode,Controller.darkTheme)}",QUrl());
+        std::unique_ptr<QObject> item(component.create());QVERIFY2(item,qPrintable(component.errorString()));
+        QCOMPARE(item->property("color").value<QColor>(),QColor("#132A27"));
+        controller.setAccentColor("#ed449a");controller.setThemeMode("dark");
+        const QColor black=item->property("color").value<QColor>();
+        QCOMPARE(black.red(),black.green());QCOMPARE(black.green(),black.blue());QVERIFY(black.lightness()<40);
+        QCOMPARE(controller.accentColor(),"#ed449a");
+        QCOMPARE(controller.themeColor("#D20D1714","dark",true).alpha(),255);
+        ShellController restored(true,true);QCOMPARE(restored.themeMode(),"dark");
+        controller.setThemeMode("green");QCOMPARE(item->property("color").value<QColor>(),QColor("#132A27"));
+    }
     void welcomeResumesAndKeepsUserPreferences() {
         qputenv("PATH", "/nonexistent"); // Read-only controller test; do not start desktop helper processes.
         ShellController first(false, false);
@@ -170,6 +188,14 @@ private slots:
         auto *light=visual(window->contentItem(),"theme-light"); QVERIFY(light);
         QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,light->mapToScene(QPointF(light->width()/2,light->height()/2)).toPoint());
         QCOMPARE(controller.themeMode(),"light"); QVERIFY(!controller.darkTheme());
+        for(const QString &mode:{QStringLiteral("green"),QStringLiteral("dark")}) {
+            auto *option=visual(window->contentItem(),"theme-"+mode);QVERIFY(option);
+            QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,option->mapToScene(QPointF(option->width()/2,option->height()/2)).toPoint());
+            QCOMPARE(controller.themeMode(),mode);QTest::qWait(80);
+            const QString output=qEnvironmentVariable("FIDAN_THEME_CAPTURE_DIR");
+            if(!output.isEmpty()){QVERIFY(QDir().mkpath(output));QVERIFY(window->grabWindow().save(output+"/settings-"+mode+".png"));}
+        }
+        controller.setThemeMode("light");
         for(const auto &page:pages) {
             settings->setProperty("selectedCategory",page); QTest::qWait(80);
             QVERIFY2(warnings.isEmpty(),qPrintable(page+": "+warnings.join('\n')));

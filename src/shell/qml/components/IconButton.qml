@@ -19,7 +19,7 @@ Rectangle {
     implicitWidth: compact ? 30 : 42
     implicitHeight: compact ? 30 : 42
     radius: compact ? 8 : 10
-    color: active ? Theme.accentStrong : (mouse.containsMouse ? "#3B45504B" : "transparent")
+    color: active ? Theme.accentStrong : (mouse.containsMouse ? Controller.themeColor("#3B45504B", Controller.themeMode, Controller.darkTheme) : "transparent")
     border.width: active ? 1 : (activeFocus ? 2 : 0)
     border.color: Theme.accent
 

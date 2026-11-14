@@ -49,7 +49,7 @@ GlassPanel {
         anchors.right: parent.right
         anchors.top: parent.top
         height: 42
-        color: "#ED0E1715"
+        color: Controller.themeColor("#ED0E1715", Controller.themeMode, Controller.darkTheme)
 
         MouseArea {
             anchors.left: parent.left
@@ -93,7 +93,7 @@ GlassPanel {
                 signal clicked
                 width: 42
                 height: titleBar.height
-                color: controlMouse.containsMouse ? (destructive ? "#C74646" : "#34413D") : "transparent"
+                color: controlMouse.containsMouse ? (destructive ? Controller.themeColor("#C74646", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#34413D", Controller.themeMode, Controller.darkTheme)) : "transparent"
                 Text { anchors.centerIn: parent; text: control.symbol; color: Theme.text(Controller.darkTheme); font.family: "sans-serif"; font.pixelSize: 13 }
                 MouseArea { id: controlMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: control.clicked() }
             }
@@ -110,9 +110,9 @@ GlassPanel {
         anchors.top: titleBar.bottom
         anchors.bottom: footer.top
         width: 166
-        color: "#E50E1715"
+        color: Controller.themeColor("#E50E1715", Controller.themeMode, Controller.darkTheme)
         border.width: 1
-        border.color: "#304B5550"
+        border.color: Controller.themeColor("#304B5550", Controller.themeMode, Controller.darkTheme)
 
         Column {
             anchors.fill: parent
@@ -144,7 +144,7 @@ GlassPanel {
                     width: parent.width
                     height: 34
                     radius: 7
-                    color: root.selectedCategory === modelData.title ? "#315F46" : (categoryMouse.containsMouse ? "#25342F" : "transparent")
+                    color: root.selectedCategory === modelData.title ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : (categoryMouse.containsMouse ? Controller.themeColor("#25342F", Controller.themeMode, Controller.darkTheme) : "transparent")
                     Row {
                         anchors.left: parent.left
                         anchors.leftMargin: 9
@@ -175,7 +175,7 @@ GlassPanel {
                     width: parent.width
                     height: 34
                     radius: 7
-                    color: root.selectedCategory === modelData.title ? "#315F46" : (libraryMouse.containsMouse ? "#25342F" : "transparent")
+                    color: root.selectedCategory === modelData.title ? Controller.themeColor("#315F46", Controller.themeMode, Controller.darkTheme) : (libraryMouse.containsMouse ? Controller.themeColor("#25342F", Controller.themeMode, Controller.darkTheme) : "transparent")
                     Row {
                         anchors.left: parent.left; anchors.leftMargin: 9
                         anchors.verticalCenter: parent.verticalCenter
@@ -189,7 +189,7 @@ GlassPanel {
                         anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         width: 20; height: 20; radius: 10; color: Theme.accent
-                        Text { anchors.centerIn: parent; text: "2"; color: "#0B2015"; font.family: Theme.fontFamily; font.pixelSize: 9; font.weight: Font.Bold }
+                        Text { anchors.centerIn: parent; text: "2"; color: Controller.themeColor("#0B2015", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 9; font.weight: Font.Bold }
                     }
                     MouseArea {
                         id: libraryMouse
@@ -209,7 +209,7 @@ GlassPanel {
         anchors.right: parent.right
         anchors.top: titleBar.bottom
         anchors.bottom: footer.top
-        color: "#F00B1412"
+        color: Controller.themeColor("#F00B1412", Controller.themeMode, Controller.darkTheme)
 
         TextField {
             id: search
@@ -229,7 +229,7 @@ GlassPanel {
             onTextChanged: root.searchText = text
             background: Rectangle {
                 radius: 7
-                color: "#B9232E2A"
+                color: Controller.themeColor("#B9232E2A", Controller.themeMode, Controller.darkTheme)
                 border.width: search.activeFocus ? 1 : 0
                 border.color: Theme.accent
             }
@@ -259,13 +259,13 @@ GlassPanel {
                     height: 132
                     radius: 11
                     visible: root.selectedCategory === "Featured" && root.searchText.length === 0
-                    color: "#183E31"
+                    color: Controller.themeColor("#183E31", Controller.themeMode, Controller.darkTheme)
                     border.width: 1
-                    border.color: "#356B54"
+                    border.color: Controller.themeColor("#356B54", Controller.themeMode, Controller.darkTheme)
                     clip: true
 
-                    Rectangle { x: parent.width * 0.58; y: -42; width: 230; height: 230; radius: 115; color: "#17382D"; rotation: 12 }
-                    Rectangle { x: parent.width * 0.72; y: -18; width: 170; height: 170; radius: 85; color: "#1D4938"; rotation: -16 }
+                    Rectangle { x: parent.width * 0.58; y: -42; width: 230; height: 230; radius: 115; color: Controller.themeColor("#17382D", Controller.themeMode, Controller.darkTheme); rotation: 12 }
+                    Rectangle { x: parent.width * 0.72; y: -18; width: 170; height: 170; radius: 85; color: Controller.themeColor("#1D4938", Controller.themeMode, Controller.darkTheme); rotation: -16 }
                     Column {
                         anchors.left: parent.left
                         anchors.leftMargin: 20
@@ -273,10 +273,10 @@ GlassPanel {
                         width: parent.width * 0.56
                         spacing: 5
                         Text { text: qsTr("Tools for a bigger imagination"); color: "white"; font.family: Theme.fontFamily; font.pixelSize: 18; font.weight: Font.Bold }
-                        Text { width: parent.width; text: qsTr("Apps for coding, making, learning and more on Raspberry Pi 5."); color: "#D3E3DB"; font.family: Theme.fontFamily; font.pixelSize: 10; wrapMode: Text.Wrap }
+                        Text { width: parent.width; text: qsTr("Apps for coding, making, learning and more on Raspberry Pi 5."); color: Controller.themeColor("#D3E3DB", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10; wrapMode: Text.Wrap }
                         Rectangle {
                             width: 100; height: 30; radius: 6; color: Theme.accent
-                            Text { anchors.centerIn: parent; text: qsTr("Browse Apps"); color: "#0B2415"; font.family: Theme.fontFamily; font.pixelSize: 10; font.weight: Font.DemiBold }
+                            Text { anchors.centerIn: parent; text: qsTr("Browse Apps"); color: Controller.themeColor("#0B2415", Controller.themeMode, Controller.darkTheme); font.family: Theme.fontFamily; font.pixelSize: 10; font.weight: Font.DemiBold }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.selectedCategory = "All Apps" }
                         }
                     }
@@ -329,9 +329,9 @@ GlassPanel {
                             width: Math.floor((appFlow.width - 18) / 3)
                             height: included ? 112 : 0
                             radius: 9
-                            color: cardMouse.containsMouse ? "#E52B3934" : "#DB202C28"
+                            color: cardMouse.containsMouse ? Controller.themeColor("#E52B3934", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#DB202C28", Controller.themeMode, Controller.darkTheme)
                             border.width: 1
-                            border.color: "#34473F"
+                            border.color: Controller.themeColor("#34473F", Controller.themeMode, Controller.darkTheme)
 
                             Row {
                                 anchors.left: parent.left
@@ -356,8 +356,8 @@ GlassPanel {
                                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                                 anchors.leftMargin: 11; anchors.rightMargin: 11; anchors.bottomMargin: 9
                                 height: 27; radius: 5
-                                color: installMouse.containsMouse ? "#397D58" : (appCard.installed && !appCard.updateAvailable ? "#283B34" : "#28533E")
-                                border.width: 1; border.color: appCard.installed && !appCard.updateAvailable ? "#40534A" : "#347551"
+                                color: installMouse.containsMouse ? Controller.themeColor("#397D58", Controller.themeMode, Controller.darkTheme) : (appCard.installed && !appCard.updateAvailable ? Controller.themeColor("#283B34", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#28533E", Controller.themeMode, Controller.darkTheme))
+                                border.width: 1; border.color: appCard.installed && !appCard.updateAvailable ? Controller.themeColor("#40534A", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#347551", Controller.themeMode, Controller.darkTheme)
                                 Text {
                                     anchors.centerIn: parent
                                     text: appCard.installing ? qsTr("Installing…") : (appCard.updateAvailable ? qsTr("Update") : (appCard.installed ? qsTr("Open") : qsTr("Install")))
@@ -418,9 +418,9 @@ GlassPanel {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 31
-        color: "#ED0E1715"
+        color: Controller.themeColor("#ED0E1715", Controller.themeMode, Controller.darkTheme)
         border.width: 1
-        border.color: "#304B5550"
+        border.color: Controller.themeColor("#304B5550", Controller.themeMode, Controller.darkTheme)
         Text {
             anchors.left: parent.left
             anchors.leftMargin: 178

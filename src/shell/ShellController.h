@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QStringList>
 #include <QVariantList>
+#include <QColor>
 
 class QTimer;
 class QProcess;
@@ -81,6 +82,7 @@ public:
     void setDarkTheme(bool darkTheme);
     QString themeMode() const { return m_themeMode; }
     void setThemeMode(const QString &value);
+    Q_INVOKABLE QColor themeColor(const QString &value,const QString &mode,bool dark) const;
     QString accentColor() const { return m_accentColor; }
     void setAccentColor(const QString &value);
     QString dockPosition() const { return m_dockPosition; }
@@ -247,7 +249,7 @@ private:
     bool m_previewMode = false;
     bool m_mockMode = false;
     bool m_darkTheme = true;
-    QString m_themeMode = QStringLiteral("dark");
+    QString m_themeMode = QStringLiteral("green");
     QString m_accentColor = QStringLiteral("#63de8a");
     QString m_dockPosition = QStringLiteral("left");
     QString m_lockWallpaperUrl;

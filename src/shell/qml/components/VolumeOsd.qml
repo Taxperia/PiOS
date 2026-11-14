@@ -60,7 +60,7 @@ GlassPanel {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 6
                 radius: 3
-                color: Controller.darkTheme ? "#384B433E" : "#3054645C"
+                color: Controller.darkTheme ? Controller.themeColor("#384B433E", Controller.themeMode, Controller.darkTheme) : Controller.themeColor("#3054645C", Controller.themeMode, Controller.darkTheme)
                 Rectangle {
                     width: parent.width * root.level / 100
                     height: parent.height
